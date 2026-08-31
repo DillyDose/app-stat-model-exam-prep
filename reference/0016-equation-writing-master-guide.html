@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Master Guide — เขียนสมการโมเดลจาก R Output</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 16 · Master Guide</span>
+  <span><a href="../exams/drill-01-write-the-equation.html">ฝึกด้วย Drill 1: Write the Equation →</a></span>
+</nav>
+
+<p class="kicker">รวมทุก Lecture — จาก R Output สู่สมการโมเดล</p>
+<h1>อ่าน R Output แล้วเขียนสมการโมเดล — Master Guide ทุกตระกูลในวิชานี้</h1>
+
+<p>ข้อสอบไม่ให้เขียนโค้ด R แต่ให้ <code>summary()</code>/<code>glm()</code> output มาแล้วให้เขียนสมการที่ fit ได้ — ทักษะนี้คือการ<strong>จับคู่แถวในตาราง Coefficients เข้ากับพจน์ในสมการ</strong> แผ่นนี้รวมทุกตระกูลโมเดลในวิชา พร้อมตัวอย่างตัวเลขจริงจากสไลด์ของอาจารย์</p>
+
+<div class="box win">
+<div class="label">ขั้นตอนสากล 3 ขั้น (ใช้กับทุกโมเดล)</div>
+<ol style="margin:0.5em 0">
+<li><strong>ระบุ family + link function</strong> จากฟังก์ชันที่เรียก — <code>lm()</code>=identity link (ตรงตัว), <code>glm(family=binomial)</code>=logit, <code>glm(family=poisson)</code>=log, <code>lmer()</code>=identity+random effect, <code>multinom()</code>/<code>polr()</code>=logit แบบพิเศษ</li>
+<li><strong>อ่านคอลัมน์ Estimate ทีละแถว</strong> จับชื่อแถวกับตัวแปร — ระวัง 3 กับดัก: (a) พจน์ dummy จะถูกตั้งชื่อ <code>ตัวแปรชื่อกลุ่ม</code> เช่น <code>InsulAfter</code> ไม่ใช่ <code>Insul</code> เฉย ๆ — กลุ่มที่หายไปคือ reference level (b) พจน์ยกกำลัง <code>I(x^2)</code> คือพจน์แยกต่างหาก ไม่ใช่ตัวแปรใหม่ (c) พจน์ปฏิสัมพันธ์ <code>x1:x2</code> คูณกันในสมการ</li>
+<li><strong>ประกอบสมการให้ครบ ใส่ link function/back-transform ให้ถูก</strong> — GLM เขียนฝั่งซ้ายเป็น \(g(\mu)\) ไม่ใช่ \(\hat{Y}\) ตรง ๆ (เช่น logistic เขียน \(\text{logit}(\hat\pi)=\ldots\) ไม่ใช่ \(\hat\pi=\ldots\) ตรง ๆ)</li>
+</ol>
+</div>
+
+<h2>1. Simple Linear Regression (Lecture 1)</h2>
+<pre><code>Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   23.333      6.873   3.395  0.00943 **
+x              3.394      1.108   3.064  0.01548 *</code></pre>
+<p>อ่านตรง ๆ: \(\hat\beta_0=23.333\), \(\hat\beta_1=3.394\) →</p>
+<div class="box">\[\hat{Y} = 23.333 + 3.394X\]</div>
+
+<h2>2. Multiple Linear Regression + Dummy + Interaction (Lecture 2, whiteside)</h2>
+<pre><code>Coefficients:
+               Estimate Std. Error t value Pr(>|t|)
+(Intercept)     6.85383    0.13596  50.409  < 2e-16 ***
+InsulAfter     -2.12998    0.18009 -11.827 2.32e-16 ***
+Temp           -0.39324    0.02249 -17.487  < 2e-16 ***
+InsulAfter:Temp 0.11530    0.03211   3.591 0.000731 ***</code></pre>
+<p>แถว <code>InsulAfter</code> ไม่ใช่ <code>Insul</code> เฉย ๆ — R เลือก "Before" เป็น reference level (เรียงตามตัวอักษร) สมการเต็ม:</p>
+<div class="box">\[\widehat{Gas} = 6.85383 - 2.12998\,\mathbb{1}[\text{After}] - 0.39324\,Temp + 0.11530\,\mathbb{1}[\text{After}]\times Temp\]</div>
+<p>แยกตามกลุ่ม: Before (\(\mathbb{1}=0\)): \(\widehat{Gas}=6.85383-0.39324\,Temp\) &nbsp; After (\(\mathbb{1}=1\)): \(\widehat{Gas}=(6.85383-2.12998)+(-0.39324+0.11530)Temp = 4.72385-0.27794\,Temp\) — สังเกตว่า slope เปลี่ยนด้วย (interaction) ไม่ใช่แค่ intercept เลื่อน</p>
+
+<h2>3. Polynomial Regression (Lecture 2/3, corn yield)</h2>
+<pre><code>Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept)   -5.01467   11.44158  -0.438  0.66387
+RAINFALL       6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2) -0.22936    0.08864  -2.588  0.01397 *</code></pre>
+<div class="box">\[\widehat{YIELD} = -5.01467 + 6.00428\,RAINFALL - 0.22936\,RAINFALL^2\]</div>
+<p><strong>กับดัก:</strong> ห้ามตัด intercept ทิ้งแม้ p=0.664 ไม่มีนัยสำคัญ — RAINFALL กับ RAINFALL² เป็นตัวแปรเดียวกัน ตัดพจน์ไหนออกจะบิดรูปทรงเส้นโค้งทั้งเส้น</p>
+
+<h2>4. Robust Regression — เปลี่ยน "Estimate" เป็น "Value" (Lecture 3/4)</h2>
+<pre><code>Coefficients:
+                Value    Std. Error t value
+(Intercept)     -15.1294   1.8190    -8.3176
+log(Area)         0.1417   0.0455     3.1118
+log(Population)   1.2715   0.1214    10.4698</code></pre>
+<p><code>rlm()</code> เปลี่ยนหัวคอลัมน์เป็น <strong>Value</strong> แทน Estimate แต่วิธีอ่านเหมือนเดิม — เขียนสมการเหมือน OLS ทุกประการ เพียงไม่มีคอลัมน์ p-value ให้ในตารางหลัก (ต้องเรียกฟังก์ชันแยกต่างหาก):</p>
+<div class="box">\[\widehat{\log(CO2)} = -15.1294 + 0.1417\log(Area) + 1.2715\log(Population) + \cdots\]</div>
+
+<h2>5. Model Selection — สมการสุดท้ายจาก Stepwise Output (Lecture 5, mtcars)</h2>
+<p>Stepwise/forward selection แสดงผลเป็น Parameter Estimates ของโมเดลที่เลือกได้ท้ายสุด: <code>Intercept=39.686</code>, <code>wt=-3.191</code>, <code>cyl=-1.508</code></p>
+<div class="box win">\[\widehat{mpg} = 39.686 - 3.191\,wt - 1.508\,cyl\]</div>
+<p><strong>ข้อควรระวัง:</strong> Forward/Backward/Stepwise อาจให้ชุดตัวแปรไม่เหมือนกัน (คนละเส้นทางค้นหา) — ต้องดูว่าโจทย์ให้ output ของวิธีไหนมา อย่าสมมติว่าทุกวิธีต้องได้สมการเดียวกัน</p>
+
+<h2>6. ANOVA: Cell-Means vs Factor-Effects Parameterization (Lecture 6)</h2>
+<p>ข้อมูลเดียวกัน (bakesale) fit ได้ 2 แบบ ให้สมการต่างกันแต่ทำนายค่าเดียวกัน — <strong>ต้องดูว่า R ใช้ contrast แบบไหน</strong> (<code>options("contrasts")</code>):</p>
+<pre><code># contr.treatment (default)
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept)    55.800      1.013 55.071 < 2e-16 ***
+heightmiddle   21.400      1.433 14.934 2.07e-10 ***
+heighttop      -4.300      1.433 -3.001 0.00896 **</code></pre>
+<div class="box">\(\hat{Y}_{bottom}=55.800\), \(\hat{Y}_{middle}=55.800+21.400=77.2\), \(\hat{Y}_{top}=55.800-4.300=51.5\) — Intercept คือค่าเฉลี่ยกลุ่มอ้างอิง (bottom) ตรง ๆ แต่ละ dummy คือ<strong>ผลต่าง</strong>จาก reference</div>
+<pre><code># contr.sum
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 61.5000      0.5850 105.13 < 2e-16 ***
+height1       -5.7000    0.8273   -6.89 5.15e-06 ***
+height2       15.7000    0.8273   18.98 6.74e-12 ***</code></pre>
+<div class="box">Intercept=61.5000 คือ<strong>grand mean</strong> (ไม่ใช่กลุ่มอ้างอิง) — \(\tau_i\) คือผลต่างจาก grand mean, \(\tau_{top}=-(\tau_1+\tau_2)=-(−5.7+15.7)=-10\) (คำนวณจากพจน์ที่เหลือ เพราะ \(\sum\tau_i=0\))</div>
+
+<h2>7. Penalized Regression — Ridge/LASSO ไม่มี p-value (Lecture 7)</h2>
+<p><code>coef(glmnet(...))</code> ให้รูปแบบสมการเหมือน OLS ทุกประการ (\(\hat{Y}=\hat\beta_0+\hat\beta_1X_1+\cdots\)) แต่มี 2 ข้อต่างสำคัญที่ต้องพูดถึงเสมอเวลาเขียนคำตอบ:</p>
+<div class="box bad">(1) <strong>ไม่มี Std. Error/p-value/t-value ในตาราง</strong> — coef() ให้แค่ค่า Estimate หลัง shrinkage เท่านั้น ไม่มี inference แบบ OLS ให้ใช้<br>(2) <strong>สัมประสิทธิ์ผ่านการ standardize มาก่อน</strong> (X แต่ละตัวถูกปรับ mean=0, variance=1 ก่อนฟิต) — ตีความ "หน่วยจริง" ตรง ๆ แบบ OLS ไม่ได้ทันที ต้องแปลงกลับก่อน และเพราะเป็นค่าที่ shrink เข้าหา 0 โดยตั้งใจ (biased by design) การเทียบขนาดสัมประสิทธิ์ระหว่างตัวแปรทำได้ แต่การอ่าน "effect size ต่อหน่วยจริง" ต้องระวัง</div>
+
+<h2>8. GLM Framework — ตาราง Link Function อ้างอิง (Lecture 8)</h2>
+<table>
+<tr><th>Distribution</th><th>Canonical Link</th><th>รูปสมการฝั่งซ้าย</th></tr>
+<tr><td>Gaussian (Normal)</td><td>Identity</td><td>\(\hat{Y}=X\hat\beta\)</td></tr>
+<tr><td>Binomial</td><td>Logit</td><td>\(\text{logit}(\hat\pi)=\ln\!\left(\dfrac{\hat\pi}{1-\hat\pi}\right)=X\hat\beta\)</td></tr>
+<tr><td>Poisson</td><td>Log</td><td>\(\log(\hat\mu)=X\hat\beta\)</td></tr>
+<tr><td>Gamma</td><td>Inverse (\(1/\mu\))</td><td>\(1/\hat\mu=X\hat\beta\) (แต่สไลด์มักใช้ log link แทนในทางปฏิบัติ)</td></tr>
+<tr><td>Inverse Gaussian</td><td>\(1/\mu^2\)</td><td>\(1/\hat\mu^2=X\hat\beta\)</td></tr>
+</table>
+<p>ทุกโมเดลด้านล่าง (หัวข้อ 9–13) คือการใช้ตารางนี้กับข้อมูลจริง</p>
+
+<h2>9. Binary Logistic Regression (Lecture 9)</h2>
+<pre><code>Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.09196    1.75465   0.052 0.958204
+FMMale      -0.56127    0.53116  -1.057 0.290653
+SSLow       -0.10545    0.46885  -0.225 0.822050
+BKNoBird    -1.36259    0.41128  -3.313 0.000923 ***
+AG          -0.03976    0.03548  -1.120 0.262503
+YR           0.07287    0.02649   2.751 0.005940 **
+CD           0.02602    0.02552   1.019 0.308055</code></pre>
+<div class="box">\[\text{logit}(\hat\pi) = 0.09196 - 0.56127\,\mathbb{1}[\text{Male}] - 0.10545\,\mathbb{1}[\text{Low}] - 1.36259\,\mathbb{1}[\text{NoBird}] - 0.03976\,AG + 0.07287\,YR + 0.02602\,CD\]</div>
+<p><strong>ห้ามเขียน</strong> \(\hat\pi = \ldots\) ตรง ๆ ด้านขวา — ต้อง back-transform ด้วย \(\hat\pi = \dfrac{e^{\hat\eta}}{1+e^{\hat\eta}}\) ก่อนถึงจะเป็นความน่าจะเป็น</p>
+
+<h2>10. Binomial Counts / Grouped Data (Lecture 10)</h2>
+<pre><code>model<-glm(cbind(damage,6-damage)~temp, family=binomial)
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.66299    3.29626   3.538 0.000403 ***
+temp        -0.21623    0.05318  -4.066 4.78e-05 ***</code></pre>
+<div class="box">\[\text{logit}(\hat\pi) = 11.66299 - 0.21623\,temp\]</div>
+<p>สังเกต <code>cbind(success, failure)</code> — response เป็นสัดส่วนของกลุ่ม ไม่ใช่ 0/1 รายตัว แต่สมการเขียนรูปแบบเดียวกับ binary logit เป๊ะ</p>
+
+<h2>11. Poisson / Count Regression (Lecture 11, Galápagos)</h2>
+<pre><code>Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.155e+00  5.175e-02  60.963  < 2e-16 ***
+Area        -5.799e-04  2.627e-05 -22.074  < 2e-16 ***
+Elevation    3.541e-03  8.741e-05  40.507  < 2e-16 ***
+Nearest      8.826e-03  1.821e-03   4.846 1.26e-06 ***
+Scruz       -5.709e-03  6.256e-04  -9.126  < 2e-16 ***
+Adjacent    -6.630e-04  2.933e-05 -22.608  < 2e-16 ***</code></pre>
+<div class="box">\[\log(\hat\mu) = 3.155 - 5.799\times10^{-4}Area + 3.541\times10^{-3}Elevation + 8.826\times10^{-3}Nearest - 5.709\times10^{-3}Scruz - 6.630\times10^{-4}Adjacent\]</div>
+<p><strong>ถ้ามี offset</strong> (เช่น <code>offset(log(exposure))</code>) สมการฝั่งซ้ายยังเป็น \(\log(\hat\mu)\) เหมือนเดิม แต่พจน์ offset ไม่มีสัมประสิทธิ์ (บังคับ=1) — ต้องย้ายฝั่งเป็น \(\log(\hat\mu/exposure) = X\hat\beta\) ถ้าอยากตีความเป็น "อัตรา" แทน "จำนวนนับ"</p>
+
+<h2>12. Multinomial (Baseline-Category Logit) และ Ordinal (Proportional Odds)</h2>
+<p><strong>Multinomial</strong> — เขียนสมการแยกต่อคู่ (category j เทียบ baseline):</p>
+<pre><code>Coefficients:
+          Value Std. Error t value
+nincome 0.01312   0.001971   6.657</code></pre>
+<div class="box">\[\log\left(\dfrac{\hat\pi_j}{\hat\pi_{\text{baseline}}}\right) = \hat\beta_{0j} + 0.01312\times nincome\] (เขียนแยกทุก j ที่ไม่ใช่ baseline)</div>
+<p><strong>Ordinal (polr)</strong> — cumulative logit, มี threshold \(\theta_j\) หลายตัวแต่ slope \(\beta\) ตัวเดียวใช้ร่วมทุก cutpoint:</p>
+<pre><code>Coefficients: nincome  0.01312
+Intercepts:
+  Democrat|Independent    0.2091
+  Independent|Republican  1.2916</code></pre>
+<div class="box bad">\[\text{logit}(\hat{P}(Y\leq j)) = \theta_j - \hat\beta X\] &nbsp; <strong>ระวังเครื่องหมายลบ</strong> — <code>polr()</code> รายงาน \(\hat\beta\) โดยสมมติว่าลบออกจาก \(\theta_j\) ไม่ใช่บวกแบบ GLM ทั่วไป ผิดเครื่องหมายนี้ = คำนวณค่าทำนายผิดทิศทางทันที</div>
+
+<h2>13. Gamma / Inverse Gaussian GLM (Lecture 13)</h2>
+<pre><code>glm(resist~.^2, family=Gamma(link=log))
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 5.31111     0.04762 111.525 4.67e-14 ***
+x1+           0.20088   0.04762   4.218 0.00292 **
+x3+           0.43718   0.06735   6.491 0.00019 ***
+x1+:x3+     -0.15621    0.06735 -2.319 0.04896 *</code></pre>
+<div class="box">\[\log(\hat\mu) = 5.31111 + 0.20088\,\mathbb{1}[x1{+}] + 0.43718\,\mathbb{1}[x3{+}] - 0.15621\,\mathbb{1}[x1{+}]\times\mathbb{1}[x3{+}] + \cdots\]</div>
+<p>สังเกต: แม้ canonical link ของ Gamma คือ \(1/\mu\) (หัวข้อ 8) แต่สไลด์ระบุ <code>link=log</code> ชัดเจน — <strong>อ่าน argument <code>family=</code> ในโค้ดเสมอ อย่าเดาจาก distribution ว่าต้องใช้ canonical link</strong> เพราะ log link ตีความง่ายกว่า (multiplicative effect) และใช้บ่อยกว่าในทางปฏิบัติ</p>
+
+<h2>14. Linear Mixed-Effects Models (Lecture 14, pulp brightness)</h2>
+<pre><code>Random effects:
+ Groups   Name        Variance Std.Dev.
+ operator (Intercept) 0.06808 0.2609
+ Residual             0.10625 0.3260
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 60.4000      0.1494   404.2</code></pre>
+<p>เขียนสมการเต็ม 2 ระดับ — fixed part (จากตาราง Fixed effects) บวก random part (variance จากตาราง Random effects):</p>
+<div class="box win">\[Y_{ij} = 60.4000 + b_{0i} + \varepsilon_{ij}\] โดย \(b_{0i} \sim \text{iid } N(0,\,0.06808)\), \(\varepsilon_{ij} \sim \text{iid } N(0,\,0.10625)\), เป็นอิสระต่อกัน</div>
+<p><strong>Marginal mean</strong> (ค่าเฉลี่ยประชากรรวม, ไม่ระบุ operator): \(E[Y]=60.4000\) ตรง ๆ — <strong>Conditional/BLUP prediction</strong> (operator ที่ระบุเจาะจง i): ต้องบวก \(\hat{b}_{0i}\) (ค่า BLUP เฉพาะกลุ่ม, ได้จาก <code>ranef()</code>) เข้าไปด้วย สองค่านี้<strong>ไม่เท่ากัน</strong> — โจทย์ที่ถามว่า "ทำนายค่าของ operator คนใดคนหนึ่ง" ต้องใช้ conditional เสมอ ไม่ใช่ marginal</p>
+
+<h2>สรุป: ตารางฟังก์ชัน R → ฝั่งซ้ายของสมการ</h2>
+<table>
+<tr><th>ฟังก์ชัน R</th><th>ฝั่งซ้ายของสมการ</th><th>บทที่ใช้</th></tr>
+<tr><td><code>lm()</code>, <code>rlm()</code></td><td>\(\hat{Y}\)</td><td>L1–L7</td></tr>
+<tr><td><code>glm(family=binomial)</code></td><td>\(\text{logit}(\hat\pi)\)</td><td>L9–L10</td></tr>
+<tr><td><code>glm(family=poisson)</code></td><td>\(\log(\hat\mu)\)</td><td>L11</td></tr>
+<tr><td><code>glm(family=poisson)</code> + <code>offset()</code></td><td>\(\log(\hat\mu)\) (offset ไม่มี β)</td><td>L11</td></tr>
+<tr><td><code>glm.nb()</code> (Negative Binomial)</td><td>\(\log(\hat\mu)\) เหมือน Poisson</td><td>L11</td></tr>
+<tr><td><code>multinom()</code></td><td>\(\log(\hat\pi_j/\hat\pi_{\text{base}})\)</td><td>L12</td></tr>
+<tr><td><code>polr()</code></td><td>\(\text{logit}(\hat{P}(Y\leq j)) = \theta_j - \hat\beta X\)</td><td>L12</td></tr>
+<tr><td><code>glm(family=Gamma(link=log))</code></td><td>\(\log(\hat\mu)\)</td><td>L13</td></tr>
+<tr><td><code>lmer()</code></td><td>\(\hat{Y}_{ij} = X\hat\beta + \hat{b}_i\) (2 ระดับ)</td><td>L14</td></tr>
+</table>
+
+<p>ฝึกเขียนให้คล่องที่ <a href="../exams/drill-01-write-the-equation.html">Drill 1: Write the Equation</a> (16 ข้อ ครบทั้ง 14 บท)</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

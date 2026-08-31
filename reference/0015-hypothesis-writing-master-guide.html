@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Master Guide — เขียน Hypothesis ให้ถูกทุกแบบ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 15 · Master Guide</span>
+  <span><a href="../exams/drill-03-hypothesis-testing.html">ฝึกด้วย Drill 3: Hypothesis Testing →</a></span>
+</nav>
+
+<p class="kicker">รวมทุก Lecture — Hypothesis Testing</p>
+<h1>เขียน Hypothesis ให้ถูก — Master Guide ทุกแบบทดสอบในวิชานี้</h1>
+
+<p>วิชานี้มีการทดสอบสมมติฐานอยู่ <strong>10 รูปแบบ</strong> กระจายอยู่ทั้ง 14 บท แผ่นนี้รวมทุกแบบไว้ที่เดียว พร้อมตัวอย่างตัวเลขจริงจากสไลด์/assignment ของอาจารย์ — ก่อนอ่านแบบเฉพาะ ให้จำ<strong>โครงร่างสากล</strong>นี้ก่อน เพราะทุกข้อสอบต้องการครบ 4 ส่วนเสมอ ขาดส่วนไหนโดนหักคะแนนส่วนนั้น:</p>
+
+<div class="box win">
+<div class="label">โครงร่างสากล 4 ส่วน (ใช้กับทุกข้อ)</div>
+<ol style="margin:0.5em 0">
+<li><strong>ตั้ง \(H_0\) และ \(H_a\)/\(H_1\)</strong> เป็นสัญลักษณ์ทางคณิตศาสตร์ ไม่ใช่คำบรรยายเฉย ๆ</li>
+<li><strong>Test statistic + การแจกแจงภายใต้ \(H_0\)</strong> (t, F, \(\chi^2\), z ตัวไหน df เท่าไหร่)</li>
+<li><strong>Decision rule</strong> เทียบค่า test statistic/p-value กับ \(\alpha\) — บอกว่า "ปฏิเสธ" หรือ "ไม่ปฏิเสธ" \(H_0\)</li>
+<li><strong>ประโยคสรุปที่มีบริบท</strong> — แปลกลับเป็นภาษาเรื่องจริง ไม่ใช่จบแค่ "ปฏิเสธ H₀"</li>
+</ol>
+</div>
+
+<div class="box bad">
+<div class="label">กับดักที่ออกสอบบ่อยที่สุด: ทิศทางของ \(H_0\) กลับด้านกันได้</div>
+<p>การทดสอบสัมประสิทธิ์ (\(H_0:\beta=0\)) เรา<strong>อยากปฏิเสธ</strong> \(H_0\) (อยากให้ตัวแปรมีผล) แต่การทดสอบ assumption/goodness-of-fit (Shapiro-Wilk, Breusch-Pagan, deviance GOF, Hosmer-Lemeshow) \(H_0\) คือ <strong>"โมเดล/assumption ใช้ได้"</strong> — เรา<strong>อยากไม่ปฏิเสธ</strong> (p-value สูงคือข่าวดี) สลับกันจะแปลผลผิดทันที ดูหัวข้อ 7–8 ด้านล่างสำหรับกลุ่มที่กลับทิศทาง</p>
+</div>
+
+<h2>1. ทดสอบสัมประสิทธิ์เดี่ยว (t-test ใน OLS, Wald z-test ใน GLM)</h2>
+<div class="box">
+\(H_0: \beta_j = 0\) &nbsp;vs&nbsp; \(H_a: \beta_j \neq 0\) &nbsp;(หรือทางเดียว \(H_a:\beta_j>0\)/\(<0\) ถ้าโจทย์ระบุทิศทาง)<br>
+OLS: \(t = \dfrac{\hat{\beta}_j}{SE[\hat{\beta}_j]} \sim t_{(n-p-1)}\) &nbsp;&nbsp; GLM: \(z = \dfrac{\hat{\beta}_j}{SE[\hat{\beta}_j]} \sim N(0,1)\) (asymptotic)
+</div>
+<p><strong>ตัวอย่างจริง (SLR, Lecture 1):</strong> \(H_0:\beta_1=0\), \(t=3.394/1.108=3.064\), df=8, \(p=0.01548<0.05\) → <strong>ปฏิเสธ \(H_0\)</strong> — สรุป: X มีความสัมพันธ์เชิงเส้นกับ Y อย่างมีนัยสำคัญทางสถิติที่ α=0.05</p>
+<p><strong>ตัวอย่างจริง (Logistic, Lecture 9 bird data):</strong> \(H_0:\beta_{BKNoBird}=0\), \(z=-3.313\), \(p=0.000923\) → ปฏิเสธ \(H_0\) — BKNoBird (การไม่เลี้ยงนก) สัมพันธ์กับความเสี่ยงมะเร็งปอดอย่างมีนัยสำคัญ</p>
+
+<h2>2. F-test ภาพรวมโมเดล (Overall Regression F-test)</h2>
+<div class="box">
+\(H_0: \beta_1=\beta_2=\cdots=\beta_p=0\) &nbsp;(ไม่มีตัวแปรไหนสัมพันธ์กับ Y เลย โมเดลใช้ไม่ได้ทั้งชุด)<br>
+\(H_a\): อย่างน้อยหนึ่ง \(\beta_j \neq 0\)<br>
+\(F = MSR/MSE \sim F_{(p,\,n-p-1)}\)
+</div>
+<p><strong>ตัวอย่างจริง (ANOVA-as-regression, Lecture 6 bakesale):</strong> \(F=184.6\), df=(2,15), \(p=2.74\times10^{-11}\) → ปฏิเสธ \(H_0\) ที่ α=0.05 — สรุป: มีอย่างน้อยหนึ่งตำแหน่งชั้นวางสินค้าที่ยอดขายเฉลี่ยต่างจากตำแหน่งอื่นอย่างมีนัยสำคัญ</p>
+
+<h2>3. Partial F-test / Extra Sum-of-Squares F-test (OLS nested models)</h2>
+<div class="box">
+เปรียบเทียบโมเดลเล็ก (reduced, ตัด q ตัวแปรออก) กับโมเดลใหญ่ (full):<br>
+\(H_0: \beta_{j_1}=\beta_{j_2}=\cdots=\beta_{j_q}=0\) &nbsp;(ตัวแปรที่ตัดออกทั้ง q ตัวไม่มีผลเพิ่มเติม โมเดลเล็กพอแล้ว)<br>
+\(H_a\): อย่างน้อยหนึ่งใน q ตัวไม่เท่ากับ 0<br>
+\[F = \dfrac{(SSE_{reduced}-SSE_{full})/q}{SSE_{full}/(n-p-1)} \sim F_{(q,\,n-p-1)}\]
+</div>
+<p><strong>ตัวอย่างจริง (Lecture 2 whiteside insulation):</strong> \(H_0: \beta_{InsulAfter}=\beta_{InsulAfter:Temp}=0\) (q=2) เทียบโมเดลเต็มที่มี Temp+Insul+interaction กับโมเดลเล็กที่มี Temp อย่างเดียว — \(p<2.2\times10^{-16}\) → ปฏิเสธ \(H_0\) — Insul (ทั้ง main effect และ interaction) ช่วยอธิบาย Gas ได้อย่างมีนัยสำคัญเมื่อเทียบกับโมเดลที่มีแค่ Temp</p>
+
+<h2>4. Single-Factor ANOVA F-test</h2>
+<div class="box">
+Cell-means form: \(H_0: \mu_1=\mu_2=\cdots=\mu_r=\mu\) &nbsp;vs&nbsp; \(H_a\): อย่างน้อยหนึ่ง \(\mu_i\) ต่างจากตัวอื่น<br>
+Factor-effects form (เทียบเท่ากัน): \(H_0: \tau_1=\tau_2=\cdots=\tau_r=0\) &nbsp;vs&nbsp; \(H_a\): อย่างน้อยหนึ่ง \(\tau_i\neq0\)<br>
+\(F = MSTR/MSE \sim F_{(r-1,\,n_T-r)}\)
+</div>
+<p><strong>ตัวอย่างจริง (diet plan):</strong> \(r=4\) แผนอาหาร, \(n_i=15\) ทุกกลุ่ม, \(n_T=60\) — \(H_0:\mu_A=\mu_B=\mu_C=\mu_D\) — F สูงเมื่อ between-treatment variability (ค่าเฉลี่ยกลุ่มห่างกัน) มากกว่า within-treatment variability (ความกระจายในกลุ่มเดียวกัน) มาก ไม่ใช่ดูแค่ค่าเฉลี่ยห่างกันเฉย ๆ</p>
+
+<h2>5. Tukey HSD — เปรียบเทียบรายคู่ (Post-hoc)</h2>
+<div class="box">
+สำหรับทุกคู่ \((i,j)\), \(i \neq j\): \(H_0: \mu_i = \mu_j\) &nbsp;vs&nbsp; \(H_a: \mu_i \neq \mu_j\)<br>
+ใช้ studentized range distribution \(q_{(r,\,n_T-r)}\) แทน t ธรรมดา เพื่อควบคุม <em>family-wise error rate</em> ไม่ให้พองจากการทดสอบหลายคู่พร้อมกัน
+</div>
+<p><strong>ทำไมต้องใช้ Tukey แทน t-test ทีละคู่:</strong> ทำ F-test ANOVA แล้วปฏิเสธ \(H_0\) บอกได้แค่ "มีอย่างน้อยหนึ่งคู่ต่างกัน" — ไม่บอกว่าคู่ไหน ถ้าทดสอบทีละคู่ด้วย t-test ธรรมดา α รวมจะพองเกิน 0.05 (ยิ่งกลุ่มเยอะยิ่งพองมาก) Tukey ปรับ critical value ให้ควบคุม α รวมไว้ที่ 0.05 พอดี</p>
+
+<h2>6. GLM: Wald Test vs Likelihood Ratio Test (LRT) / Drop-in-Deviance</h2>
+<div class="box">
+สัมประสิทธิ์เดี่ยว: \(H_0:\beta_j=0\) — Wald ใช้ \(z=\hat\beta_j/SE\), LRT ใช้ \(-2(\ell_{reduced}-\ell_{full}) \sim \chi^2_{(1)}\)<br>
+กลุ่มสัมประสิทธิ์ (nested models): \(H_0:\beta_1=\cdots=\beta_k=0\)<br>
+\[G^2 = D_{reduced} - D_{full} \sim \chi^2_{(k)}\] (เทียบ deviance ของสองโมเดลตรง ๆ ไม่ต้องยุ่งกับ log-likelihood เอง)
+</div>
+<p><strong>ตัวอย่างจริง (Lecture 12 contraceptive, cubic term):</strong> \(H_0: \beta_{age10^3}=0\) — LRT stat = 16.0114, df=1, \(p=0.0003335562<0.05\) → ปฏิเสธ \(H_0\) — ควรเก็บพจน์ \(\text{age10}^3\) ไว้ในโมเดล</p>
+<p><strong>เมื่อไหร่ใช้ LRT แทน Wald:</strong> ตัวอย่างเล็กหรือค่าประมาณอยู่ใกล้ขอบเขตพารามิเตอร์ LRT แม่นกว่า Wald มักใช้ทั่วไปเพราะคำนวณง่ายกว่า (จากตาราง summary() ตรง ๆ)</p>
+
+<h2>7. Goodness-of-Fit — <span style="color:var(--bad)">ทิศทาง \(H_0\) กลับด้าน!</span></h2>
+<div class="box bad">
+Deviance GOF: \(H_0: g(\theta)=X\beta\) &nbsp;(โมเดลนี้ fit ข้อมูลได้ดี) &nbsp;vs&nbsp; \(H_a: g(\theta)\neq X\beta\)<br>
+\(\text{Deviance} \sim \chi^2_{(n-p-1)}\) ภายใต้ \(H_0\) — <strong>ปฏิเสธ \(H_0\) เมื่อ deviance มีค่ามาก</strong> (ตรงข้ามสัญชาตญาณ: deviance สูง=แย่=ปฏิเสธ, ไม่ใช่ deviance สูง=ปฏิเสธเพราะมีผล)<br>
+Hosmer-Lemeshow (ข้อมูล binary แท้ \(n_i=1\)): \(H_0\): โมเดล fit ข้อมูล — แบ่ง g กลุ่มตาม \(\hat\pi_i\) เทียบ observed vs expected, สถิติ \(\sim\chi^2_{(g-2)}\)
+</div>
+<p><strong>ตัวอย่างจริง (Lecture 13, wafer/car-insurance GLM):</strong> \(1-\text{pchisq}(\text{deviance}, df) \approx 0.9997\) (สูงมาก) → <strong>ไม่ปฏิเสธ \(H_0\)</strong> — ไม่มีหลักฐานว่าโมเดลนี้ fit ข้อมูลไม่ดี (นี่คือ "ข่าวดี" สำหรับ GOF ต่างจากการทดสอบสัมประสิทธิ์ที่ p-value สูง=ข่าวร้าย)</p>
+
+<h2>8. Assumption Tests สำหรับ OLS — ทิศทางเดียวกับข้อ 7</h2>
+<div class="box bad">
+Shapiro-Wilk: \(H_0\): residual แจกแจงปกติ — ต้องการ p-value <strong>สูง</strong> (ไม่ปฏิเสธ) ถึง "ผ่าน"<br>
+Breusch-Pagan: \(H_0\): residual มี variance คงที่ (homoscedastic) — ต้องการ p-value <strong>สูง</strong> เช่นกัน
+</div>
+<p><strong>กฎจำง่าย:</strong> การทดสอบ "β=0" อยากปฏิเสธ (อยากให้ตัวแปรมีผล) — การทดสอบ "assumption เป็นจริง/โมเดล fit ดี" อยากไม่ปฏิเสธ (อยากให้ assumption ผ่าน) สองกลุ่มนี้ตรงข้ามกันเสมอ อ่านโจทย์ให้ออกว่า \(H_0\) ของการทดสอบนั้นคืออะไรก่อนตัดสินว่า p-value สูง/ต่ำเป็นข่าวดีหรือร้าย</p>
+
+<h2>9. Brant Test — Proportional Odds Assumption (Ordinal Model)</h2>
+<div class="box">
+\(H_0\): Proportional odds (parallel regression) assumption holds — สัมประสิทธิ์ \(\beta\) เท่ากันในทุก cumulative logit cutpoint<br>
+\(H_a\): มีตัวแปรอย่างน้อยหนึ่งตัวที่สัมประสิทธิ์ต่างกันระหว่าง cutpoint (ละเมิด assumption)
+</div>
+<p><strong>ตัวอย่างจริง (Lecture 12 party identification):</strong> โมเดลเต็ม (age+educ_ordered+nincome): Omnibus \(X^2=8.94\), df=3, \(p=0.03<0.05\) → ปฏิเสธ \(H_0\) (assumption ถูกละเมิด) — ดูรายตัวแปรพบว่า nincome คือตัวการ (\(p\approx0\)) ส่วน age (p=0.67) และ educ_ordered (p=0.68) ไม่ละเมิด — ตัด nincome ออกแล้วเช็คซ้ำ: Omnibus p=0.69 → ไม่ปฏิเสธ \(H_0\) อีกต่อไป</p>
+
+<h2>10. Linear Mixed Model: ทดสอบ Variance Component ของ Random Effect</h2>
+<div class="box">
+\(H_0: \sigma^2_D = 0\) &nbsp;(random effect ไม่จำเป็น เป็นแค่ noise) &nbsp;vs&nbsp; \(H_1: \sigma^2_D>0\)
+</div>
+<p><strong>ทำไมทดสอบตรงนี้พิเศษ:</strong> \(\sigma^2_D=0\) อยู่ที่<em>ขอบเขตของพารามิเตอร์</em> (variance ติดลบไม่ได้) การแจกแจงของ LRT ภายใต้ \(H_0\) จึง<strong>ไม่ใช่ \(\chi^2\) มาตรฐาน</strong> แต่เป็น mixture ของ \(\chi^2_0\) กับ \(\chi^2_1\) — Crainiceanu &amp; Ruppert (2004) แสดงว่า mixture นี้ conservative เกินไป จึงใช้ <strong>parametric bootstrap</strong> แทนเพื่อ p-value ที่แม่นยำกว่า</p>
+<p><strong>ตัวอย่างจริง (Lecture 14 pulp brightness, operator random effect):</strong> LRT ที่สังเกตได้ = 2.568, จำลองข้อมูลใหม่ 1,000 ชุดภายใต้ \(H_0\) เพื่อสร้างการแจกแจงจริง — p-value = สัดส่วนที่ \(\text{lrstat} \geq 2.568\) = 19/1000 = <strong>0.019</strong> → ปฏิเสธ \(H_0\) — operator random effect จำเป็นต้องมีในโมเดล</p>
+<p><strong>เรื่องเกี่ยวเนื่อง — ทดสอบ fixed effect ใน LMM:</strong> t-test ปกติของ fixed effect ใน <code>lmer()</code> ไม่มี df ที่ชัดเจน (ไม่เหมือน OLS) ตัวเลือก df ที่แนะนำคือ <strong>Kenward-Roger</strong> หรือ <strong>Satterthwaite</strong> เพราะรักษาระดับ Type I error ไว้ที่ 0.05 ได้แม่นยำแม้ sample size เล็ก ในขณะที่ t-as-z หรือ ML-LRT ธรรมดาปฏิเสธ \(H_0\) บ่อยเกินจริง (anti-conservative) เมื่อจำนวน subject/item น้อย</p>
+
+<h2>สรุป: ตารางเทียบด่วน</h2>
+<table>
+<tr><th>การทดสอบ</th><th>\(H_0\) พูดว่าอะไร</th><th>Statistic</th><th>p สูง = ข่าวดีไหม?</th></tr>
+<tr><td>t-test/Wald (สัมประสิทธิ์)</td><td>ตัวแปรนี้ไม่มีผล</td><td>t หรือ z</td><td>ไม่ (อยากปฏิเสธ)</td></tr>
+<tr><td>Overall/Partial F-test</td><td>กลุ่มตัวแปรนี้ไม่มีผล</td><td>F</td><td>ไม่ (อยากปฏิเสธ)</td></tr>
+<tr><td>ANOVA F-test</td><td>ค่าเฉลี่ยทุกกลุ่มเท่ากัน</td><td>F</td><td>ไม่ (อยากปฏิเสธ)</td></tr>
+<tr><td>Tukey HSD</td><td>คู่นี้ค่าเฉลี่ยเท่ากัน</td><td>studentized range q</td><td>ไม่ (อยากปฏิเสธ)</td></tr>
+<tr><td>LRT / Drop-in-deviance</td><td>พจน์ที่ตัดออกไม่มีผล</td><td>\(\chi^2\)</td><td>ไม่ (อยากปฏิเสธ)</td></tr>
+<tr><td>Deviance GOF / Hosmer-Lemeshow</td><td>โมเดล fit ข้อมูลดี</td><td>\(\chi^2\)</td><td><strong>ใช่ (อยากไม่ปฏิเสธ)</strong></td></tr>
+<tr><td>Shapiro-Wilk / Breusch-Pagan</td><td>assumption เป็นจริง</td><td>W / LM</td><td><strong>ใช่ (อยากไม่ปฏิเสธ)</strong></td></tr>
+<tr><td>Brant Test</td><td>proportional odds เป็นจริง</td><td>\(\chi^2\)</td><td><strong>ใช่ (อยากไม่ปฏิเสธ)</strong></td></tr>
+<tr><td>Variance component (LMM)</td><td>random effect ไม่จำเป็น</td><td>bootstrap LRT</td><td>ไม่ (อยากปฏิเสธ ถ้าจะเก็บ random effect ไว้)</td></tr>
+</table>
+
+<p>ฝึกเขียนให้คล่องที่ <a href="../exams/drill-03-hypothesis-testing.html">Drill 3: Hypothesis Testing</a> (14 ข้อ ครบทั้ง 10 แบบนี้)</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>
