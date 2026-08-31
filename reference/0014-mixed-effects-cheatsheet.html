@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Linear Mixed-Effects Models Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 14</span>
+  <span><a href="../lessons/0014-linear-mixed-effects-models.html">← Lesson 14: Linear Mixed-Effects Models</a></span>
+</nav>
+
+<p class="kicker">Lecture 14 — Linear Mixed-Effects Models</p>
+<h1>Fixed vs Random Effects + <code>lmer()</code> Output Cheat Sheet</h1>
+
+<p>สรุปสมการ LMM, checklist ตัดสินใจว่าต้องใช้ mixed model เมื่อไร, และคู่มืออ่าน <code>summary(lmer(...))</code> ทีละบล็อก — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. Fixed Effect vs Random Effect — นิยาม</h2>
+<div class="box">
+<strong>Fixed effect</strong> — ค่าคงที่ที่ไม่รู้ค่า (unknown constant) ที่พยายามประมาณจากข้อมูล — <code>lm()</code>/GLM ธรรมดาจัดการแค่ fixed effect เท่านั้น<br><br>
+<strong>Random effect</strong> — ตัวแปรสุ่ม (random variable) ที่พยายามประมาณ<em>พารามิเตอร์ของการแจกแจง</em>ของมัน ไม่ใช่ค่าตัวมันเองตรง ๆ — ต้องเป็น <strong>grouping factor เสมอ</strong> (เช่น operator, subject, school ไม่ใช่ตัวแปรต่อเนื่องอย่าง age)<br><br>
+<strong>Mixed model</strong> = ผสม fixed effect + random effect ในสมการเดียว
+</div>
+<p>Fixed effect = จุดสนใจหลัก ตีความเหมือนตัวแปรใน regression ทั่วไป — Random effect = ไม่ใช่จุดสนใจหลัก แต่ "จับ" ความสัมพันธ์ระหว่าง observation ในกลุ่มเดียวกันไว้ และแตกความแปรปรวนรวมของ Y ออกเป็นระดับต่าง ๆ</p>
+
+<h2>2. สมการโมเดล</h2>
+<div class="box win">
+<p><strong>Matrix form:</strong> \[\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}\boldsymbol{\gamma} + \boldsymbol{\varepsilon}\] &nbsp; (Fixed: \(\mathbf{X}\boldsymbol{\beta}\), Random: \(\mathbf{Z}\boldsymbol{\gamma}\))</p>
+<p>\(\boldsymbol{\gamma} \sim N(0, \sigma^2\mathbf{D})\), &nbsp;\(\boldsymbol{\varepsilon} \sim N(0, \sigma^2\mathbf{R})\), &nbsp;\(\boldsymbol{\gamma}\) และ \(\boldsymbol{\varepsilon}\) อิสระต่อกัน<br>
+⟹ \(\mathbf{Y} \sim N(\mathbf{X}\boldsymbol{\beta}, \sigma^2(\mathbf{R} + \mathbf{Z}\mathbf{D}\mathbf{Z}^T))\) — พจน์ \(\mathbf{Z}\mathbf{D}\mathbf{Z}^T\) คือแหล่งที่มาของความสัมพันธ์ระหว่าง observation ในกลุ่มเดียวกันที่ <code>lm()</code> ไม่มีทางจับได้</p>
+</div>
+<div class="box">
+<p><strong>Scalar form (random intercept, ใช้ตอบข้อสอบ):</strong></p>
+\[Y_{ij} = \beta_0 + \beta_1 X_{ij} + b_{0i} + \varepsilon_{ij}\]<br>
+\(b_{0i} \sim \text{iid } N(0, \sigma^2_b)\) (random intercept เฉพาะกลุ่ม i), &nbsp;\(\varepsilon_{ij} \sim \text{iid } N(0, \sigma^2)\), &nbsp;อิสระต่อกัน
+<p>\(\beta_0, \beta_1\) = fixed effect (ค่าคงที่ประชากร) — \(b_{0i}\) = ค่าเบี่ยงเบนของ intercept เฉพาะกลุ่ม i จาก \(\beta_0\) — ถ้า \(\sigma^2_b=0\) โมเดลยุบกลับเป็น <code>lm()</code> ธรรมดาทันที (LMM คือ generalization ของ regression ปกติ ไม่ใช่เทคนิคคนละสาย)</p>
+</div>
+
+<h2>3. Checklist: เมื่อไรต้องใช้ Mixed Model</h2>
+<div class="box win">
+<ol>
+<li>ข้อมูลเป็น <strong>Clustered</strong> (หน่วยวัดครั้งเดียว แต่ nested ในกลุ่ม เช่น นักเรียนในโรงเรียน), <strong>Longitudinal</strong> (วัดซ้ำหน่วยเดิมข้ามเวลา), <strong>Clustered-Longitudinal</strong> (ทั้งสองแบบผสม), หรือ <strong>Repeated Measures</strong> (วัดซ้ำข้ามมิติใดก็ได้) ใช่หรือไม่?</li>
+<li>ตัวแปรระดับสูง (เช่น ประเภทโรงเรียน) คงที่ซ้ำกันสำหรับหลาย observation ในกลุ่มเดียวกันหรือไม่? (ถ้าใช่ → error terms สัมพันธ์กันเอง)</li>
+<li>ถ้าฟิต <code>lm()</code>/GLM ตรง ๆ จะละเมิด <strong>assumption ข้อ 2: error independent</strong> จาก Lesson 1 หรือไม่?</li>
+</ol>
+<p>ถ้าตอบ "ใช่" ข้อใดข้อหนึ่ง → ต้องใช้ mixed model ไม่ใช่ <code>lm()</code>/GLM ธรรมดา ไม่งั้นจะเจอ 3 ปัญหา: (1) <strong>Unit of analysis problem</strong> (2) <strong>Aggregation bias</strong> (ecological fallacy) (3) <strong>SE ผิด</strong> (ต่ำเกินจริง → p-value ต่ำเกินจริง → false positive)</p>
+</div>
+
+<h2>4. ML vs REML</h2>
+<table>
+<tr><th></th><th>ML</th><th>REML (default ของ <code>lmer()</code>)</th></tr>
+<tr><td>Variance component</td><td>biased (ต่ำกว่าจริง)</td><td>แก้ bias ด้วย log-restricted-likelihood</td></tr>
+<tr><td>ใช้เทียบ fixed effect ด้วย LRT?</td><td><strong>ต้องใช้ ML</strong> (REML=FALSE)</td><td>ใช้ไม่ได้ — REML criterion ขึ้นกับ fixed-effect structure</td></tr>
+<tr><td>ใช้เทียบ random effect structure?</td><td>ใช้ได้</td><td>ใช้ได้ตามปกติ</td></tr>
+</table>
+
+<h2>5. <code>lmer()</code> Formula Syntax</h2>
+<table>
+<tr><th>Syntax</th><th>ความหมาย</th></tr>
+<tr><td><code>(1|g)</code></td><td>Random intercept เดียว</td></tr>
+<tr><td><code>(1|g1/g2)</code></td><td>Nested intercepts (g2 อยู่ใน g1) — หรือเขียน <code>(1|g1)+(1|g1:g2)</code></td></tr>
+<tr><td><code>(1|g1)+(1|g2)</code></td><td>Crossed intercepts (g1, g2 ไม่ nested กัน)</td></tr>
+<tr><td><code>x+(x|g)</code></td><td>Random intercept + random slope ที่<strong>สัมพันธ์กัน</strong> (correlated)</td></tr>
+<tr><td><code>x+(x||g)</code></td><td>Random intercept + random slope ที่<strong>ไม่สัมพันธ์กัน</strong> (uncorrelated)</td></tr>
+</table>
+
+<h2>6. อ่าน <code>summary(lmer(...))</code> — Field Glossary</h2>
+<pre><code>Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ Subject (Intercept) 612.10    24.741
+          Days         35.07    5.922   0.07   ← correlation ระหว่าง intercept กับ slope ของกลุ่มเดียวกัน
+ Residual             654.94   25.592
+Number of obs: 180, groups: Subject, 18
+
+Fixed effects:
+            Estimate Std. Error t value   ← ไม่มี Pr(&gt;|t|) ให้อัตโนมัติ (df ไม่ชัดเจนแบบ lm())
+(Intercept) 251.405       6.825 36.838
+Days           10.467     1.546  6.771
+
+Correlation of Fixed Effects:  ← correlation ระหว่างสัมประสิทธิ์ fixed effect (ไม่ใช่ระหว่าง random effect)</code></pre>
+<p><strong>Random effects block</strong> = variance component — แตกความแปรปรวนรวมของ Y ออกเป็น "ต่างกันเพราะกลุ่ม" (แถว grouping factor) กับ "ต่างกันเพราะเหตุสุ่มภายในกลุ่ม" (แถว Residual) — ยิ่งมี random slope เพิ่ม จะเห็นบรรทัดเพิ่มพร้อมคอลัมน์ <code>Corr</code></p>
+<p><strong>Fixed effects block</strong> = ตีความเหมือน <code>lm()</code> ทุกประการ (ค่าเฉลี่ยของประชากร/population-average) — ไม่มี p-value ให้อัตโนมัติเพราะ df ของ fixed effect ใน mixed model ไม่ชัดเจน (ต้องเลือกวิธีประมาณ p-value เอง — หัวข้อ 8)</p>
+
+<h2>7. Intraclass Correlation Coefficient (ICC)</h2>
+<div class="box win">
+\[\text{ICC} = \dfrac{\sigma^2_{group}}{\sigma^2_{group} + \sigma^2_{residual}}\]
+</div>
+<p>Template แปลผล: "[ICC×100]% ของความแปรปรวนทั้งหมดใน [Y] มาจากความแตกต่างระหว่าง [grouping factor] ส่วนที่เหลืออีก [(1−ICC)×100]% มาจากความแตกต่างภายในกลุ่มเดียวกัน" — ICC ใกล้ 0 → โครงสร้างกลุ่มแทบไม่มีผล (<code>lm()</code> ธรรมดาอาจให้ผลใกล้เคียง mixed model)</p>
+
+<h2>8. เลือกวิธีทดสอบ p-value ของ Fixed Effect</h2>
+<table>
+<tr><th>วิธี</th><th>ข้อจำกัด</th></tr>
+<tr><td>MCMC</td><td>ใช้ไม่ได้เมื่อมี random slope</td></tr>
+<tr><td>Parametric Bootstrap</td><td>แม่นยำแต่คำนวณหนักมาก</td></tr>
+<tr><td>t-as-z (df=∞)</td><td><strong>Anti-conservative</strong> — p-value ต่ำเกินจริง โดยเฉพาะตัวอย่างเล็ก</td></tr>
+<tr><td>LRT (ต้องใช้ ML)</td><td><strong>Anti-conservative</strong> เช่นกัน</td></tr>
+<tr><td>Kenward-Roger / Satterthwaite</td><td><strong>แนะนำ</strong> — แม่นยำที่สุด โดยเฉพาะตัวอย่างเล็ก (<code>library(lmerTest)</code>)</td></tr>
+</table>
+<p>ทดสอบ<strong>random effect</strong> (\(H_0: \sigma^2_D=0\)) ใช้ \(\chi^2\) มาตรฐานตรง ๆ ไม่ได้ (\(\sigma^2_D=0\) อยู่ที่ขอบเขตพารามิเตอร์) — ใช้ mixture ของ \(\chi^2_0/\chi^2_1\) หรือ <strong>parametric bootstrap</strong> แทน</p>
+
+<h2>9. \(R^2\) สำหรับ Mixed Model</h2>
+<div class="box">
+<strong>Marginal \(R^2\)</strong> — สัดส่วน variance ที่อธิบายจาก <strong>fixed effects เท่านั้น</strong><br>
+<strong>Conditional \(R^2\)</strong> — สัดส่วน variance ที่อธิบายจาก <strong>fixed + random effects รวมกัน</strong>
+</div>
+<p>ช่องว่าง Conditional − Marginal ที่กว้าง = ความแตกต่างระหว่างกลุ่ม/บุคคล (individual heterogeneity) เป็นแหล่งความแปรปรวนสำคัญที่ <code>lm()</code> ธรรมดาจะทิ้งไว้ใน unexplained error ทั้งหมด</p>
+
+<h2>10. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit random intercept</td><td><code>library(lme4); lmer(y~x+(1|group), data=data)</code></td></tr>
+<tr><td>Fit random intercept + slope</td><td><code>lmer(y~x+(x|group), data=data)</code></td></tr>
+<tr><td>Fit ด้วย ML (สำหรับ LRT)</td><td><code>lmer(y~x+(x|group), data=data, REML=FALSE)</code></td></tr>
+<tr><td>LRT เทียบ fixed effect</td><td><code>anova(fullmodel, reducedmodel)</code> (ทั้งคู่ REML=FALSE)</td></tr>
+<tr><td>P-value แบบ Kenward-Roger</td><td><code>library(lmerTest); summary(model, ddf="Kenward-Roger")</code></td></tr>
+<tr><td>Fixed/random effect estimates</td><td><code>fixef(model)</code> / <code>ranef(model)</code> (BLUP)</td></tr>
+<tr><td>\(R^2\) (marginal/conditional)</td><td><code>library(performance); r2(model)</code></td></tr>
+<tr><td>Prediction (รวม BLUP)</td><td><code>predict(model, newdata)</code> — ต้องระบุ grouping factor ด้วย</td></tr>
+<tr><td>Prediction interval</td><td><code>library(merTools); predictInterval(model, newdata, n.sims=1000)</code></td></tr>
+<tr><td>Bootstrap CI ของ variance component</td><td><code>confint(model, method="boot", nsim=1000)</code></td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

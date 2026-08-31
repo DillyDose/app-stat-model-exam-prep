@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Model Selection Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 5</span>
+  <span><a href="../lessons/0005-model-selection.html">← Lesson 5: Model Selection</a></span>
+</nav>
+
+<p class="kicker">Lecture 5 — Model Selection</p>
+<h1>Model Selection: Criteria + R Syntax Cheat Sheet</h1>
+
+<p>สูตร Cp/AIC/BIC, ทิศทาง "ดีกว่า" ของแต่ละ criterion, และ R syntax ของทุกวิธี selection ที่ใช้ในบทเรียน — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. Stepwise 3 รูปแบบ</h2>
+<table>
+<tr><th>วิธี</th><th>เริ่มจาก</th><th>ทำอะไร</th></tr>
+<tr><td>Forward Selection</td><td>Constant mean model (ไม่มีตัวแปรเลย)</td><td><strong>เพิ่ม</strong>ตัวแปรทีละตัว จนเพิ่มต่อไม่คุ้ม</td></tr>
+<tr><td>Backward Elimination</td><td>Full model (ทุกตัวแปร)</td><td><strong>ลบ</strong>ตัวแปรทีละตัว จนลบต่อไม่คุ้ม</td></tr>
+<tr><td>Stepwise (both)</td><td>Constant mean model</td><td>เพิ่ม/ลบสลับกันทุกขั้น จนไม่มีตัวไหนเพิ่ม/ลบได้อีก</td></tr>
+</table>
+<p><strong>ทั้งสามวิธีไม่รับประกันว่าจะได้โมเดลเดียวกัน</strong> — เดินเส้นทางค้นหาคนละแบบ อาจติด local optimum คนละจุด (forward กับ stepwise มักลงรอยกันมากกว่า backward)</p>
+
+<h2>2. สูตร Selection Criteria — ทิศทาง "ดีกว่า"</h2>
+<table>
+<tr><th>Criterion</th><th>สูตร</th><th>ทิศทางที่ดีกว่า</th></tr>
+<tr><td>Adjusted R²</td><td>\( 1 - \dfrac{SSE/(n-p-1)}{SST/(n-1)} \)</td><td><strong>ยิ่งมากยิ่งดี</strong></td></tr>
+<tr><td>Mallow's Cp</td><td>\( C_p = (n-(p+1)) \times \dfrac{MSE}{MSE_{full}} + [2(p+1)-n] \)</td><td><strong>ยิ่งน้อยยิ่งดี</strong> — โมเดลดีควรมี Cp ≈ p+1</td></tr>
+<tr><td>BIC</td><td>\( n\log(MSE) + (p+1)\log(n) \)</td><td><strong>ยิ่งน้อยยิ่งดี</strong></td></tr>
+<tr><td>AIC</td><td>\( n\log(MSE) + 2(p+1) \)</td><td><strong>ยิ่งน้อยยิ่งดี</strong></td></tr>
+</table>
+<div class="box win">
+<strong>จุดที่ข้อสอบชอบเช็ค:</strong> Cp/BIC/AIC "ยิ่งน้อยยิ่งดี" (minimize) — <strong>สลับทิศทาง</strong>กับ Adjusted R² ที่ "ยิ่งมากยิ่งดี" (maximize) ห้ามจำสลับ
+</div>
+<p><strong>Cp เมื่อเทียบโมเดลกับตัวเอง</strong> (MSE/MSE_full=1) จะลดรูปเหลือ \(C_p = p+1\) เสมอ — ใช้เป็นจุดเช็คสูตรได้ &nbsp;|&nbsp; <strong>Cp ขึ้นกับ full model ที่อ้างอิง</strong> — ห้ามเทียบ Cp ข้ามชุดคำนวณที่ใช้ full model คนละตัว</p>
+<p><strong>AIC vs BIC:</strong> penalty ของ BIC คือ \((p+1)\log(n)\) ส่วน AIC คือ \(2(p+1)\) — เมื่อ \(\log(n) > 2\) (คือ n&gt;7) BIC ลงโทษความซับซ้อนแรงกว่าเสมอ → <strong>BIC มักเลือกโมเดลที่เล็กกว่าหรือเท่ากับที่ AIC เลือก</strong></p>
+
+<h2>3. R Syntax: Stepwise ผ่าน <code>olsrr</code> (เกณฑ์ p-value หรือ AIC)</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Forward (p-value)</td><td><code>ols_step_forward_p(fullmodel, p_val=0.05)</code></td></tr>
+<tr><td>Backward (p-value)</td><td><code>ols_step_backward_p(fullmodel, p_val=0.05)</code></td></tr>
+<tr><td>Stepwise both (p-value)</td><td><code>ols_step_both_p(fullmodel, p_enter=0.05, p_remove=0.05)</code></td></tr>
+<tr><td>Forward (AIC)</td><td><code>ols_step_forward_aic(fullmodel)</code></td></tr>
+<tr><td>Backward (AIC)</td><td><code>ols_step_backward_aic(fullmodel)</code></td></tr>
+<tr><td>Stepwise both (AIC)</td><td><code>ols_step_both_aic(fullmodel)</code></td></tr>
+<tr><td>All possible models</td><td><code>ols_step_all_possible(model)</code> — คืน <code>$result$predictors/adjr/cp/aic/sbc</code></td></tr>
+<tr><td>Adjusted R² ของโมเดล</td><td><code>summary(model)$adj.r.squared</code></td></tr>
+<tr><td>Mallow's Cp</td><td><code>ols_mallows_cp(submodel, fullmodel)</code></td></tr>
+<tr><td>AIC / BIC</td><td><code>AIC(model)</code> / <code>BIC(model)</code></td></tr>
+</table>
+<p><strong>เกณฑ์ AIC ยอมรับตัวแปรที่ทำให้ AIC ลดลง แม้จะไม่ผ่าน p&lt;0.05</strong> — สองเงื่อนไขนี้ไม่เท่ากันเป๊ะ ดังนั้น AIC-based selection มักได้โมเดลที่มีตัวแปร ≥ p-value-based selection</p>
+
+<h2>4. R Syntax: Manual Selection ด้วยฟังก์ชันมาตรฐาน</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>ลองเพิ่มตัวแปรทีละตัว + F-test</td><td><code>add1(currentmodel, scope_formula, test="F")</code></td></tr>
+<tr><td>ลองลบตัวแปรทีละตัว + F-test</td><td><code>drop1(currentmodel, test="F")</code></td></tr>
+<tr><td>Stepwise อัตโนมัติ (default=AIC, k=2)</td><td><code>step(startmodel, scope_formula, direction="forward"/"backward"/"both")</code></td></tr>
+<tr><td>Stepwise ด้วย BIC แทน AIC</td><td><code>step(model, ..., k=log(n))</code></td></tr>
+</table>
+<p><code>add1()</code>: เลือกตัวแปรที่ F สูงสุด/p-value ต่ำสุดเข้าก่อนในแต่ละรอบ &nbsp;|&nbsp; <code>drop1()</code>: ลบตัวแปรที่ p-value สูงสุดออกก่อนในแต่ละรอบ — ทำซ้ำจนไม่มีตัวไหนเข้า/ออกเกณฑ์ได้อีก</p>
+<div class="box win">
+หลายวิธี/หลายเกณฑ์ที่เดินคนละเส้นทางแต่ลงเอย<strong>โมเดลเดียวกัน</strong> = สัญญาณว่าโมเดลนั้นเสถียร (robust) ไม่ได้ขึ้นกับวิธีเลือกที่ใช้ — ถ้าแต่ละวิธีให้ผลต่างกัน แปลว่าโมเดลไม่เสถียรเท่า ต้องระวังตอนสรุปผล
+</div>
+
+<h2>5. ข้อควรระวัง: Automatic Selection กับพจน์พิเศษ</h2>
+<table>
+<tr><th>สถานการณ์</th><th>ความเสี่ยง</th></tr>
+<tr><td>Polynomial (มีทั้ง X, X²)</td><td>Algorithm อาจตัด X (อันดับต่ำ) ทิ้งแต่เก็บ X² ไว้ → สมการตีความไม่ได้</td></tr>
+<tr><td>Interaction (มี X1:X2)</td><td>อาจตัด main effect X1 หรือ X2 ทิ้งแต่เก็บ interaction ไว้ → ขัดกับ marginality principle</td></tr>
+<tr><td>Dummy variable หลายตัว (k ระดับ → k−1 dummy)</td><td>อาจเก็บ dummy บางตัว ตัดบางตัว → ตีความ baseline ผิดเพี้ยน</td></tr>
+</table>
+<p>ทางแก้: ตรวจสอบผล automatic selection ด้วยสายตาเสมอเมื่อโมเดลมีพจน์ 3 ประเภทนี้ ไม่เชื่อผลลัพธ์อัตโนมัติแบบไม่คิด</p>
+
+<h2>6. Data Splitting และ Cross-Validation</h2>
+<table>
+<tr><th>ชนิดข้อมูล</th><th>วิธีแบ่ง train/test</th><th>เหตุผล</th></tr>
+<tr><td>Cross-sectional</td><td><strong>สุ่ม</strong>แบ่งแถวก่อนแบ่ง train/test</td><td>กันชุด train/test มีลักษณะต่างกันอย่างเป็นระบบ</td></tr>
+<tr><td>Time series</td><td><strong>ห้ามสุ่ม</strong> — ตัดตามเวลา (train=อดีต, test=อนาคต)</td><td>กัน data leakage (แอบดูอนาคต)</td></tr>
+</table>
+<table>
+<tr><th>เทคนิค</th><th>ใช้กับ</th><th>ลักษณะ</th></tr>
+<tr><td>One split</td><td>ทั้งคู่</td><td>แบ่งครั้งเดียว — ผลขึ้นกับความบังเอิญของการสุ่ม/จุดตัด</td></tr>
+<tr><td>K-fold Cross-Validation</td><td>Cross-sectional</td><td>แบ่ง K ส่วน วน K รอบ แต่ละรอบ 1 ส่วน=test, K−1 ส่วน=train แล้วเฉลี่ยผล</td></tr>
+<tr><td>Sliding Window</td><td>Time series</td><td>ขนาด train คงที่ เลื่อนหน้าต่างไปเรื่อย ๆ (ทิ้งข้อมูลเก่าที่พ้นหน้าต่าง)</td></tr>
+<tr><td>Cumulative Sliding Window</td><td>Time series</td><td>train สะสมข้อมูลอดีตทั้งหมด โตขึ้นทุกรอบ, test=จุดถัดไปเสมอ</td></tr>
+</table>
+<pre><code>library(splitTools)
+create_folds(y=1:n, k=10, type="basic", seed=...)   # คืน index ของชุด train แต่ละ fold</code></pre>
+
+<h2>7. วัดความแม่นยำการพยากรณ์ (ยิ่งน้อยยิ่งดีทั้งหมด)</h2>
+<table>
+<tr><th>Metric</th><th>สูตร</th><th>ลักษณะเด่น</th></tr>
+<tr><td>RMSE</td><td>\( \sqrt{\dfrac{\sum (Y_i-\hat{Y}_i)^2}{n_{test}}} \)</td><td>ยกกำลังสอง — error ใหญ่มีผลกระทบรุนแรงกว่าสัดส่วน</td></tr>
+<tr><td>MAE</td><td>\( \dfrac{\sum |Y_i-\hat{Y}_i|}{n_{test}} \)</td><td>หน่วยเดียวกับ Y, ไม่ถูก outlier ดึงแรงเท่า RMSE, ตีความง่าย</td></tr>
+<tr><td>MAPE</td><td>\( \dfrac{\sum \left|\dfrac{Y_i-\hat{Y}_i}{Y_i}\right|}{n_{test}} \)</td><td>ไม่มีหน่วย (สัดส่วน/%) — เทียบข้ามตัวแปรคนละสเกลได้</td></tr>
+</table>
+<pre><code>predacc &lt;- function(y, yhat){
+  n &lt;- length(y)
+  RMSE &lt;- sqrt(sum((y-yhat)^2)/n)
+  MAE &lt;- sum(abs(y-yhat))/n
+  MAPE &lt;- sum(abs((y-yhat)/y))/n
+  data.frame(RMSE=RMSE, MAE=MAE, MAPE=MAPE)
+}</code></pre>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

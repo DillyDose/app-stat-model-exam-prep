@@ -1,0 +1,14 @@
+.DS_Store
+.claude/
+.launch_check/
+
+# instructor source material — copyrighted, not for publishing
+Lecture*.pdf
+Lecture*.txt
+Assignment*_Solution.pdf
+
+# internal planning docs, not reading material
+MISSION.md
+NOTES.md
+RESOURCES.md
+learning-records/

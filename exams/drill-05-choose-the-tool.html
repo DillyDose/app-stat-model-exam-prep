@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 5: เลือกเครื่องมือให้ถูกกับอาการ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 5 / 6 · เลือกเครื่องมือ</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 5 — Which tool, and why</p>
+<h1>Drill 5: เห็นอาการแล้วต้องรู้ว่าใช้เครื่องมืออะไร</h1>
+
+<p>อาจารย์ถาม "<strong>ต้องใช้เครื่องมืออะไร</strong>" บ่อยมาก — ให้อาการ (VIF สูง, overdispersion, plot บอกโค้ง, ข้อมูลนับซ้ำ) แล้วให้เลือกวิธีแก้/โมเดลที่ถูกต้อง <strong>พร้อมเหตุผล</strong> เพราะคำตอบที่ไม่มีเหตุผลอาจารย์ให้คะแนนไม่เต็ม</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>15 ข้อ · 32 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~30 นาที</dd>
+  <dt>ครอบคลุม</dt><dd>L3–L14</dd>
+  <dt>รูปแบบ</dt><dd>อาการ→เครื่องมือ, ข้อมูล→ตระกูลโมเดล, เครื่องมือคู่แฝดที่ต้องแยกให้ออก</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">แผนที่อาการ → เครื่องมือ (สรุปจากเฉลยทั้ง 10 ชุด)</div>
+<table style="margin:0.4em 0">
+<tr><th>อาการ</th><th>เครื่องมือ</th></tr>
+<tr><td>Residual เป็นกรวย (non-constant variance)</td><td>Weighted Least Squares</td></tr>
+<tr><td>Residual โค้ง / ไม่ปกติ</td><td>Box-Cox → transform Y</td></tr>
+<tr><td>Residual มีแนวโน้มตามเวลา</td><td>Durbin-Watson → Cochrane-Orcutt</td></tr>
+<tr><td>VIF สูง (multicollinearity)</td><td>Ridge regression</td></tr>
+<tr><td>เลือกจากโมเดลผู้สมัครหลายตัว</td><td>Stepwise AIC/BIC หรือ best-subset + Cp/adj-R²</td></tr>
+<tr><td>เทียบ full vs nested reduced (OLS)</td><td>Extra sum-of-squares F-test</td></tr>
+<tr><td>เทียบ nested GLM สองตัว</td><td>Likelihood Ratio Test (LRT)</td></tr>
+<tr><td>Binary response, \(n_i=1\) ทุกแถว</td><td>Logistic + Hosmer-Lemeshow (ห้าม deviance GOF)</td></tr>
+<tr><td>Count, dispersion ≫ 1</td><td>Quasi-Poisson หรือ Negative Binomial</td></tr>
+<tr><td>Count ที่ exposure ไม่เท่ากัน</td><td>offset(log(exposure))</td></tr>
+<tr><td>Response เป็นกลุ่มไม่มีลำดับ</td><td>Multinomial (baseline-category logit)</td></tr>
+<tr><td>Response เป็นกลุ่มมีลำดับ</td><td>Proportional odds (polr) + ตรวจด้วย Brant test</td></tr>
+<tr><td>ข้อมูลซ้ำ/เป็นกลุ่ม/ไม่อิสระ</td><td>Linear Mixed Model</td></tr>
+</table>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — อาการ → เครื่องมือ (จาก symptom ใน output)</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Multicollinearity · L4</span></div>
+  <div class="exq-body">
+    <p>โมเดลความดันหลอดเลือดปอด <code>Y ~ X1*X2</code> ได้ VIF ดังนี้ ต้องใช้เครื่องมือใดแก้ และเพราะเหตุใด</p>
+    <div class="rout"><span class="rout-label">R output</span>> vif(predictors)
+  Variables       VIF
+1        X1  5.431477
+2        X2 11.639560
+3      X1X2 22.474469</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Yes, there is a serious multicollinearity problem."</strong> → เครื่องมือที่อาจารย์ใช้แก้ต่อคือ <strong>ridge regression</strong></p>
+      <p>เหตุผล: กฎทั่วไปคือ VIF &gt; 10 ถือว่ามีปัญหา — ที่นี่ X2 (11.64) และพจน์ X1X2 (22.47) เกินเกณฑ์ชัดเจน (X1 เองยัง 5.43 ต่ำกว่าเกณฑ์แต่ก็เริ่มสูง) VIF สูงมาจากตัวแปรอิสระสัมพันธ์กันเอง (พจน์ interaction สัมพันธ์กับพจน์เดี่ยวโดยธรรมชาติ) ทำให้ SE ของสัมประสิทธิ์พองตัว ประมาณค่าไม่แม่น</p>
+      <p>Ridge เพิ่มพจน์ลงโทษ \(\lambda\sum\beta_j^2\) เข้าไปในเป้าหมาย ซึ่งบีบสัมประสิทธิ์ให้เล็กลงและเสถียรขึ้นแม้ X จะสัมพันธ์กันเอง โดยแลกกับ bias เล็กน้อยเพื่อลด variance ลงมาก</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่ามี multicollinearity รุนแรง อ้างเกณฑ์ VIF &gt; 10</li>
+      <li>1 คะแนน: เสนอ ridge regression พร้อมเหตุผลเรื่อง bias-variance tradeoff</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เสนอให้ตัดตัวแปรทิ้งตรง ๆ — ใช้ได้ในบางกรณีแต่ไม่ใช่สิ่งที่อาจารย์สอนสำหรับโจทย์นี้ เพราะ X1, X2 ทั้งคู่มีนัยสำคัญและมีความหมายทางคลินิก การตัดทิ้งเสียข้อมูล ridge จึงเป็นทางเลือกที่รักษาตัวแปรทั้งหมดไว้</p>
+      <p>สับสน VIF สูงกับ leverage สูง — VIF วัดความสัมพันธ์<strong>ระหว่างตัวแปรอิสระด้วยกัน</strong> ส่วน leverage วัดความผิดปกติของ<strong>ค่า X ของเคสหนึ่ง ๆ</strong> คนละมิติกัน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Overdispersion · L11</span></div>
+  <div class="exq-body">
+    <p>โมเดล Poisson นับโคโลนี salmonella ให้ dispersion parameter ดังนี้ ต้องทำอย่างไรต่อ</p>
+    <div class="rout"><span class="rout-label">R output</span>> sum(residuals(model, type="pearson")^2)/model$df.residual
+[1] 4.126227
+
+> 1-pchisq(deviance(model), model$df.residual)
+[1] 1.451732e-06</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>dispersion ≈ 4.13 (มากกว่า 1 หลายเท่า) และ GOF test p-value = 1.45×10⁻⁶ (&lt;0.05 → โมเดลไม่ fit) — สรุปว่า Poisson มี <strong>overdispersion ชัดเจน</strong> ("the model does not fit the data at the 5% level of significance" — คำตัดสินของอาจารย์)</p>
+      <p>ทางแก้: <strong>quasi-Poisson</strong> (ปรับ SE ด้วย \(\sqrt{\text{dispersion}}\) โดยไม่เปลี่ยน point estimate) หรือ <strong>Negative Binomial</strong> (เปลี่ยนตัวแบบการแจกแจงไปเลย ให้ NB มีพารามิเตอร์ \(\theta\) รับ overdispersion ในตัว) — อาจารย์แสดงทั้งสองวิธีในโจทย์นี้แล้วให้เปรียบเทียบ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่าน dispersion ≫1 ว่าคือ overdispersion</li>
+      <li>1 คะแนน: เสนอ quasi-Poisson หรือ NB (อย่างใดอย่างหนึ่งพร้อมเหตุผล)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เพิกเฉยปัญหาแล้วเชื่อ p-value จาก Poisson ธรรมดาต่อไป — SE ที่เล็กเกินจริงทำให้ตัวแปรที่จริงไม่มีนัยสำคัญดูมีนัยสำคัญ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Heteroscedasticity · L3</span></div>
+  <div class="exq-body">
+    <p>โมเดลจำนวนของเสียตามความเร็วเครื่องจักร <code>lm(Y~X)</code> ให้ residual plot รูปกรวย (แคบที่ X น้อย กว้างที่ X มาก) จงบอกขั้นตอนแก้แบบเป็นระบบที่อาจารย์สอน (ไม่ใช่แค่ชื่อเครื่องมือ)</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ขั้นตอนที่อาจารย์สอน (Assignment 3 ข้อ 2):</strong></p>
+      <ol>
+        <li>ฟิต OLS ธรรมดาก่อน เก็บ residual: <code>e2 &lt;- resid(model)^2</code></li>
+        <li>ประมาณ<strong>variance function</strong>โดย regress squared residuals กับ X: <code>varfn &lt;- lm(e2~X)</code></li>
+        <li>คำนวณน้ำหนัก <code>w &lt;- 1/fitted(varfn)</code> — จุดที่แปรปรวนสูง ได้น้ำหนักต่ำ</li>
+        <li>ฟิตใหม่ด้วย <code>lm(Y~X, weights=w)</code> ได้ weighted least squares estimates</li>
+      </ol>
+      <p>เครื่องมือคือ <strong>Weighted Least Squares</strong> — หลักการคือให้จุดที่เชื่อถือได้มาก (แปรปรวนต่ำ) มีน้ำหนักในการฟิตมากกว่าจุดที่แปรปรวนสูง</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: บอกชื่อเครื่องมือ WLS ถูก</li>
+      <li>1 คะแนน: อธิบายขั้นตอนได้ว่าน้ำหนักมาจากการประมาณ variance function ก่อน ไม่ใช่กำหนดเอง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>บอกแค่ "ใช้ WLS" โดยไม่รู้ที่มาของน้ำหนัก — อาจารย์ให้คะแนนที่กระบวนการ ไม่ใช่แค่ชื่อ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — ข้อมูล/โจทย์ → ตระกูลโมเดล</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">เลือกตระกูล · L9–L14</span></div>
+  <div class="exq-body">
+    <p>สำหรับแต่ละสถานการณ์ จงระบุ <strong>(1) ตระกูลโมเดล</strong> และ <strong>(2) link function</strong> ที่เหมาะสม:</p>
+    <ol style="margin:0.4em 0">
+      <li>โรงพยาบาลบันทึกว่าผู้ป่วยแต่ละคนหายป่วยหรือไม่ (0/1) ตามอายุและขนาดยา</li>
+      <li>คลินิก 20 แห่งบันทึก "จำนวนคนไข้ที่หาย" จาก "จำนวนคนไข้ทั้งหมด" ต่อคลินิก</li>
+      <li>ร้านค้านับจำนวนลูกค้าที่เข้าร้านต่อชั่วโมง</li>
+      <li>สำรวจความเห็นทางการเมือง (เห็นด้วยมาก / เห็นด้วย / เฉย ๆ / ไม่เห็นด้วย / ไม่เห็นด้วยมาก)</li>
+    </ol>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <ol>
+        <li><strong>Binary logistic regression</strong>, link = logit — response เป็น 0/1 รายบุคคล</li>
+        <li><strong>Binomial logistic regression</strong> (grouped), link = logit — ใช้ <code>cbind(หาย, ไม่หาย)</code> การตีความสัมประสิทธิ์เหมือนข้อ 1 ทุกประการ ต่างแค่รูปแบบข้อมูล</li>
+        <li><strong>Poisson regression</strong>, link = log — นับเหตุการณ์ต่อหน่วยเวลา ถ้าพบ overdispersion ให้สลับไป quasi-Poisson/NB</li>
+        <li><strong>Proportional odds model (ordinal logistic)</strong>, link = logit บน cumulative probability — เพราะ 5 ระดับนี้<strong>มีลำดับ</strong>ชัดเจน (ต้องเช็ค Brant test ก่อนเชื่อ)</li>
+      </ol>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนนต่อข้อ (รวม 2): ต้องตอบถูกทั้งตระกูลและ link function</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 4 ตอบเป็น multinomial (nominal) — <strong>เสียข้อมูลเรื่องลำดับ</strong> ถ้าโจทย์บอกลำดับมาชัด (มาก→น้อย) ต้องใช้ ordinal เสมอ เว้นแต่ตรวจสอบด้วย Brant แล้วพบว่า proportional odds ไม่ถือ จึงค่อยถอยไปใช้ multinomial</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Gamma/InvGauss · L13</span></div>
+  <div class="exq-body">
+    <p>ทดลองพิษวิทยา วัด "เวลารอดชีวิต" ของหนู (ค่าบวกต่อเนื่อง เบ้ขวาแรง มีค่าที่สูงผิดปกติเป็นหางยาว) หลัง Box-Cox แนะนำ \(\lambda \approx -1\) จงเสนอว่าควรใช้ GLM ตระกูลใด พร้อมเหตุผล</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>ข้อมูลบวกต่อเนื่องเบ้ขวาแรง ไม่เหมาะกับ Gaussian OLS ตรง ๆ — ตระกูลที่ออกแบบมาสำหรับข้อมูลลักษณะนี้คือ <strong>Gamma GLM</strong> หรือ <strong>Inverse Gaussian GLM</strong></p>
+      <p>เหตุผลที่ \(\lambda \approx -1\) ชี้ไปทาง Inverse Gaussian โดยเฉพาะ: canonical link ของ Inverse Gaussian คือ \(g(\mu) = 1/\mu^2\) (หรือใช้ inverse link \(1/\mu\) ก็ได้) ซึ่งตระกูลนี้ตั้ง variance function เป็น \(V(\mu)=\mu^3\) เหมาะกับข้อมูลที่เบ้ขวารุนแรงกว่า Gamma (\(V(\mu)=\mu^2\)) — สอดคล้องกับที่ Box-Cox แนะนำการแปลงที่รุนแรงกว่า log</p>
+      <p>อาจารย์เองให้ลองทั้งสองแบบในโจทย์นี้ (A9 ข้อ 3) แล้วเทียบ deviance/AIC เพื่อตัดสินว่าตัวใดฟิตดีกว่า</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เสนอ Gamma หรือ Inverse Gaussian GLM แทน OLS</li>
+      <li>1 คะแนน: เชื่อมโยงเหตุผลกับ \(\lambda\) ติดลบจาก Box-Cox</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เสนอให้ log transform แล้วใช้ OLS ต่อไป — ใช้ได้ในทางปฏิบัติแต่ไม่ตรงกับสิ่งที่อาจารย์สอนในบทนี้ (Other GLMs) ซึ่งต้องการให้แก้ปัญหาด้วยการเลือก<strong>ตระกูลการแจกแจง</strong>ที่เหมาะสม ไม่ใช่ดัดข้อมูลให้เข้ากับ Gaussian</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน C — เครื่องมือคู่แฝดที่ต้องแยกให้ออก</h2>
+<div class="sec-note">โจทย์แบบนี้อาจารย์ถามตรง ๆ ว่า "which one is more appropriate? Please explain"</div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">Multinomial vs Ordinal · L12</span></div>
+  <div class="exq-body">
+    <p>สถานะปอดคนงานเหมือง (normal &lt; mild &lt; severe) ฟิตทั้ง multinomial (baseline-category) และ proportional odds ได้ AIC ใกล้กัน (425.4 vs 422.9) พร้อมผล Brant test ด้านล่าง จงตัดสินว่าโมเดลใดเหมาะสมกว่า โดย<strong>ไม่ใช้การทดสอบทางสถิติเพิ่มเติม</strong></p>
+    <div class="rout"><span class="rout-label">R output — Brant test บนโมเดล ordinal</span>--------------------------------------------
+Test for        X2     df     probability
+--------------------------------------------
+Omnibus         0      1      1
+year            0      1      1
+--------------------------------------------
+H0: Parallel Regression Assumption holds</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์เป๊ะ)</div>
+      <p><strong>"The model [proportional odds] is more appropriate because (1) The nature of the response variable is ordinal (2) The proportional odds assumption holds (as shown in [the Brant test])."</strong></p>
+      <p>เหตุผลสองชั้น: <strong>(1) เชิงทฤษฎี</strong> — สถานะ normal &lt; mild &lt; severe มีลำดับโดยธรรมชาติ การใช้ ordinal จึงตรงกับโครงสร้างข้อมูลมากกว่า และประหยัดพารามิเตอร์กว่า (proportional odds ใช้ slope ร่วมกันข้าม J−1 สมการ ขณะที่ multinomial ต้องมี slope แยกทุกสมการ) <strong>(2) เชิงประจักษ์</strong> — p-value ของ Brant test = 1 (สูงมาก) จึง<strong>ไม่ปฏิเสธ</strong> \(H_0\): "Parallel Regression Assumption holds" แปลว่าไม่มีหลักฐานคัดค้าน assumption ของ proportional odds</p>
+      <p>เมื่อทั้งทฤษฎีสนับสนุนและ assumption ผ่าน → เลือก proportional odds</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เลือก proportional odds ถูก</li>
+      <li>1 คะแนน: อ้างเหตุผลเชิงทฤษฎี (ธรรมชาติของข้อมูลเป็น ordinal)</li>
+      <li>1 คะแนน: อ้างผล Brant test ถูกทิศทาง (p สูง → assumption ผ่าน → ใช้ ordinal ได้)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เลือกจาก AIC เพียงอย่างเดียว (422.9 &lt; 425.4 จึงเลือก ordinal) — แม้จะได้คำตอบถูกแต่<strong>เหตุผลไม่ครบ</strong> อาจารย์ต้องการให้อ้างทั้งธรรมชาติของข้อมูลและผล Brant test ไม่ใช่แค่ตัวเลขเดียว โจทย์บอกชัดว่า "without performing any test" เพิ่มเติม — คือให้ใช้เหตุผลที่มีอยู่แล้ว ไม่ใช่ไปคำนวณอะไรใหม่</p>
+      <p><strong>อ่าน Brant test ผิดทิศทาง</strong> — \(H_0\) ของ Brant คือ "assumption <strong>holds</strong>" (คนละทิศกับ GOF test ทั่วไปที่ \(H_0\) มักเป็น "no effect") p-value สูงคือข่าวดีสำหรับ proportional odds ในกรณีนี้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">Quasi-Poisson vs NB · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูล salmonella มี overdispersion ฟิตได้ทั้ง quasi-Poisson และ Negative Binomial แล้วทำ GOF test กับ NB ได้ผลนี้ (เทียบกับ Poisson ธรรมดาที่ GOF p-value = 1.45×10⁻⁶) จงตัดสินว่าโมเดลใดเหมาะสมกว่า</p>
+    <div class="rout"><span class="rout-label">R output</span>> nbmodel<-glm.nb(colonies~dose+I(dose^2), data=salmonella)
+> 1-pchisq(deviance(nbmodel), nbmodel$df.residual)
+[1] 0.2828136</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>"Due to the goodness-of-fit test in part (f), negative binomial model is preferred."</strong></p>
+      <p>เหตุผล: GOF test ของ NB ให้ p-value = 0.2828 (&gt;0.05) → <strong>ไม่ปฏิเสธ</strong> \(H_0\) ว่าโมเดลฟิตข้อมูลได้ดี ต่างจาก Poisson ธรรมดาที่ p-value = 1.45×10⁻⁶ (ปฏิเสธขาด — ฟิตไม่ดี)</p>
+      <p><strong>ทำไม NB ทำได้ดีกว่า quasi-Poisson ในแง่นี้:</strong> quasi-Poisson ไม่มี full likelihood จึงทำ formal GOF test แบบนี้ไม่ได้โดยตรง (ได้แค่ปรับ SE) ส่วน NB เป็นการแจกแจงเต็มรูปแบบ จึงตรวจสอบ fit ได้อย่างเป็นทางการและให้คำตอบที่ชัดเจนกว่า</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เลือก NB ถูก</li>
+      <li>1 คะแนน: อ้าง GOF test เทียบก่อน-หลัง (Poisson พัง → NB ผ่าน)</li>
+      <li>1 คะแนน: อธิบายว่า NB มี full likelihood ทำ GOF ได้ตรงไปตรงมากว่า quasi-Poisson</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>บอกว่าทั้งสองวิธี "เหมือนกัน เพราะแก้ overdispersion ได้เหมือนกัน" — จริงที่ทั้งคู่แก้ SE ได้ แต่<strong>รูปแบบของ variance function ต่างกัน</strong>: quasi-Poisson ให้ \(\text{Var}(Y)=\phi\mu\) (เชิงเส้นกับ mean) ส่วน NB ให้ \(\text{Var}(Y)=\mu+\kappa\mu^2\) (กำลังสองกับ mean) — ถ้าข้อมูลจริงมีความแปรปรวนโตเร็วกว่าเชิงเส้น NB จะจับได้แม่นกว่า ซึ่งคือสิ่งที่เกิดในโจทย์นี้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Extra-SS F vs LRT · L2/L9</span></div>
+  <div class="exq-body">
+    <p>ต้องการทดสอบว่าตัวแปรกลุ่มหนึ่ง (2 ตัว) ควรอยู่ในโมเดลหรือไม่ จงบอกว่ากรณี <strong>(ก)</strong> full model เป็น <code>lm()</code> ธรรมดา กับ <strong>(ข)</strong> full model เป็น <code>glm(family=binomial)</code> ควรใช้เครื่องมือทดสอบตัวใด และสองเครื่องมือนี้สัมพันธ์กันอย่างไร</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>(ก) OLS:</strong> <strong>extra sum-of-squares F-test</strong> — <code>anova(reducedmodel, fullmodel)</code> เทียบ \(SSE\) ของสองโมเดลแล้วสร้างสถิติ F</p>
+      <p><strong>(ข) GLM:</strong> <strong>Likelihood Ratio Test (LRT)</strong> — เทียบ deviance ของสองโมเดล \(D_{\text{reduced}}-D_{\text{full}} \sim \chi^2_{q}\) โดย q คือจำนวนพารามิเตอร์ที่ต่างกัน</p>
+      <p><strong>ความสัมพันธ์:</strong> ทั้งสองคือแนวคิดเดียวกัน (เทียบ full vs reduced) แต่ต่างเครื่องมือเพราะ OLS มี exact finite-sample F-distribution ให้ใช้ ส่วน GLM ทั่วไปไม่มี (นอกจาก Gaussian) จึงใช้ทฤษฎี asymptotic ของ likelihood แทน (LRT ~ \(\chi^2\) เมื่อ n ใหญ่)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุเครื่องมือถูกทั้งสองกรณี</li>
+      <li>1 คะแนน: อธิบายว่าทั้งคู่คือหลักการ full-vs-reduced เดียวกัน ต่างแค่ distribution ที่อ้างอิง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ extra-SS F-test กับ GLM โดยตรง — ใช้ไม่ได้ในกรณีทั่วไปเพราะ GLM (ยกเว้น Gaussian) ไม่มี exact F-distribution ต้องใช้ LRT แทน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">GOF: Hosmer-Lemeshow vs deviance · L9/L10</span></div>
+  <div class="exq-body">
+    <p>โมเดลมะเร็งเต้านม (681 เคส, response 0/1 <strong>รายบุคคล</strong>) กับโมเดลผีเสื้อกลางคืน (7 แถว ที่แต่ละแถวคือ <strong>ผลรวม</strong>ของผีเสื้อหลายสิบตัวต่อระยะทาง) ทั้งคู่เป็น binomial logistic แต่ใช้ GOF test คนละตัว จงอธิบายว่าทำไม</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>มะเร็งเต้านม → Hosmer-Lemeshow test</strong> เพราะข้อมูล<strong>ไม่ได้จัดกลุ่ม</strong> — แต่ละแถวคือผู้ป่วย 1 คน (\(n_i=1\)) ทำให้ residual deviance ไม่ตามการแจกแจง \(\chi^2\) โดยประมาณอีกต่อไป (เงื่อนไข asymptotic ของ deviance GOF ต้องการ \(n_i\) ใหญ่ในแต่ละกลุ่ม) Hosmer-Lemeshow แก้ปัญหานี้โดยจัดกลุ่มผู้ป่วยตามความน่าจะเป็นที่ทำนายได้เอง แล้วเทียบ observed vs expected ในแต่ละกลุ่ม</p>
+      <p><strong>ผีเสื้อ → deviance GOF ตรง ๆ</strong> เพราะข้อมูล<strong>จัดกลุ่มอยู่แล้ว</strong> — แต่ละแถวคือผลรวมของผีเสื้อหลายสิบตัวที่ระยะทางเดียวกัน (\(n_i\) ใหญ่) เงื่อนไข asymptotic จึงใช้ได้ deviance เทียบกับ \(\chi^2_{n-p}\) ได้ตรงไปตรงมา</p>
+      <p><strong>กฎที่ใช้ตัดสิน:</strong> \(n_i=1\) ทุกแถว (ungrouped) → Hosmer-Lemeshow; \(n_i\) ใหญ่พอในแต่ละแถว (grouped) → deviance GOF ปกติ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่าความต่างอยู่ที่ \(n_i\) ต่อแถว (grouped vs ungrouped)</li>
+      <li>1 คะแนน: จับคู่เครื่องมือกับข้อมูลถูกทั้งสองกรณี</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ deviance GOF กับข้อมูลมะเร็งเต้านมตรง ๆ — ค่า p-value ที่ได้จะ<strong>ไม่น่าเชื่อถือ</strong> เพราะ asymptotic ไม่เข้าเงื่อนไข (นี่คือเหตุผลที่โจทย์ A7(b) สั่งให้ใช้ Hosmer-Lemeshow โดยเฉพาะ)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน D — จับผิด: ใช้เครื่องมือผิด</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">จับผิด · L5</span></div>
+  <div class="exq-body">
+    <p>นักศึกษาคนหนึ่งใช้ best-subset selection เลือกโมเดลด้วยเกณฑ์ RMSE ได้ผลว่า<strong>โมเดลเต็ม (ใส่ทุกตัวแปร) ให้ RMSE ต่ำสุดเสมอ</strong> จึงสรุปว่า "โมเดลเต็มคือโมเดลที่ดีที่สุดสำหรับพยากรณ์อนาคต" จงวิจารณ์ข้อสรุปนี้</p>
+    <div class="rout"><span class="rout-label">R output (บางส่วน)</span>                    Predictors     RMSE
+16    PRECIP NONWHITE lSO2 35.97452
+26 PRECIP EDUC NONWHITE lSO2 34.69990
+31 PRECIP EDUC NONWHITE lNOX lSO2 34.43814   <- เต็ม, RMSE ต่ำสุด</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Disagree because the RMSE is calculated based on the same dataset to fit the model. It [the] model could overfit the data but might not have ability to predict unseen data well."</strong></p>
+      <p>เหตุผล: RMSE ที่คำนวณจากข้อมูล<strong>ชุดเดียวกับที่ใช้ฟิตโมเดล</strong> (in-sample) <strong>ลดลงเสมอ</strong>เมื่อเพิ่มตัวแปร — นี่คือคุณสมบัติทางคณิตศาสตร์ล้วน ๆ ของ \(R^2\)/RMSE ไม่ใช่หลักฐานว่าโมเดลนั้นทำนายอนาคตได้ดี โมเดลเต็มอาจ<strong>overfit</strong> คือจับ noise เฉพาะของข้อมูลชุดนี้ไปด้วย แล้วทำนายข้อมูลใหม่ได้แย่กว่า</p>
+      <p>เกณฑ์ที่เหมาะกับการเลือกโมเดลเพื่อ<strong>ทำนาย</strong>มากกว่าคือ AIC/BIC/Cp (ที่มีพจน์ลงโทษความซับซ้อน) หรือดีที่สุดคือ<strong>cross-validation / test-set RMSE</strong> ซึ่งประเมินบนข้อมูลที่โมเดลไม่เคยเห็น</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ไม่เห็นด้วย พร้อมเหตุผลเรื่อง in-sample RMSE ลดลงเสมอเมื่อเพิ่มตัวแปร</li>
+      <li>1 คะแนน: เชื่อมโยงกับ overfitting และเสนอทางเลือกที่ดีกว่า (AIC/BIC/Cp/CV)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เห็นด้วยกับข้อสรุปเพราะ "ตัวเลขต่ำสุดจริง" — ตัวเลขต่ำสุดใน<strong>ข้อมูลที่ใช้ฝึก</strong>ไม่ได้แปลว่าดีที่สุดสำหรับ<strong>ข้อมูลใหม่</strong> เป็นกับดักที่พบบ่อยเมื่อใช้เกณฑ์ที่ไม่มีพจน์ลงโทษความซับซ้อน (RMSE, \(R^2\), \(R^2_{adj}\) ในบางกรณี) เทียบกับที่มี (AIC, BIC, Cp)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">จับผิด · L14</span></div>
+  <div class="exq-body">
+    <p>นักวิจัยเก็บข้อมูลน้ำหนักหนู 27 ตัว วัดซ้ำ 5 สัปดาห์ (135 แถว) แล้วฟิต <code>lm(wt ~ weeks*treat)</code> ธรรมดา ได้ p-value ของ treatment ต่ำมาก จึงสรุปว่า treatment มีผลอย่างมีนัยสำคัญ จงวิจารณ์วิธีการนี้</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ผิดที่การเลือกใช้ OLS ธรรมดา</strong> — ข้อมูล 135 แถวมาจากหนูจริงแค่ 27 ตัว (5 แถวต่อตัว) การวัดซ้ำในสัตว์ตัวเดียวกันไม่เป็นอิสระต่อกัน (independence assumption ของ OLS พัง) OLS จะ<strong>นับข้อมูลซ้ำเกินจริง</strong>ว่ามี 135 การสังเกตอิสระ ทำให้ SE เล็กเกินไปและ p-value เล็กเกินจริง — ข้อสรุปเรื่องนัยสำคัญจึง<strong>เชื่อถือไม่ได้</strong></p>
+      <p>วิธีที่ถูกต้องคือ <strong>linear mixed model</strong> ใส่ random effect ของหนูแต่ละตัว (เช่น <code>lmer(wt~weeks*treat+(weeks|subject))</code>) เพื่อแยกความแปรปรวนระหว่างหนูออกจากความแปรปรวนที่แท้จริงของ treatment แล้วทดสอบ fixed effect ด้วย Kenward-Roger approximation แทน t-test ธรรมดา</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่า OLS ผิดเพราะละเมิด independence จากการวัดซ้ำ</li>
+      <li>1 คะแนน: เสนอ mixed model พร้อมวิธีทดสอบที่ถูกต้อง (Kenward-Roger)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>บอกว่าปัญหาคือ "ตัวอย่างเล็กเกินไป" — ผิดประเด็น ปัญหาไม่ใช่ขนาดตัวอย่างแต่คือ<strong>โครงสร้างการไม่เป็นอิสระ</strong> แม้จะมีหนู 1,000 ตัว ถ้าไม่ใส่ random effect ปัญหาเดิมก็ยังอยู่</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน E — เลือกเครื่องมือจาก scatterplot matrix</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Scatterplot matrix · L2</span></div>
+  <div class="exq-body">
+    <p>ก่อนฟิต MLR ของร้านค้าปลีก (Y=ชั่วโมงแรงงาน, X1=กล่องที่ส่ง, X2=ต้นทุนแรงงานทางอ้อม%, X3=มีวันหยุดหรือไม่) ได้ scatterplot matrix นี้ จงบอกว่าควรระวังอะไรก่อนตีความสัมประสิทธิ์ของ MLR ที่จะฟิตต่อไป</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a2-grocery-scatterplot-matrix.png" alt="Scatterplot matrix of Y, X1, X2, X3 for the grocery data; the Y-X1 panel shows a clear positive linear trend, the Y-X3 panel shows two horizontal clusters of points at X3=0 and X3=1 with the X3=1 cluster sitting higher, and the X1-X2 and other predictor panels show no strong pattern">
+      <figcaption>Assignment 2 ข้อ 1(a) — grocery.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p>อาจารย์อ่านภาพนี้ว่า: <strong>"X1 has positive relationship with Y. The relationship between X2 and Y is not obvious. X3 has positive relationship with Y. Particularly, the mean response is higher during the weeks that have a holiday."</strong></p>
+      <p>สิ่งที่ต้องระวังก่อนตีความ MLR ต่อ: (1) ความสัมพันธ์ระหว่าง X2 กับ Y <strong>ไม่ชัดเจน</strong> จาก scatterplot เพียงอย่างเดียว — อาจกลายเป็นมีนัยสำคัญหรือไม่มีก็ได้เมื่อควบคุมตัวแปรอื่น (ผลจริง: X2 ไม่มีนัยสำคัญในโมเดลเต็ม, p=0.5712) (2) ต้องเช็คด้วยว่าแผงระหว่าง X1, X2, X3 เอง<strong>ไม่มีความสัมพันธ์กันแรงเกินไป</strong> ก่อนเชื่อ VIF/สัมประสิทธิ์ (ถ้า X สัมพันธ์กันเอง MLR อาจให้ผลชวนสับสน)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่านความสัมพันธ์ระหว่าง Y กับแต่ละ X ได้ถูกทิศทาง</li>
+      <li>1 คะแนน: ตั้งข้อสังเกตว่า scatterplot เดี่ยว ๆ ยังสรุปนัยสำคัญใน MLR ไม่ได้ (ต้องรอดู output MLR)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สรุปจาก scatterplot matrix ว่า X2 "ไม่มีผลต่อ Y แน่นอน" — scatterplot ดิบยังไม่ควบคุมตัวแปรอื่น เป็นแค่จุดเริ่มต้นสำรวจข้อมูล ไม่ใช่ข้อสรุปสุดท้าย ต้องรอผลจาก MLR</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน F — Ridge trace</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Ridge trace · L7</span></div>
+  <div class="exq-body">
+    <p>หลังพบ multicollinearity รุนแรงในข้อ 1 อาจารย์ฟิต ridge regression แล้วพล็อต ridge trace (สัมประสิทธิ์แต่ละตัวเทียบกับ k) จงอธิบายว่าใช้ภาพนี้เลือกค่า k อย่างไร</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-ridge-trace.png" alt="Ridge trace plot showing multiple coefficient lines starting far apart and swinging wildly near k=0, then rapidly converging and stabilizing into roughly flat, closely-spaced lines as k increases toward the right side of the plot">
+      <figcaption>Assignment 4 ข้อ (j) — lungpressure.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>เหตุผลจากภาพ: ที่ k ใกล้ 0 (ไม่ลงโทษเลย = OLS) เส้นสัมประสิทธิ์<strong>แกว่งรุนแรงและห่างกันมาก</strong> — สะท้อนความไม่เสถียรจาก multicollinearity ที่เจอในข้อ 1 พอ k เพิ่มขึ้น เส้นทั้งหมด<strong>บีบเข้าหากันและเริ่มราบ</strong>อย่างรวดเร็ว</p>
+      <p><strong>หลักการเลือก k:</strong> เลือกค่า k ที่<strong>น้อยที่สุดเท่าที่จะทำให้เส้นสัมประสิทธิ์เริ่มเสถียร</strong> (เส้นเกือบราบ ไม่แกว่งอีกต่อไป) — ไม่ใช่เลือก k ใหญ่ที่สุด เพราะ k ที่มากเกินไปจะบีบสัมประสิทธิ์เข้าใกล้ 0 ทั้งหมด (bias สูงเกินไป) จุดที่เหมาะสมคือจุดแรกที่กราฟ "นิ่ง" นับจากซ้าย</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่านภาพถูกว่าเส้นแกว่งที่ k น้อยแล้วเสถียรที่ k มาก</li>
+      <li>1 คะแนน: ระบุหลักการเลือก k ว่าใช้ค่าน้อยที่สุดที่ทำให้เสถียร ไม่ใช่ค่ามากที่สุด</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เลือก k ใหญ่สุดในกราฟ เพราะ "เส้นราบที่สุด" — bias จะสูงเกินไปจนสัมประสิทธิ์เกือบเป็น 0 ทั้งหมด เสียความหมายทางสถิติไปเปล่า ๆ ต้องหาจุดสมดุล ไม่ใช่สุดขั้ว</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน G — สรุปเปรียบเทียบทั้งตาราง</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">เลือกเกณฑ์คัดโมเดล · L5</span></div>
+  <div class="exq-body">
+    <p>มีเกณฑ์คัดเลือกโมเดล 4 แบบ: RMSE, \(R^2_{adj}\), Cp, BIC จงระบุว่าเกณฑ์ใด<strong>ลงโทษความซับซ้อนของโมเดลแรงที่สุด</strong> และเพราะเหตุใดสิ่งนี้จึงสำคัญเมื่อโมเดลมีตัวแปรเยอะ</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>BIC ลงโทษแรงที่สุด</strong> — พจน์ลงโทษของ BIC คือ \((p+1)\log(n)\) เทียบกับ AIC ที่ \(2(p+1)\) เมื่อ \(n>7\) ค่า \(\log(n) > 2\) เสมอ ทำให้ BIC ลงโทษการเพิ่มพารามิเตอร์แรงกว่า AIC โดยอัตโนมัติ และแรงกว่า RMSE/\(R^2\) มาก (ซึ่งแทบไม่ลงโทษเลย ดูข้อ 10)</p>
+      <p><strong>ทำไมสำคัญ:</strong> ยิ่งชุดข้อมูลมีตัวแปรผู้สมัครเยอะ โอกาสที่ตัวแปรไม่เกี่ยวข้องจะเข้าไปพอดีกับ noise ในข้อมูลตัวอย่าง (overfitting) ยิ่งสูง เกณฑ์ที่ลงโทษความซับซ้อนแรง (BIC) จะเลือกโมเดลที่<strong>กระชับกว่า</strong>และมักทำนายข้อมูลใหม่ได้ดีกว่า ส่วนเกณฑ์ที่ไม่ลงโทษ (RMSE) มักได้โมเดลใหญ่เกินจำเป็น</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุ BIC ถูก พร้อมสูตรเปรียบเทียบกับ AIC</li>
+      <li>1 คะแนน: อธิบายเหตุผลเรื่อง overfitting เมื่อมีตัวแปรเยอะ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า Cp ลงโทษแรงที่สุด — Cp กับ AIC สัมพันธ์กันใกล้ชิดและลงโทษในระดับใกล้เคียงกัน (ไม่ขึ้นกับ \(\log n\)) BIC ยังคงแรงกว่าเสมอเมื่อ \(n\) มากพอ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 15</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">ภาพรวมทั้งวิชา · Review</span></div>
+  <div class="exq-body">
+    <p>สรุปภาพรวม: ให้จับคู่ 5 อาการนี้กับเครื่องมือที่ถูกต้อง โดยห้ามใช้เครื่องมือซ้ำกัน — <strong>(1)</strong> residual เป็นคลื่นตามลำดับเวลา <strong>(2)</strong> ต้องการทำนายอัตราจากข้อมูลที่มี exposure ต่างกัน <strong>(3)</strong> ทดสอบว่า random effect ในโมเดลผสมมีนัยสำคัญหรือไม่ <strong>(4)</strong> response เป็นสัดส่วนที่มาจากข้อมูลกลุ่ม (คนละคนกับ \(n_i=1\)) <strong>(5)</strong> ต้องการเทียบสองโมเดล nested ที่ทั้งคู่เป็น GLM</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <ol>
+        <li>residual เป็นคลื่นตามเวลา → <strong>Durbin-Watson test</strong> (ตรวจ) แล้วแก้ด้วย Cochrane-Orcutt หรือใส่ตัวแปรเวลา</li>
+        <li>ทำนายอัตราจาก exposure ต่างกัน → <strong>offset(log(exposure))</strong> ใน Poisson GLM</li>
+        <li>ทดสอบ random effect → <strong>Bootstrap confidence interval</strong> (ไม่ใช่ Kenward-Roger ซึ่งใช้กับ fixed effect)</li>
+        <li>สัดส่วนจากข้อมูลกลุ่ม → <strong>Binomial GLM แบบ grouped</strong> ด้วย <code>cbind(สำเร็จ, ล้มเหลว)</code></li>
+        <li>เทียบ nested GLM สองตัว → <strong>Likelihood Ratio Test</strong></li>
+      </ol>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.4 คะแนนต่อข้อ (รวม 2): จับคู่ถูกครบ 5 ข้อ ไม่ซ้ำเครื่องมือ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สลับข้อ 3 กับ Kenward-Roger — จำหลักไว้: <strong>Kenward-Roger สำหรับ fixed effect, Bootstrap สำหรับ random effect</strong> เพราะ random effect ไม่มี exact test แบบ fixed effect ต้องอาศัยการจำลอง (simulation-based)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">ชุดนี้เน้น "เหตุผล" ไม่ใช่แค่ชื่อเครื่องมือ — ถ้าตอบชื่อถูกแต่อธิบายไม่ได้ว่าทำไม ให้กดแค่ "ถูกบางส่วน" เพราะข้อสอบจริงมักถามเหตุผลควบคู่เสมอ</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-04-diagnose-from-plots.html">← Drill 4: วินิจฉัยจาก plot</a></span>
+  <span><a href="drill-06-predict-and-explain.html">Drill 6: ทำนายและอธิบาย →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

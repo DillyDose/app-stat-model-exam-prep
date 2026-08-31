@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 6: ทำนายค่า แล้วอธิบายว่าแปลว่าอะไร</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 6 / 6 · ทำนายและอธิบาย</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 6 — Obtain a point estimate, then interpret it</p>
+<h1>Drill 6: ทำนายค่าด้วยมือ → แปลงสเกลกลับ → ตีความ</h1>
+
+<p>อาจารย์เน้น "<strong>ทำนายค่าที่ได้ และต้องเขียนอธิบายได้ว่าจากค่านั้นตีความว่ายังไง</strong>" ชุดนี้จึงบังคับให้แทนตัวเลขลงสมการด้วยมือ (ข้อสอบไม่ให้ใช้ R) แล้ว<strong>แปลงกลับสเกลให้ถูก</strong>ก่อนตีความ — ขั้นแปลงกลับคือจุดที่ทำคะแนนหลุดกันมากที่สุดในครึ่ง GLM ของวิชานี้ เพราะค่า linear predictor ดิบ ๆ ไม่มีความหมายจนกว่าจะแปลง</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>14 ข้อ · 30 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~40 นาที (มีคำนวณด้วยมือ ใช้เครื่องคิดเลขได้)</dd>
+  <dt>ครอบคลุม</dt><dd>L1–L14 ทุกบท</dd>
+  <dt>เตรียมตัว</dt><dd>เครื่องคิดเลขที่มีปุ่ม \(e^x\) และ \(\ln\)</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">ตารางแปลงกลับที่ต้องท่องให้ขึ้นใจ</div>
+<table style="margin:0.4em 0">
+<tr><th>โมเดล</th><th>สมการให้ค่าอะไร</th><th>แปลงกลับด้วย</th><th>ได้อะไร</th></tr>
+<tr><td>OLS ปกติ</td><td>\(\hat{Y}\)</td><td>— (ไม่ต้องแปลง)</td><td>ค่า Y โดยตรง</td></tr>
+<tr><td>OLS ที่ log Y</td><td>\(\widehat{\ln Y}\)</td><td>\(e^{(\cdot)}\)</td><td>ค่า Y (เชิงมัธยฐาน)</td></tr>
+<tr><td>Logistic</td><td>\(\hat{\eta} = \text{logit}(\hat{\pi})\)</td><td>\(\dfrac{e^{\hat\eta}}{1+e^{\hat\eta}}\)</td><td>ความน่าจะเป็น \(\hat\pi\)</td></tr>
+<tr><td>Poisson</td><td>\(\hat{\eta} = \log(\hat\mu)\)</td><td>\(e^{\hat\eta}\)</td><td>ค่านับที่คาดหวัง \(\hat\mu\)</td></tr>
+<tr><td>Poisson + offset</td><td>\(\log(\hat\mu)\) รวม \(\log N\)</td><td>\(e^{\hat\eta}\) แล้วหาร \(N\)</td><td>อัตราต่อหน่วย exposure</td></tr>
+</table>
+<p style="margin-top:0.6em"><strong>กฎเหล็กของ GLM:</strong> ทำ interval บน<strong>สเกล link ก่อนเสมอ</strong> แล้วค่อยแปลงปลายทั้งสองข้างกลับ — ห้ามคำนวณ \(\hat\pi \pm 1.96\,SE\) บนสเกลความน่าจะเป็นตรง ๆ (จะได้ค่าหลุดช่วง 0–1 ได้)</p>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — Linear models</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">SLR · L1</span></div>
+  <div class="exq-body">
+    <p>บริษัทรถโดยสาร: Cost (£100,000) กับ Miles (ล้านไมล์) จงหา<strong>ค่าประมาณจุดของค่าเฉลี่ยค่าใช้จ่าย</strong>เมื่อ Miles = 3.62 <strong>แสดงวิธีคำนวณ</strong> แล้วตีความค่าที่ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 0.64963    0.06636    9.79 5.31e-11 ***
+Miles       0.44673    0.01909   23.40  < 2e-16 ***</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y} = 0.64963 + 0.44673 X = 0.64963 + 0.44673(3.62) = 2.266793\]</p>
+      <p>(R ให้ <code>predict()</code> = 2.266794 ต่างกันแค่ทศนิยมหลักที่ 6 จากการปัดเศษ)</p>
+      <p><strong>ตีความ:</strong> เมื่อรถวิ่ง 3.62 ล้านไมล์ ค่าใช้จ่ายรวมโดยเฉลี่ยที่คาดไว้คือ 2.266793 × £100,000 ≈ <strong>£226,679</strong></p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: แสดงการแทนค่าและได้ตัวเลขถูก (2.2668)</li>
+      <li>1 คะแนน: ตีความพร้อม<strong>หน่วยจริง</strong> — ต้องคูณกลับ £100,000 ไม่ใช่ตอบ "2.27" ลอย ๆ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ลืมหน่วย — โจทย์บอกว่า Y มีหน่วยเป็น £100,000s อาจารย์ให้ความสำคัญกับการแปลงหน่วยกลับมาก (ในข้อ 4 ของ A1 เธอเขียนคำตอบเป็น "The increase of £44,673" ไม่ใช่ "0.44673")</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">MLR + dummy · L2</span></div>
+  <div class="exq-body">
+    <p>ร้านค้าปลีก: X1 = จำนวนกล่องที่ส่ง, X2 = ต้นทุนแรงงานทางอ้อม (%), X3 = 1 ถ้าสัปดาห์มีวันหยุด, Y = ชั่วโมงแรงงานรวม จงทำนาย Y ที่ X1 = 282,000, X2 = 7.1, X3 = 0 <strong>แสดงวิธี</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  < 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\hat{Y} = 4150 + 0.0007871(282000) - 13.17(7.1) + 623.6(0)\]</p>
+      <p>\[= 4150 + 221.96 - 93.51 + 0 = 4278.45\]</p>
+      <p>R ให้ <code>predict()</code> = <strong>4278.365</strong> — ต่างจากที่คำนวณมือ 0.09 ชั่วโมง เพราะเราใช้สัมประสิทธิ์ที่ปัดเศษแล้ว (R ใช้ค่าเต็มความละเอียด)</p>
+      <p><strong>ตีความ:</strong> สัปดาห์ที่ส่งของ 282,000 กล่อง มีต้นทุนแรงงานทางอ้อม 7.1% และ<strong>ไม่มีวันหยุด</strong> คาดว่าจะใช้ชั่วโมงแรงงานรวมประมาณ 4,278 ชั่วโมง</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: แทนค่าครบทุกตัวแปรรวม X3 = 0 (ต้องเขียนให้เห็นว่ารู้ว่าพจน์นี้หายไป)</li>
+      <li>1 คะแนน: ตีความโดย<strong>ระบุเงื่อนไขครบทั้ง 3 ตัวแปร</strong> โดยเฉพาะ "ไม่มีวันหยุด"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตกใจว่าคำนวณมือได้ 4278.45 แต่ R ได้ 4278.365 แล้วคิดว่าทำผิด — <strong>ความต่างระดับนี้มาจากการปัดเศษสัมประสิทธิ์ ปกติ</strong> ข้อสอบยอมรับได้ ถ้าอยากใกล้ขึ้นให้ใช้เลขนัยสำคัญมากขึ้น</p>
+      <p>อ่าน <code>7.871e-04</code> ผิดหลัก แล้วได้คำตอบหลุดไปหลายพัน — ทดช้า ๆ ตรงนี้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">CI vs PI · L1/L2</span></div>
+  <div class="exq-body">
+    <p>จากโมเดลเดียวกับข้อ 2 ที่จุด X1 = 282,000, X2 = 7.1, X3 = 0 R ให้ผลสองแบบด้านล่าง จงอธิบาย <strong>(ก)</strong> ทั้งสองช่วงตอบคำถามคนละคำถามอย่างไร <strong>(ข)</strong> ทำไมช่วงที่สองจึงกว้างกว่ามาก</p>
+    <div class="rout"><span class="rout-label">R output</span>> predict(model, newdata=..., interval="confidence")
+       fit      lwr      upr
+1 4278.365 4232.447 4324.283
+
+> predict(model, newdata=..., interval="prediction")
+       fit      lwr      upr
+1 4278.365 3986.626 4570.104</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>(ก) คนละคำถาม</strong></p>
+      <p><strong>Confidence interval (4232.447, 4324.283):</strong> "ค่าเฉลี่ยของชั่วโมงแรงงาน<strong>ของทุกสัปดาห์</strong>ที่มีเงื่อนไขแบบนี้ อยู่ในช่วงไหน" — ตอบเรื่อง<strong>ค่าเฉลี่ยประชากร</strong></p>
+      <p><strong>Prediction interval (3986.626, 4570.104):</strong> "ถ้าสัปดาห์หน้ามีเงื่อนไขแบบนี้ ชั่วโมงแรงงาน<strong>ของสัปดาห์นั้นสัปดาห์เดียว</strong> จะอยู่ในช่วงไหน" — ตอบเรื่อง<strong>ค่าสังเกตใหม่ 1 ค่า</strong></p>
+      <p><strong>(ข) ทำไม PI กว้างกว่า</strong></p>
+      <p>ความกว้าง CI = 4324.283 − 4232.447 = <strong>91.8</strong> ชั่วโมง; ความกว้าง PI = 4570.104 − 3986.626 = <strong>583.5</strong> ชั่วโมง — กว้างกว่าราว 6.4 เท่า</p>
+      <p>เพราะ PI ต้องรวมความไม่แน่นอน <strong>2 แหล่ง</strong>: (1) ความไม่แน่นอนของเส้นถดถอยที่ประมาณจากตัวอย่าง (แหล่งเดียวกับ CI) บวกกับ (2) ความแปรปรวนตามธรรมชาติของค่าสังเกตแต่ละค่ารอบเส้น (\(\sigma^2\)) ซึ่ง CI ไม่ต้องนับ สะท้อนในสูตรเป็นพจน์ "+1":</p>
+      <p>\[SE[\hat{Y}_{\text{pred}}] = s\sqrt{1 + \tfrac{1}{n} + \tfrac{(X_0-\bar{X})^2}{\sum(X_i-\bar{X})^2}} \quad\text{เทียบกับ}\quad SE[\hat{Y}] = s\sqrt{\tfrac{1}{n} + \tfrac{(X_0-\bar{X})^2}{\sum(X_i-\bar{X})^2}}\]</p>
+      <p><strong>PI กว้างกว่า CI เสมอ</strong> ที่จุดเดียวกัน — เป็นความจริงทางคณิตศาสตร์ ไม่ใช่เรื่องบังเอิญของข้อมูลชุดนี้</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อธิบาย CI ว่าเป็นช่วงของ<strong>ค่าเฉลี่ย</strong></li>
+      <li>1 คะแนน: อธิบาย PI ว่าเป็นช่วงของ<strong>ค่าสังเกตใหม่หนึ่งค่า</strong></li>
+      <li>1 คะแนน: อธิบายเหตุผลที่กว้างกว่า (ความไม่แน่นอน 2 แหล่ง / พจน์ +1)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "PI กว้างกว่าเพราะทำนายอนาคตซึ่งไม่แน่นอนกว่า" — ฟังดูสมเหตุสมผลแต่<strong>ไม่ใช่เหตุผลทางสถิติ</strong> ต้องอ้างว่ามีองค์ประกอบความแปรปรวนของค่าสังเกตรายตัวเพิ่มเข้ามา</p>
+      <p>สังเกตว่า <code>fit</code> ของทั้งสองแบบ<strong>เท่ากันเป๊ะ</strong> (4278.365) — จุดกึ่งกลางเหมือนกัน ต่างกันแค่ความกว้าง ถ้าตอบว่าค่าทำนายต่างกันคือเข้าใจผิด</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Log-transformed Y · L3</span></div>
+  <div class="exq-body">
+    <p>ความเข้มข้นสารละลาย (Y) ตามเวลา (X) โมเดลที่ใช้คือ <code>lm(log(Y) ~ X)</code> จงทำนายความเข้มข้น<strong>ในหน่วยเดิม</strong>ที่ X = 5 ชั่วโมง</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = log(Y) ~ X, data = solution)
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  1.50792    0.06028   25.01 2.22e-12 ***
+X           -0.44993    0.01049  -42.88 2.19e-15 ***</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ขั้น 1 — คำนวณบนสเกล log:</strong></p>
+      <p>\[\widehat{\ln Y} = 1.50792 - 0.44993(5) = 1.50792 - 2.24965 = -0.74173\]</p>
+      <p><strong>ขั้น 2 — แปลงกลับสเกลเดิม:</strong></p>
+      <p>\[\hat{Y} = e^{-0.74173} = 0.4763\]</p>
+      <p><strong>ตีความ:</strong> ที่เวลา 5 ชั่วโมง ความเข้มข้นของสารละลายที่คาดไว้ประมาณ <strong>0.476 หน่วย</strong></p>
+      <p><strong>ข้อควรระวังเชิงเทคนิค:</strong> \(e^{\widehat{\ln Y}}\) ให้ค่าประมาณของ<strong>มัธยฐาน</strong>ของ Y ไม่ใช่ค่าเฉลี่ย เพราะ \(E[e^Z] \neq e^{E[Z]}\) — ในระดับวิชานี้รายงานค่านี้ได้ แต่ควรรู้ว่ามันคือมัธยฐาน</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: คำนวณ \(\widehat{\ln Y} = -0.74173\) ถูก</li>
+      <li>1 คะแนน: <strong>exponentiate กลับ</strong>ได้ 0.476 — ข้อนี้คือหัวใจ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ตอบ −0.74173 เป็นคำตอบสุดท้าย</strong> — ความเข้มข้นติดลบเป็นไปไม่ได้ทางกายภาพ ถ้าคำตอบขัดสามัญสำนึกแบบนี้ แปลว่าลืมแปลงกลับสเกล โจทย์ถาม "ในหน่วยเดิม" ชัดเจน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Polynomial · L2</span></div>
+  <div class="exq-body">
+    <p>ผลผลิตข้าวโพด (YIELD) กับปริมาณน้ำฝน (RAINFALL) จงทำนายผลผลิตเมื่อ RAINFALL = 9 นิ้ว</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = YIELD ~ RAINFALL + I(RAINFALL^2), data = data)
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)     -5.01467   11.44158  -0.438  0.66387
+RAINFALL         6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2)   -0.22936    0.08864  -2.588  0.01397 *</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\widehat{\text{YIELD}} = -5.01467 + 6.00428(9) - 0.22936(9)^2\]</p>
+      <p>\[= -5.01467 + 54.0385 - 0.22936(81) = -5.01467 + 54.0385 - 18.5782 = 30.45\]</p>
+      <p><strong>ตีความ:</strong> ปีที่ฝนตก 9 นิ้ว คาดว่าผลผลิตข้าวโพดจะอยู่ราว <strong>30.4 บุชเชลต่อเอเคอร์</strong></p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ยกกำลังสอง<strong>ตัว X ก่อน</strong>แล้วค่อยคูณสัมประสิทธิ์ (\(9^2=81\) แล้ว \(\times(-0.22936)\))</li>
+      <li>1 คะแนน: ได้ผลลัพธ์ ≈30.4 พร้อมหน่วย</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>คำนวณเป็น \((-0.22936 \times 9)^2\) แทนที่จะเป็น \(-0.22936 \times 9^2\) — ลำดับการดำเนินการผิด ยกกำลังก่อนคูณเสมอ</p>
+      <p>แทนค่า RAINFALL เฉพาะพจน์แรก ลืมพจน์กำลังสอง — ต้องแทนทั้งสองพจน์เพราะเป็น X ตัวเดียวกัน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Interaction · L2/L4</span></div>
+  <div class="exq-body">
+    <p>โมเดลความดันหลอดเลือดปอด <code>lm(Y ~ X1*X2)</code> จงทำนาย Y เมื่อ X1 = 30 และ X2 = 50</p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 134.399866  15.981599   8.410 4.63e-07 ***
+X1           -2.133022   0.522157  -4.085 0.000975 ***
+X2           -1.699330   0.363669  -4.673 0.000300 ***
+X1:X2         0.033347   0.009283   3.592 0.002667 **</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\hat{Y} = 134.399866 - 2.133022(30) - 1.699330(50) + 0.033347(30)(50)\]</p>
+      <p>\[= 134.3999 - 63.9907 - 84.9665 + 50.0205 = 35.46\]</p>
+      <p><strong>ตีความ:</strong> ผู้ป่วยที่มีค่า X1 = 30 และ X2 = 50 คาดว่าจะมีความดันหลอดเลือดแดงในปอดราว <strong>35.5</strong> (หน่วยตามที่โจทย์กำหนด)</p>
+      <p><strong>จุดสำคัญของ interaction:</strong> พจน์ที่สี่คือ \(0.033347 \times X_1 \times X_2\) ต้องคูณ X ทั้งสองตัวเข้าด้วยกัน — สังเกตว่าพจน์นี้ให้ค่า +50.02 ซึ่ง<strong>ใหญ่พอ ๆ กับพจน์อื่น</strong> ถ้าลืมจะได้คำตอบผิดไปมาก</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ใส่พจน์ interaction ครบและคูณ \(X_1 X_2 = 1500\) ถูก</li>
+      <li>1 คะแนน: ได้ผลลัพธ์ ≈35.5</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ลืมพจน์ interaction</strong> — จะได้ 134.4 − 64.0 − 85.0 = −14.6 ซึ่งติดลบและผิดไปไกลมาก ถ้าคำตอบดูแปลก ให้เช็คก่อนว่าใส่ครบทุกพจน์ใน output หรือยัง</p>
+      <p>คิดว่า "X1:X2" คือค่าใหม่ที่โจทย์ต้องให้มา — ไม่ใช่ ต้องคูณเอาเองจาก X1 และ X2 ที่โจทย์ให้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">ANOVA · L6</span></div>
+  <div class="exq-body">
+    <p>ราคาเสนอซื้อรถมือสอง (หน่วยร้อยดอลลาร์) ตามกลุ่มอายุเจ้าของ จงทำนายราคาเสนอสำหรับเจ้าของกลุ่ม <strong>Middle</strong> และอธิบายว่าทำไมค่าทำนายของทุกคนในกลุ่มเดียวกันจึงเท่ากันหมด</p>
+    <div class="rout"><span class="rout-label">R output</span>> print(model.tables(aovmodel, "means"))
+Tables of means
+Grand mean
+
+23.55556
+
+ AgeGroup
+AgeGroup
+Elderly Middle  Young
+ 21.417 27.750 21.500</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\hat{Y}_{\text{Middle},j} = 27.750\]</p>
+      <p><strong>ตีความ:</strong> เจ้าของรถกลุ่มวัยกลางคนคาดว่าจะได้รับข้อเสนอราว 27.75 × 100 = <strong>2,775 ดอลลาร์</strong></p>
+      <p><strong>ทำไมทุกคนในกลุ่มได้ค่าเท่ากัน:</strong> เพราะ ANOVA มีตัวทำนายเพียงตัวเดียวคือ<strong>กลุ่ม</strong> ซึ่งเป็นตัวแปรเชิงกลุ่ม — ข้อมูลที่โมเดลมีเกี่ยวกับคนคนหนึ่งคือ "อยู่กลุ่มไหน" เท่านั้น ไม่มีตัวแปรต่อเนื่องมาแยกความต่างภายในกลุ่ม ค่าทำนายที่ดีที่สุดจึงเป็นค่าเฉลี่ยของกลุ่มนั้น (ตรงกับที่ <code>fitted(aovmodel)</code> พิมพ์ค่า 27.75 ซ้ำ ๆ สำหรับทุกแถวในกลุ่ม Middle)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ตอบ 27.750 (ค่าเฉลี่ยกลุ่ม ไม่ใช่ grand mean 23.56)</li>
+      <li>1 คะแนน: อธิบายเหตุผลว่าตัวทำนายมีแค่กลุ่ม</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ grand mean 23.55556 — นั่นคือค่าเฉลี่ยรวมทุกกลุ่ม ใช้เป็นค่าทำนายเฉพาะกรณีที่ไม่รู้ว่าอยู่กลุ่มไหน (หรือในโมเดล null)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — GLM: ต้องแปลงสเกลกลับ</h2>
+<div class="sec-note">จุดที่ทำคะแนนหลุดมากที่สุด</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Logistic → ความน่าจะเป็น · L10</span></div>
+  <div class="exq-body">
+    <p>ผีเสื้อกลางคืนใกล้ลิเวอร์พูล \(\pi\) = ความน่าจะเป็นที่ผีเสื้อที่ถูกล่าเป็นสีอ่อน จงหา<strong>ความน่าจะเป็น</strong>ที่ระยะทาง 30 กม. จากเมือง</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = cbind(light_removed, dark_removed) ~ distance,
+    family = binomial, data = newdata)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.28048    0.23090   1.215  0.22447
+distance    -0.01872    0.00675  -2.773  0.00556 **</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ขั้น 1 — linear predictor (สเกล logit):</strong></p>
+      <p>\[\hat{\eta} = 0.28048 - 0.01872(30) = 0.28048 - 0.5616 = -0.28112\]</p>
+      <p><strong>ขั้น 2 — แปลงกลับเป็นความน่าจะเป็น:</strong></p>
+      <p>\[\hat{\pi} = \frac{e^{\hat\eta}}{1+e^{\hat\eta}} = \frac{e^{-0.28112}}{1+e^{-0.28112}} = \frac{0.75492}{1.75492} = 0.4302\]</p>
+      <p><strong>ตีความ:</strong> ที่ระยะ 30 กม. จากลิเวอร์พูล ในบรรดาผีเสื้อที่ถูกล่า คาดว่าประมาณ <strong>43%</strong> จะเป็นผีเสื้อสีอ่อน (น้อยกว่าครึ่ง — สอดคล้องกับที่ยิ่งไกลเมือง ต้นไม้ยิ่งไม่ดำจากเขม่า ผีเสื้อสีอ่อนจึงพรางตัวได้ดีกว่าและถูกล่าน้อยลง)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: คำนวณ \(\hat{\eta} = -0.28112\) ถูก</li>
+      <li>1 คะแนน: แปลงกลับด้วยสูตร logistic ได้ \(\hat{\pi} \approx 0.43\)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ตอบ −0.28112 ว่าเป็นความน่าจะเป็น</strong> — ความน่าจะเป็นติดลบไม่ได้ ค่านี้คือ log-odds ต้องแปลงต่อ</p>
+      <p>ใช้สูตร \(e^{\hat\eta}\) เฉย ๆ (ได้ 0.755) แล้วตอบว่าเป็นความน่าจะเป็น — นั่นคือ <strong>odds</strong> ไม่ใช่ความน่าจะเป็น ต้องหารด้วย \(1+e^{\hat\eta}\) อีกที</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">CI ของ GLM · L9</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลมะเร็งเต้านม (\(\pi\) = ความน่าจะเป็นที่เนื้องอกเป็น benign) สำหรับผู้ป่วยรายใหม่รายหนึ่ง R ให้ค่าบนสเกล link ดังนี้ จงสร้าง <strong>95% CI ของความน่าจะเป็น</strong> และอธิบายว่าทำไมต้องทำตามลำดับนี้</p>
+    <div class="rout"><span class="rout-label">R output</span>> eta<-predict(reducedmod, newdata=newdata, se.fit=TRUE)
+> eta
+$fit
+       1
+4.750162
+
+$se.fit
+[1] 0.5775932
+
+$residual.scale
+[1] 1</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (ลำดับที่อาจารย์ใช้)</div>
+      <p><strong>ขั้น 1 — สร้าง CI บนสเกล link (logit) ก่อน:</strong></p>
+      <p>\[\hat\eta \pm 1.96\,SE = 4.750162 \pm 1.96(0.5775932)\]</p>
+      <p>\[= 4.750162 \pm 1.132083 \;\Rightarrow\; (3.618079,\; 5.882245)\]</p>
+      <p><strong>ขั้น 2 — แปลงปลายทั้งสองข้างกลับด้วย <code>ilogit</code>:</strong></p>
+      <p>\[\text{lower} = \frac{e^{3.618079}}{1+e^{3.618079}} = 0.9739, \qquad \text{upper} = \frac{e^{5.882245}}{1+e^{5.882245}} = 0.9972\]</p>
+      <p>ตรงกับที่ R ให้: <strong>(0.9738671, 0.9972192)</strong> ✓</p>
+      <p><strong>ทำไมต้องทำลำดับนี้:</strong> ทฤษฎีบทที่รับประกันว่า \(\hat\beta\) แจกแจงประมาณปกติ ใช้ได้บน<strong>สเกล link</strong> เท่านั้น การบวกลบ 1.96 SE จึงต้องทำบนสเกลนั้น นอกจากนี้ถ้าคำนวณบนสเกลความน่าจะเป็นตรง ๆ ช่วงอาจ<strong>ทะลุ 1</strong> ได้ (ที่นี่ \(\hat\pi \approx 0.99\) อยู่ใกล้ 1 มาก บวกอะไรนิดเดียวก็เกิน) ส่วนวิธีที่ถูกต้องรับประกันว่าผลลัพธ์อยู่ในช่วง (0,1) เสมอ เพราะฟังก์ชัน logistic ส่งค่าจาก \((-\infty,\infty)\) ไป \((0,1)\) พอดี</p>
+      <p><strong>ตีความ:</strong> มั่นใจ 95% ว่าความน่าจะเป็นที่เนื้องอกของผู้ป่วยรายนี้เป็น benign อยู่ระหว่าง <strong>97.4% ถึง 99.7%</strong></p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สร้างช่วงบนสเกล logit ได้ (3.618, 5.882)</li>
+      <li>1 คะแนน: แปลงกลับทั้งสองปลายได้ (0.974, 0.997)</li>
+      <li>1 คะแนน: อธิบายเหตุผลว่าทำไมต้องทำบนสเกล link ก่อน</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>คำนวณ \(\hat\pi \pm 1.96 \times 0.5775932\) บนสเกลความน่าจะเป็น</strong> — จะได้ \(0.99 \pm 1.13\) คือช่วง (−0.14, 2.12) ซึ่งไร้สาระสิ้นเชิง (ความน่าจะเป็นติดลบและเกิน 1) นี่คือกับดักที่ชัดที่สุดว่าลำดับสำคัญ</p>
+      <p>ใช้ SE ผิดสเกล — ค่า <code>se.fit</code> = 0.5775932 นี้คือ SE ของ \(\hat\eta\) <strong>บนสเกล logit</strong> (สังเกต <code>residual.scale = 1</code> ยืนยันว่าเป็น binomial) ไม่ใช่ SE ของความน่าจะเป็น</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Cutoff · L9</span></div>
+  <div class="exq-body">
+    <p>จากโมเดลมะเร็งเต้านมเดียวกัน ผู้ป่วยรายนี้ได้ \(\hat\pi = 0.9921\) (ความน่าจะเป็นที่เป็น benign) จงจำแนกผู้ป่วยรายนี้เมื่อใช้เกณฑ์ <strong>(ก)</strong> benign ถ้า \(\pi &gt; 0.5\) <strong>(ข)</strong> malignant ถ้า \(\pi &lt; 0.9\) แล้วอธิบายผลของการเปลี่ยนเกณฑ์ต่อ sensitivity/specificity</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>(ก) เกณฑ์ 0.5:</strong> \(0.9921 > 0.5\) → จำแนกเป็น <strong>benign</strong></p>
+      <p><strong>(ข) เกณฑ์ 0.9:</strong> \(0.9921 > 0.9\) → ยังคงจำแนกเป็น <strong>benign</strong> (ผู้ป่วยรายนี้มั่นใจสูงมากจนไม่ว่าใช้เกณฑ์ไหนก็ไม่เปลี่ยน)</p>
+      <p><strong>ผลของการยกเกณฑ์จาก 0.5 → 0.9:</strong> ทำให้ "ยาก" ขึ้นที่จะถูกจัดเป็น benign — เคสที่เคยได้ \(\pi\) ระหว่าง 0.5 ถึง 0.9 จะถูกย้ายไปเป็น malignant ผลคือ</p>
+      <ul>
+        <li>ตรวจจับ malignant ได้มากขึ้น (พลาดมะเร็งน้อยลง) → <strong>sensitivity ต่อ malignant สูงขึ้น</strong></li>
+        <li>แต่มีการเตือนผิด (false positive สำหรับ malignant) มากขึ้น → <strong>specificity ลดลง</strong></li>
+      </ul>
+      <p><strong>เหตุผลเชิงบริบททางการแพทย์:</strong> เหตุผลที่ยอมแลกแบบนี้คือความเสียหายของการพลาดมะเร็ง (บอกว่าไม่เป็น ทั้งที่เป็น) ร้ายแรงกว่าการเตือนเกินเหตุมาก การเลือก cutoff จึงเป็น<strong>การตัดสินใจเชิงบริบท</strong> ไม่ใช่เรื่องสถิติล้วน ๆ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: จำแนกถูกทั้งสองเกณฑ์ (benign ทั้งคู่)</li>
+      <li>1 คะแนน: อธิบายการแลกเปลี่ยน sensitivity ↔ specificity ได้ถูกทิศทาง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>คิดว่าการเปลี่ยน cutoff ทำให้โมเดล "แม่นขึ้น" — <strong>โมเดลไม่เปลี่ยนเลย</strong> สัมประสิทธิ์และ \(\hat\pi\) เท่าเดิมทุกประการ สิ่งที่เปลี่ยนคือ<strong>กฎการตัดสินใจ</strong>ที่เอามาครอบทีหลัง มันแค่ย้ายจุดสมดุลระหว่างความผิดพลาดสองชนิด ไม่ได้เพิ่มข้อมูล</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Poisson → count · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูล salmonella (\(\mu\) = จำนวนโคโลนีเฉลี่ย) จงทำนาย<strong>จำนวนโคโลนีที่คาดหวัง</strong>ที่ dose = 100</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = colonies ~ dose + I(dose^2), family = poisson,
+    data = salmonella)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.163e+00  6.701e-02  47.202  < 2e-16 ***
+dose         2.507e-03  5.122e-04   4.895 9.84e-07 ***
+I(dose^2)   -2.294e-06  4.937e-07  -4.647 3.36e-06 ***</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ขั้น 1 — linear predictor (สเกล log):</strong></p>
+      <p>\[\log(\hat\mu) = 3.163 + 0.002507(100) - 0.000002294(100)^2\]</p>
+      <p>\[= 3.163 + 0.2507 - 0.02294 = 3.39076\]</p>
+      <p><strong>ขั้น 2 — แปลงกลับ:</strong></p>
+      <p>\[\hat\mu = e^{3.39076} = 29.69\]</p>
+      <p><strong>ตีความ:</strong> ที่ระดับยา 100 คาดว่าจะพบโคโลนีที่กลายพันธุ์กลับเฉลี่ยประมาณ <strong>29.7 โคโลนีต่อจาน</strong> (เทียบกับข้อมูลจริงที่ dose=100 ซึ่งมี 27, 41, 60 — ค่าทำนายอยู่ในช่วงที่สมเหตุสมผล)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: คำนวณ \(\log(\hat\mu) = 3.391\) ถูก (รวมพจน์กำลังสอง)</li>
+      <li>1 คะแนน: exponentiate ได้ ≈29.7 พร้อมตีความเป็นจำนวนนับ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ตอบ 3.391 ว่าเป็นจำนวนโคโลนี</strong> — นี่คือ log ของค่าเฉลี่ย ไม่ใช่ค่าเฉลี่ย ตัวเลข 3.4 โคโลนีขัดกับข้อมูลจริงที่นับได้ 15–60 โคโลนีอย่างชัดเจน ถ้าคำตอบขัดกับสเกลของข้อมูลดิบ แปลว่าลืมแปลงกลับ</p>
+      <p>อ่าน <code>-2.294e-06</code> ผิดหลัก — ที่ \(100^2 = 10{,}000\) พจน์นี้ให้ −0.02294 ถ้าอ่านผิดหนึ่งหลักจะกลายเป็น −0.2294 หรือ −0.0023 ซึ่งเปลี่ยนคำตอบไปพอควร</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Offset · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลความผิดปกติของโครโมโซม: <code>ca</code> = จำนวนความผิดปกติ, <code>cells</code> = จำนวนเซลล์ที่ตรวจ (หน่วยร้อย) โมเดลใช้ offset จงอธิบายว่าถ้าจะทำนาย <strong>(ก)</strong> อัตราความผิดปกติต่อเซลล์ กับ <strong>(ข)</strong> จำนวนความผิดปกติดิบ ต้องคำนวณต่างกันอย่างไร</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = ca ~ offset(log(cells)) + log(doserate) * dosef,
+    family = poisson, data = dicentric)
+
+Coefficients:
+                       Estimate Std. Error z value Pr(>|z|)
+(Intercept)            -2.74671    0.03426 -80.165  < 2e-16 ***
+log(doserate)           0.07178    0.03518   2.041 0.041299 *
+dosef2.5                1.62542    0.04946  32.863  < 2e-16 ***
+dosef5                  2.76109    0.04349  63.491  < 2e-16 ***
+log(doserate):dosef2.5  0.16122    0.04830   3.338 0.000844 ***
+log(doserate):dosef5    0.19350    0.04243   4.561  5.1e-06 ***</div>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>สมการเต็มคือ \(\log(\hat\mu) = \log(\text{cells}) + \hat\eta\) โดย \(\hat\eta\) คือส่วนที่มาจากสัมประสิทธิ์ในตาราง</p>
+      <p><strong>(ก) อัตราต่อเซลล์:</strong> ย้าย offset ไปฝั่งซ้าย</p>
+      <p>\[\log\!\left(\frac{\hat\mu}{\text{cells}}\right) = \hat\eta \quad\Rightarrow\quad \frac{\hat\mu}{\text{cells}} = e^{\hat\eta}\]</p>
+      <p>คือ <strong>exponentiate ค่าจากสัมประสิทธิ์ตรง ๆ ไม่ต้องใช้ cells เลย</strong> — เช่นที่ dosef=1 (กลุ่มอ้างอิง) และ doserate=1 (\(\log 1 = 0\)): \(\hat\eta = -2.74671\) → อัตรา \(= e^{-2.74671} = 0.0641\) ความผิดปกติต่อเซลล์</p>
+      <p><strong>(ข) จำนวนดิบ:</strong> ต้องคูณกลับด้วยจำนวนเซลล์</p>
+      <p>\[\hat\mu = \text{cells} \times e^{\hat\eta}\]</p>
+      <p>เช่นถ้าตรวจ 400 เซลล์: \(\hat\mu = 400 \times 0.0641 = 25.6\) ความผิดปกติ</p>
+      <p><strong>สาระสำคัญ:</strong> offset ทำให้โมเดลทำนาย<strong>อัตรา</strong>โดยตรง จำนวนดิบขึ้นกับว่าไปตรวจกี่เซลล์ ซึ่งเป็นเรื่องของการออกแบบการทดลอง ไม่ใช่ผลของรังสี</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อัตรา = \(e^{\hat\eta}\) โดยไม่ต้องใช้ cells</li>
+      <li>1 คะแนน: จำนวนดิบ = \(\text{cells} \times e^{\hat\eta}\)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ลืมคูณ cells กลับ</strong>เมื่อถูกถามหาจำนวนดิบ — ได้ 0.064 แทนที่จะเป็น 25.6 ผิดไป 400 เท่า</p>
+      <p>มองหาสัมประสิทธิ์ของ offset ในตารางแล้วไม่เจอ — offset <strong>ไม่มีสัมประสิทธิ์</strong> โดยนิยาม (ถูกตรึงไว้ที่ 1) ต้องอ่านจากบรรทัด <code>Call:</code></p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Ordinal · L12</span></div>
+  <div class="exq-body">
+    <p>คนงานเหมืองถ่านหิน สถานะปอด (normal &lt; mild &lt; severe) ตามจำนวนปีทำงาน จงหา<strong>ความน่าจะเป็นสะสมที่สถานะจะเป็น normal</strong> สำหรับคนงานที่ทำงานมา 25 ปี</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+polr(formula = status_order ~ year, data = pneumo, weights = Freq)
+
+Coefficients:
+      Value Std. Error t value
+year 0.0959    0.01194   8.034
+
+Intercepts:
+             Value   Std. Error t value
+normal|mild   3.9558 0.4097      9.6558
+mild|severe   4.8690 0.4411     11.0383</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><code>polr</code> ใช้ parameterization \(\text{logit}\big(P(Y \leq j)\big) = \theta_j - \beta x\) — <strong>สังเกตเครื่องหมายลบ</strong></p>
+      <p><strong>ขั้น 1 — สเกล logit:</strong></p>
+      <p>\[\text{logit}\big(\hat{P}(\leq \text{normal})\big) = 3.9558 - 0.0959(25) = 3.9558 - 2.3975 = 1.5583\]</p>
+      <p><strong>ขั้น 2 — แปลงกลับ:</strong></p>
+      <p>\[\hat{P}(\text{status} \leq \text{normal}) = \frac{e^{1.5583}}{1+e^{1.5583}} = 0.8261\]</p>
+      <p><strong>ตีความ:</strong> คนงานที่ทำงานหน้าเหมืองมา 25 ปี มีความน่าจะเป็นราว <strong>82.6%</strong> ที่สถานะปอดจะยังอยู่ในระดับ normal — สอดคล้องกับที่ <code>predict(omodel, data.frame(year=25))</code> ให้ผลเป็น <code>normal</code></p>
+      <p>(ถ้าต้องการความน่าจะเป็นของ mild เพียว ๆ ให้คำนวณ \(\hat{P}(\leq\text{mild}) - \hat{P}(\leq\text{normal})\))</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ใช้เครื่องหมาย<strong>ลบ</strong>หน้า slope ตาม parameterization ของ <code>polr</code> ได้ 1.5583</li>
+      <li>1 คะแนน: แปลงกลับได้ ≈0.826 และระบุว่าเป็นความน่าจะเป็น<strong>สะสม</strong></li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>บวก slope แทนที่จะลบ</strong> — จะได้ \(3.9558+2.3975 = 6.353\) → \(P = 0.9983\) ผิดทิศทางโดยสิ้นเชิง (ยิ่งทำงานนานยิ่งควรมีโอกาสปกติ<strong>น้อยลง</strong> ไม่ใช่มากขึ้น) ถ้าผลลัพธ์ขัดสามัญสำนึกให้เช็คเครื่องหมายก่อน</p>
+      <p>ลืมว่าเป็นความน่าจะเป็น<strong>สะสม</strong> — \(P(\leq \text{normal})\) ในที่นี้เท่ากับ \(P(=\text{normal})\) พอดีเพราะ normal เป็นระดับต่ำสุด แต่ \(P(\leq\text{mild})\) จะรวม normal ด้วย ไม่ใช่ mild อย่างเดียว</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">LMM · L14</span></div>
+  <div class="exq-body">
+    <p>การทดลองเลี้ยงไก่ 12 คอกใน 4 บล็อก 3 treatment (E เป็นกลุ่มอ้างอิง) จงทำนายจำนวนไข่สำหรับ <strong>(ก)</strong> คอกใหม่ที่ยังไม่เคยสังเกต ได้ treatment O <strong>(ข)</strong> คอกในบล็อกที่ 2 ซึ่งมี BLUP ของ random effect = +8.3 ได้ treatment O — และอธิบายว่าทำไมต่างกัน</p>
+    <div class="rout"><span class="rout-label">R output</span>Random effects:
+ Groups   Name        Variance Std.Dev.
+ block    (Intercept) 129.9    11.40
+ Residual             386.9    19.67
+Number of obs: 12, groups: block, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   349.00      11.37  30.702
+treatF         -6.25      13.91  -0.449
+treatO        -42.50      13.91  -3.056</div>
+  </div>
+  <textarea placeholder="แสดงวิธีคำนวณและคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>(ก) คอกใหม่ (ไม่รู้บล็อก) — ใช้ fixed effects อย่างเดียว:</strong></p>
+      <p>\[\hat{Y} = 349.00 - 42.50 = 306.5 \text{ ฟอง}\]</p>
+      <p>เพราะค่าคาดหวังของ random effect สำหรับบล็อกที่ยังไม่รู้จักคือ \(E[b_i] = 0\) ตามนิยาม \(b_i \sim N(0, \sigma^2_b)\)</p>
+      <p><strong>(ข) คอกในบล็อก 2 (รู้บล็อก) — บวก BLUP ของบล็อกนั้น:</strong></p>
+      <p>\[\hat{Y} = 349.00 - 42.50 + 8.3 = 314.8 \text{ ฟอง}\]</p>
+      <p><strong>ทำไมต่างกัน:</strong> กรณี (ก) เป็นการทำนาย<strong>ระดับประชากร</strong> (marginal) — ตอบว่า "โดยเฉลี่ยแล้วคอกที่ได้ treatment O ให้ไข่เท่าไร"; กรณี (ข) เป็นการทำนาย<strong>เฉพาะกลุ่มที่รู้จัก</strong> (conditional) — เรามีข้อมูลเพิ่มว่าบล็อกนี้ผลผลิตดีกว่าค่าเฉลี่ยอยู่ 8.3 ฟอง จึงใช้ข้อมูลนั้นปรับค่าทำนายให้แม่นขึ้น</p>
+      <p><strong>บริบทของตัวเลข:</strong> ความแปรปรวนระหว่างบล็อกคือ 129.9 จากทั้งหมด \(129.9+386.9=516.8\) คิดเป็น <strong>25%</strong> ของความแปรปรวนรวม (ICC) — สูงพอที่การรู้บล็อกจะช่วยการทำนายได้จริง ไม่ใช่รายละเอียดที่ละเลยได้</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: (ก) ได้ 306.5 โดยใช้ fixed effects เท่านั้น</li>
+      <li>1 คะแนน: (ข) ได้ 314.8 โดยบวก BLUP และอธิบายความต่าง marginal vs conditional</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ fixed effects อย่างเดียวทั้งสองกรณี — ทิ้งข้อมูลที่มีอยู่ไปเปล่า ๆ เมื่อโจทย์บอกบล็อกมาแล้ว</p>
+      <p>เอา <strong>ความแปรปรวน</strong> 129.9 มาบวกเข้ากับค่าทำนาย — variance component ไม่ใช่ค่าที่บวกเข้ากับค่าทำนาย มันบอกแค่ว่าบล็อกต่าง ๆ<strong>กระจาย</strong>กันแค่ไหน ค่าที่บวกได้คือ BLUP ของบล็อกนั้นเท่านั้น</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">ถ้าพลาดข้อในส่วน B (GLM) ให้กลับไปท่องตารางแปลงกลับด้านบนอีกรอบ — เกือบทุกคะแนนที่หลุดในส่วนนี้มาจากการลืมแปลงสเกล ไม่ใช่การคำนวณผิด</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-05-choose-the-tool.html">← Drill 5: เลือกเครื่องมือ</a></span>
+  <span><a href="mock-exam-a.html">Mock Exam A →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 9: Binary Data — Logistic Regression, Log-odds, Odds Ratio</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 9 / 14 · Binary Data (Logistic Regression)</span>
+  <span><a href="../reference/0009-logistic-regression-cheatsheet.html">Reference: สูตร + Interpretation Template →</a></span>
+</nav>
+
+<p class="kicker">Lecture 9 — Binary Data</p>
+<h1>Binary Data: Logistic Regression, และการแปลผล Log-odds → Odds Ratio</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก GLM framework ใน Lecture 8 (exponential family, link function, linear predictor) มาใช้กับ response ที่เป็น <strong>binary</strong> (0/1) โดยตรง เนื้อหาที่ต้องทำได้ก่อนสอบ: <strong>เขียนสมการ logistic regression ถูก</strong> พร้อมเชื่อมกับ GLM framework, <strong>อ่าน <code>summary(glm(family=binomial))</code> ได้ทุกบรรทัด</strong> (รู้ว่าต่างจาก <code>lm()</code> อย่างไร), <strong>เช็ค goodness-of-fit</strong> (Hosmer-Lemeshow, deviance, AIC), และที่สำคัญที่สุด — <strong>แปลผลสัมประสิทธิ์เป็น log-odds / odds ratio / probability ได้ถูกต้องแม่นยำ</strong> ซึ่งตามที่ระบุไว้ใน mission เป็นทักษะที่ออกสอบหนักที่สุดในวิชานี้ทั้งเทอม.</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0008-exponential-family-and-glms.html">← Lesson 8: Exponential Family and GLMs</a></span>
+  <span><a href="0010-binomial-counts.html">Lesson 10: Binomial Counts →</a></span>
+</nav>
+
+<h2>1. จาก GLM สู่ Logistic Regression — ทำไมใช้ Linear Regression ตรง ๆ ไม่ได้</h2>
+<p>Binary response คือตัวแปรตามที่มีแค่ 2 ค่า เข้ารหัสมาตรฐานเป็น <code>Y_i = 0 (no)</code> และ <code>Y_i = 1 (yes)</code> สไลด์กำหนดการแจกแจงของ <code>Y_i</code> ตรง ๆ ว่า \(Y_i \sim \text{Bernoulli}(\pi_i)\) หรือเท่ากันคือ \(\text{Binomial}(1, \pi_i)\) โดย \(\text{Mean}[Y_i] = \pi_i\) และ \(\text{Variance}[Y_i] = \pi_i(1-\pi_i)\) — สังเกตว่า variance <strong>ไม่คงที่</strong> แต่ขึ้นกับ π_i โดยตรง นี่คือจุดที่ผิดกับ assumption ของ linear regression ตั้งแต่ต้น (Lecture 1 หัวข้อ 4: constant variance).</p>
+<p>ถ้าลองฟิต normal linear regression ตรง ๆ กับข้อมูล binary (\(\hat{\pi}_i = \hat{\beta}_0+\hat{\beta}_1 X_{i1}+\cdots+\hat{\beta}_p X_{ip}\)) จะเจอปัญหา 2 ข้อ: (1) ค่าที่ทำนายได้ \(\hat{\pi}\) อาจหลุดออกนอกช่วง \([0,1]\) ซึ่งไม่มีความหมายในฐานะความน่าจะเป็น และ (2) assumption เรื่อง linear, constant variance, และ normal ถูกละเมิดทั้งหมด (เพราะ Y มีแค่ 2 ค่า จะแจกแจงแบบปกติไม่ได้เลย). ภาพต่อไปนี้ใช้ข้อมูล Donner Party จริง (อายุ กับ รอดชีวิตหรือไม่) แสดงปัญหานี้ให้เห็นชัด:</p>
+<figure>
+<img src="../assets/slides/as9-p05-binary-response-scatter-motivation.png" alt="Scatterplot of binary Y (0 or 1, survival) against X (age) showing points clustered only at y=0 and y=1, illustrating that a straight line cannot fit binary data well">
+<figcaption>Slide: Fitting Regression with Binomial Responses — ปัญหาของ Linear Regression กับ Binary Y (Lecture 9, p.5)</figcaption>
+</figure>
+<p>อ่านภาพ: จุดข้อมูลทั้งหมดเกาะอยู่แค่สองแถวคือ <code>Y=0</code> กับ <code>Y=1</code> เท่านั้น ไม่มีจุดไหนอยู่ระหว่างกลางเลย — ถ้าลากเส้นตรง (linear) ผ่านกลุ่มจุดแบบนี้ เส้นจะต้องมีความชันคงที่ตลอดช่วง X ซึ่งไม่มีทางแทนความจริงที่ว่า "ความน่าจะเป็นเปลี่ยนแบบไม่เชิงเส้น" (เร็วช่วงกลาง ช้าที่ปลายทั้งสองข้าง เพราะถูกบีบด้วยขอบเขต 0 กับ 1) ได้ — และถ้า X มีค่ามากพอ เส้นตรงจะทำนาย π̂ ได้ค่าติดลบหรือเกิน 1 ซึ่งตีความเป็นความน่าจะเป็นไม่ได้เลย.</p>
+<p>ทางแก้คือใช้กรอบ <strong>GLM</strong> ที่วางไว้ใน Lecture 8: กำหนด random component (การแจกแจงของ Y) และ link function \(g(\mu)=\eta\) ที่เชื่อม linear predictor \(\eta=\beta_0+\beta_1 X_1+\cdots+\beta_p X_p\) เข้ากับ \(\mu=E[Y]\) — ในตาราง "GLMs with Canonical Links" ของ Lecture 8 canonical link ของ Binomial คือ <strong>logit</strong> พอดี ดังนั้น logistic regression จึงเป็นแค่กรณีพิเศษของ GLM ที่ random component = Bernoulli/Binomial และ link function = logit ไม่ใช่โมเดลใหม่แยกต่างหาก.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>ทำไมใช้ Linear Regression ตรง ๆ ไม่ได้</span></div>
+  <div class="qtext">เหตุผลหลัก 2 ข้อที่สไลด์ระบุว่าทำไมฟิต normal linear regression ตรง ๆ กับข้อมูล binary response ถึงมีปัญหา คือข้อใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">(1) R² จะต่ำเกินไปเสมอ (2) p-value จะสูงเกินไปเสมอ</button>
+  <button class="opt" data-correct="false">(1) lm() ใน R ไม่รองรับตัวแปรที่เป็น 0/1 เลยทางเทคนิค (2) ต้องแปลง Y เป็น factor ก่อนเสมอ</button>
+  <button class="opt" data-correct="false">(1) ตัวอย่างมีขนาดเล็กเกินไปเสมอ (2) ไม่มีทาง compute standard error ได้</button>
+  <button class="opt" data-correct="true">(1) ค่าทำนาย π̂ อาจหลุดนอกช่วง [0,1] (2) assumption เรื่อง linear, constant variance, และ normal ของ error ถูกละเมิด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. Logistic Regression Model — สมการ, Logit Link, Logistic Function</h2>
+<p>ข้อมูลของโมเดลนี้คือ \((Y_i, n_i, X_i), i=1,\ldots,n\) โดย \(Y_i\) = จำนวนครั้งที่สำเร็จในการสังเกตที่ i, \(n_i\) = จำนวนครั้งทั้งหมด (สำหรับ binary data \(n_i=1\) ทุกตัว), \(X_i\) = row vector ของตัวแปรอิสระ p ตัว. จาก log-likelihood ของ Binomial ที่จัดรูปแล้ว สไลด์ชี้ว่าพจน์ \(\log(\pi_i/(1-\pi_i))\) ปรากฏขึ้นเองตามธรรมชาติ — นี่คือที่มาของ "logit link":</p>
+<div class="box">
+\[g(\pi_i) = \text{logit}(\pi_i) = \log\left(\dfrac{\pi_i}{1-\pi_i}\right)\]
+</div>
+<p>ดังนั้น logistic regression เขียนเป็น:</p>
+<div class="box win">
+\[\log\left(\dfrac{\pi_i}{1-\pi_i}\right) = \beta_0 + \beta_1 X_{i1} + \cdots + \beta_p X_{ip}\]  (= \(\eta_i\), linear predictor)
+</div>
+<p>ฝั่งซ้ายของสมการเรียกว่า <em class="term">log-odds</em> หรือ <em class="term">logit</em> ของ π_i — นี่คือพจน์ที่ coefficient β ทุกตัวใน logistic regression อธิบายโดยตรง (จะกลับมาขยายผลในหัวข้อ 4). ฟังก์ชันผกผันของ logit เรียกว่า <em class="term">logistic function</em>: ถ้า \(\text{logit}(\pi_i)=\eta_i\) แล้ว</p>
+<div class="box">
+\[\pi_i = \dfrac{e^{\eta_i}}{1+e^{\eta_i}}\]
+</div>
+<p>ภาพนี้คือ logistic function มาตรฐาน แกน X คือ η (linear predictor) แกน Y คือ π (ความน่าจะเป็น) — สังเกตตัวเลขที่กำกับไว้ในภาพต้นฉบับ (Ramsey &amp; Schafer):</p>
+<figure>
+<img src="../assets/slides/as9-p08-logistic-function-curve.png" alt="S-shaped logistic function curve plotting probability pi from 0 to 1 against eta from -4 to +4, annotated showing that near eta=0 a 1-unit increase in eta raises pi by 0.244 while odds increase by a factor of 2.718 (e), whereas near eta=-3 a 1-unit increase raises pi by only 0.029">
+<figcaption>Slide: Logistic Function — เส้นโค้งรูปตัว S (Ramsey &amp; Schafer) (Lecture 9, p.8)</figcaption>
+</figure>
+<p>อ่านตัวเลขในภาพ: ที่ \(\eta \approx 0\) (ตรงกลางเส้นโค้ง ความชันสูงสุด) การเพิ่ม η ขึ้น 1 หน่วย ทำให้ \(\pi\) เพิ่มขึ้นถึง <strong>0.244</strong> — แต่ที่ \(\eta \approx -3\) (ปลายเส้นโค้งด้านซ้าย ใกล้ 0) การเพิ่ม η ขึ้น 1 หน่วยเท่ากัน ทำให้ π เพิ่มขึ้นแค่ <strong>0.029</strong> เท่านั้น. นี่คือหัวใจสำคัญที่ทำให้การแปลผล logistic regression ต่างจาก linear regression โดยพื้นฐาน: <strong>ผลของ X ต่อ π ไม่คงที่ตลอดช่วง (non-linear ใน scale ของ π) แต่ผลของ X ต่อ log-odds คงที่เสมอ (linear ใน scale ของ η)</strong> — และกล่องข้อความในภาพยืนยันสิ่งที่คงที่จริง ๆ : "but odds increase by a factor of <strong>2.718</strong>" (= e¹) ทุกครั้งที่ η เพิ่มขึ้น 1 หน่วย ไม่ว่าจะอยู่ตรงไหนของเส้นโค้ง — นี่คือเหตุผลที่การแปลผลสัมประสิทธิ์ β ในหัวข้อ 4 ต้องพูดเป็น "odds คูณด้วย e^β" ไม่ใช่ "π บวกด้วย β" แบบ linear regression.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>Logit Link และ Logistic Function</span></div>
+  <div class="qtext">จากภาพ Logistic Function เหตุใดการอธิบายผลของ X ต่อ π ("ความน่าจะเป็นเพิ่มขึ้นเท่าไร") จึงทำได้ยากกว่าการอธิบายผลของ X ต่อ log-odds?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะความสัมพันธ์ระหว่าง η กับ π เป็นเส้นโค้งรูปตัว S (ไม่เชิงเส้น) — ผลของ 1 หน่วยที่เพิ่มใน η ต่อ π เปลี่ยนไปตามตำแหน่งบนเส้นโค้ง (0.244 ตรงกลาง แต่แค่ 0.029 ที่ปลาย) ในขณะที่ผลต่อ log-odds คงที่เท่ากับ β เสมอทุกจุด</button>
+  <button class="opt" data-correct="false">เพราะสไลด์ไม่ได้ให้สูตรของ π ไว้เลย มีแต่สูตร log-odds</button>
+  <button class="opt" data-correct="false">เพราะ π คำนวณยากกว่า log-odds ทางคณิตศาสตร์</button>
+  <button class="opt" data-correct="false">เพราะ π ไม่มีความหมายทางสถิติ ต่างจาก log-odds ที่มีความหมายเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>3. Fit ด้วย <code>glm()</code>: Case Study 1 — Donner Party</h2>
+<p>ปี 1846 ครอบครัว Donner และ Reed ออกเดินทางจาก Springfield รัฐ Illinois ไปแคลิฟอร์เนียด้วยเกวียน (87 คน 20 คัน) แต่ติดหิมะหนักที่เทือกเขา Sierra Nevada ช่วงปลายเดือนตุลาคม — 40 จาก 87 คนเสียชีวิตจากความอดอยากและความหนาวจัด สไลด์ใช้ข้อมูลนี้ (<code>Sleuth3::case2001</code>, n=45 คนที่มีข้อมูลอายุครบ) ถามว่า <strong>อายุ</strong> กับ <strong>เพศ</strong> สัมพันธ์กับการรอดชีวิตอย่างไร:</p>
+<figure>
+<img src="../assets/slides/as9-p11-donner-survived-age-sex-scatter.png" alt="Left panel: scatterplot of Survived (0 or 1) against Age showing survivors skew younger and deaths skew older. Right panel: bar chart comparing proportion of y=1 (survived) between Female and Male groups, with the Female bar showing a taller survived portion than the Male bar">
+<figcaption>Slide: Case Study 1 Donner Party — Survived vs Age, Survived vs Sex (Lecture 9, p.11)</figcaption>
+</figure>
+<p>อ่านภาพ: กราฟซ้าย จุดที่ <code>Survived=1</code> (แถวบน) กระจุกตัวที่อายุน้อยกว่ากราฟที่ <code>Survived=0</code> (แถวล่าง) ที่มีจุดกระจายไปถึงอายุ 60+ ปีมากกว่า — สื่อว่าอายุน้อยมีแนวโน้มรอดชีวิตมากกว่า (ทิศทางลบระหว่าง age กับ survival). กราฟขวา แท่ง "Female" มีสัดส่วนสีเทา (<code>y=1</code>, รอดชีวิต) เต็มเกือบทั้งแท่ง ในขณะที่แท่ง "Male" มีส่วนสีเทาน้อยกว่าชัดเจน (เห็นเส้นขอบดำที่ฐานสูงขึ้นมา) — ผู้หญิงรอดชีวิตในสัดส่วนที่สูงกว่าผู้ชายอย่างเห็นได้ชัด ทั้งสองภาพนี้คือเหตุผลที่โมเดลต่อไปนี้ใส่ทั้ง Age และ Sex เป็นตัวแปรอิสระ.</p>
+
+<p>ใน R ฟิต logistic regression ด้วย <code>glm(formula, data, family=binomial, subset, weights, …)</code> — แตกต่างจาก <code>lm()</code> ตรงที่ต้องระบุ <code>family=binomial</code> (ค่า default ของ link คือ logit) เท่านั้น argument อื่นเหมือนเดิม:</p>
+<pre><code>> donner<-as.data.frame(Sleuth3::case2001)
+> n<-nrow(donner)
+> Survived<-rep(0,n)
+> Survived[donner$Status=="Survived"]<-1
+> donner<-cbind(donner,Survived)
+> model<-glm(Survived~Age+Sex, data=donner, family=binomial)
+> summary(model)</code></pre>
+<p>ผลลัพธ์เต็มจาก <code>summary(model)</code>:</p>
+<pre><code>Call:
+glm(formula = Survived ~ Age + Sex, family = binomial, data = donner)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.23041    1.38686   2.329   0.0198 *
+Age         -0.07820    0.03728  -2.097   0.0359 *
+SexMale     -1.59729    0.75547  -2.114   0.0345 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 61.827  on 44  degrees of freedom
+Residual deviance: 51.256  on 42  degrees of freedom
+AIC: 57.256
+
+Number of Fisher Scoring iterations: 4</code></pre>
+
+<div class="box win">
+<div class="label">อ่าน <code>summary(glm(...))</code> — ต่างจาก <code>summary(lm(...))</code> ตรงไหนบ้าง</div>
+<ul>
+<li><strong>Std. Error → z value:</strong> ใช้ <code>z value</code> (Wald statistic, ~N(0,1)) แทน <code>t value</code> เพราะ MLE ของ β มีการแจกแจงแบบ normal โดยประมาณ (asymptotic) ไม่ใช่ t-distribution แบบ exact เหมือน OLS — <code>z = Estimate/Std.Error</code> สูตรหน้าตาเหมือนเดิม แต่ referenced distribution เปลี่ยน</li>
+<li><strong>Dispersion parameter:</strong> เป็นบรรทัดใหม่ที่ไม่มีใน <code>lm()</code> — สำหรับ binomial family ค่านี้ถูกกำหนดตายตัวเป็น 1 เสมอ (variance ของ Bernoulli ผูกกับ mean อยู่แล้ว ไม่มีพารามิเตอร์ scale แยก)</li>
+<li><strong>Null deviance / Residual deviance แทน SST/SSE:</strong> Null deviance (61.827, df=44) คือ deviance ของโมเดลที่มีแค่ intercept (ไม่มีตัวแปรทำนายเลย) เทียบเท่า SST; Residual deviance (51.256, df=42) คือ deviance ของโมเดลเต็ม เทียบเท่า SSE — <strong>ไม่มี R² หรือ F-statistic ให้ในบรรทัดสุดท้ายเหมือน <code>lm()</code> เลย</strong> (ดูหัวข้อ 7 เรื่อง pseudo R² ที่ต้องคำนวณเอง)</li>
+<li><strong>AIC:</strong> บรรทัดใหม่ที่ไม่มีใน <code>lm()</code> เช่นกัน — ใช้เทียบโมเดลที่ไม่ nested กันได้ (ยิ่งน้อยยิ่งดี)</li>
+<li><strong>Number of Fisher Scoring iterations:</strong> เพราะ MLE ของ β ไม่มี closed-form (ต่างจาก OLS ที่แก้สมการตรง ๆ ได้) ต้องใช้ iterative algorithm (Fisher scoring) — ตัวเลขนี้บอกว่าใช้กี่รอบกว่าจะลู่เข้า</li>
+</ul>
+</div>
+
+<p>ให้ \(\pi_i = P(Y_i=1) = P(\text{Survived})\) โมเดลที่ฟิตได้คือ:</p>
+<div class="box">
+\[\log\left(\dfrac{\hat{\pi}}{1-\hat{\pi}}\right) = 3.23 - 0.078\,\text{Age} - 1.597\,\text{Male}\], &nbsp;โดย&nbsp; \(\text{Male} = 1\) ถ้าเพศชาย, \(0\) ถ้าเพศหญิง
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>อ่าน glm() output</span></div>
+  <div class="qtext">ข้อใดอธิบาย "Null deviance: 61.827 on 44 degrees of freedom" ในผลลัพธ์ข้างต้นได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">คือค่าคลาดเคลื่อนที่เกิดจากการปัดเศษของ R เท่านั้น ไม่มีความหมายทางสถิติ</button>
+  <button class="opt" data-correct="false">คือ deviance ของโมเดลเต็มที่มีทั้ง Age และ Sex ซึ่งควรจะน้อยกว่า Residual deviance เสมอ</button>
+  <button class="opt" data-correct="true">คือ deviance ของโมเดลที่มีแค่ intercept (ไม่มีตัวแปรทำนายเลย) เทียบเท่ากับ SST ใน linear regression ใช้เป็น baseline เทียบว่าโมเดลเต็มช่วยลด deviance ได้เท่าไร</button>
+  <button class="opt" data-correct="false">เทียบเท่ากับ R² ของ lm() โดยตรง ยิ่งสูงยิ่งดี</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. ทักษะที่ออกสอบหนักที่สุด: Interpretation Template สำหรับ Coefficient</h2>
+<p>ก่อนแปลผล β ต้องเข้าใจ <em class="term">odds</em> ก่อน: \(\omega = \dfrac{\pi}{1-\pi}\) คืออัตราส่วนของ "ความน่าจะเป็นที่จะเกิด" ต่อ "ความน่าจะเป็นที่จะไม่เกิด" ตัวอย่างจากสไลด์: ถ้า \(\hat{\pi} = 0.742\) แล้ว \(\hat{\omega} = 0.742/(1-0.742) = 2.876\) — แปลว่า <strong>"มีการรอดชีวิตประมาณ 3 ครั้งต่อการเสียชีวิต 1 ครั้ง"</strong> (ปัดจาก 2.876 เป็น "ประมาณ 3 ต่อ 1") สังเกตว่า odds กับ probability เป็นคนละสเกลกัน (π มีขอบเขต [0,1] แต่ ω มีขอบเขต [0,∞)) — logit ก็คือ \(\log(\omega)\) นั่นเอง.</p>
+<p>เขียน logistic regression ใหม่ในเทอมของ odds:</p>
+<div class="box">
+\[\text{logit}(\pi) = \log(\omega) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p\] &nbsp;⟺&nbsp; \[\omega = \exp(\beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p)\]
+</div>
+<p>จากรูปแบบ exponential ของ ω นี้ สไลด์สรุปกฎการแปลผล β ไว้ 2 ข้อตรง ๆ:</p>
+<div class="box win">
+<div class="label">กฎการแปลผล β ในสไลด์ (ต้นทางของ Interpretation Template)</div>
+<ol>
+<li><strong>Odds เปลี่ยนแบบคูณ (multiplicatively) ด้วย \(e^{\beta_1}\)</strong> ทุกครั้งที่ x₁ เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่ (fixed values of the other x's)</li>
+<li><strong>อัตราส่วน odds</strong> ที่ \(x_1=A\) เทียบกับ \(x_1=B\) (ตัวแปรอื่นคงที่) คือ \(\dfrac{\omega_A}{\omega_B} = \exp\{\beta_1(A-B)\}\)</li>
+</ol>
+</div>
+
+<p>ประยุกต์กับ Donner Party (β_Age=−0.078, β_SexMale=−1.60): เทียบผู้หญิงอายุ 50 ปี กับผู้หญิงอายุ 20 ปี (age เปลี่ยน A−B=30, เพศคงที่) odds ratio = \(\exp\{-0.078\times(50-20)\} = \exp(-2.34) = 0.096 \approx 1/10\) — <strong>odds การรอดชีวิตของผู้หญิงอายุ 20 ปี สูงเป็นประมาณ 10 เท่าของผู้หญิงอายุ 50 ปี</strong>. เทียบผู้หญิงกับผู้ชายอายุเท่ากัน (Male เปลี่ยนจาก 0→1, A−B = 0−1 = −1) odds ratio = \(\exp\{-1.60\times(0-1)\} = \exp(1.60) = 4.95\) — <strong>odds การรอดชีวิตของผู้หญิง สูงเป็นประมาณ 5 เท่าของผู้ชายที่อายุเท่ากัน</strong>.</p>
+
+<div class="box win">
+<div class="label">Interpretation Template — แปลผล β̂_k ได้ 3 แบบ</div>
+<p><strong>(1) Log-odds:</strong> "เมื่อ [X_k] เพิ่มขึ้น 1 [หน่วย] โดยตัวแปรอื่นคงที่ log-odds ของ [outcome=1] เปลี่ยนไป [β̂_k] หน่วย (บวก=เพิ่ม, ลบ=ลด)"</p>
+<p><strong>(2) Odds ratio (ใช้ตอบสอบบ่อยที่สุด):</strong> "odds ของ [outcome=1] เปลี่ยนเป็น \(\exp(\hat{\beta}_k)\) เท่า ทุก 1 [หน่วย] ที่ [X_k] เพิ่มขึ้น โดยตัวแปรอื่นคงที่" — ถ้า \(\exp(\hat{\beta}_k)>1\) ให้พูดว่า "odds เพิ่มขึ้น [\((\exp(\hat{\beta}_k)-1)\times 100\)]%"; ถ้า \(\exp(\hat{\beta}_k)<1\) ให้พูดว่า "odds ลดลงเหลือ [\(\exp(\hat{\beta}_k)\times 100\)]% ของเดิม" หรือกลับเศษส่วน \(1/\exp(\hat{\beta}_k)\) แล้วพูดว่า "odds ของกลุ่มอ้างอิงสูงกว่า [\(1/\exp(\hat{\beta}_k)\)] เท่า"</p>
+<p><strong>(3) Probability ที่จุด X เฉพาะเจาะจง:</strong> ใช้ <code>predict(model, newdata, type="response")</code> ได้ \(\hat{\pi}\) ตรง ๆ แล้วพูดว่า "ที่ [X_k]=[ค่า] และตัวแปรอื่น=[ค่า] ความน่าจะเป็นของ [outcome=1] ที่โมเดลทำนายคือ [\(\hat{\pi}\)]" — <strong>ข้อควรระวัง:</strong> ผลของ 1 หน่วยที่เพิ่มใน X_k ต่อ π ไม่คงที่ (ต่างจาก log-odds ที่คงที่เสมอ) จึงต้องระบุจุด X ที่สนใจเสมอ ห้ามพูดลอย ๆ ว่า "π เปลี่ยนไปเท่าไร" โดยไม่บอกจุดอ้างอิง</p>
+<p><strong>ห้ามใช้:</strong> "ทำให้" / "เป็นสาเหตุของ" กับข้อมูล observational (เหมือน Lecture 1) — ใช้ "สัมพันธ์กับ" แทนเสมอ เว้นแต่มาจาก randomized experiment</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response — ทักษะสำคัญที่สุดของบทนี้)</span><span>แปลผล β_Age</span></div>
+  <div class="qtext">จากโมเดล Donner Party: \(\hat{\beta}_{Age} = -0.07820\) (p=0.0359) จงเขียนประโยคแปลผลของสัมประสิทธิ์นี้ 2 แบบ: (1) ในเทอม log-odds (2) ในเทอม odds ratio ต่อการเพิ่มขึ้นของอายุ 1 ปี</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>(1) Log-odds:</strong> "เมื่ออายุเพิ่มขึ้น 1 ปี โดยเพศคงที่ log-odds ของการรอดชีวิตลดลงโดยเฉลี่ย 0.0782 หน่วย (อย่างมีนัยสำคัญทางสถิติที่ p=0.0359)"</p>
+  <p><strong>(2) Odds ratio:</strong> <code>exp(−0.0782) = 0.9248</code> — "เมื่ออายุเพิ่มขึ้น 1 ปี โดยเพศคงที่ odds ของการรอดชีวิตเปลี่ยนเป็น 0.9248 เท่าของเดิม หรือลดลงประมาณ 7.5% ต่อการเพิ่มอายุ 1 ปี"</p>
+  <p>องค์ประกอบที่ขาดไม่ได้: อ้างหน่วยของ X_k (1 ปี), ระบุ "โดยตัวแปรอื่นคงที่", ใช้คำว่า exp(β) ไม่ใช่ β ตรง ๆ สำหรับ odds ratio</p>
+  </div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>แปลผล β_SexMale แบบเปรียบเทียบ</span></div>
+  <div class="qtext">จากโมเดลเดียวกัน: \(\hat{\beta}_{SexMale} = -1.59729\) (p=0.0345) และสไลด์คำนวณ odds ratio เปรียบเทียบหญิงกับชายอายุเท่ากันไว้ว่า \(\exp\{-1.60\times(0-1)\} = 4.95\) จงเขียนประโยคแปลผลที่ถูกต้อง อธิบายว่าทำไมต้องเอา (0−1) ไม่ใช่ (1−0) ในการคำนวณนี้</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>"เมื่อเปรียบเทียบผู้หญิงกับผู้ชายที่อายุเท่ากัน odds ของการรอดชีวิตของผู้หญิงสูงเป็นประมาณ 4.95 เท่าของผู้ชาย (อย่างมีนัยสำคัญทางสถิติที่ p=0.0345)"</p>
+  <p>เหตุผลที่ใช้ (0−1): สูตร odds ratio คือ \(\dfrac{\omega_A}{\omega_B} = \exp\{\beta(A-B)\}\) โดย A คือค่าตัวแปรของกลุ่มที่อยู่ "เศษ" (ผู้หญิง = Male 0) และ B คือกลุ่มที่อยู่ "ส่วน" (ผู้ชาย = Male 1) — เพราะโจทย์ต้องการ "odds ผู้หญิง เทียบกับ odds ผู้ชาย" (ω_female/ω_male) จึงต้องแทน A=0 (female) และ B=1 (male) ทำให้ A−B = 0−1 = −1 ถ้าสลับค่ากันจะได้ 1/4.95=0.202 ซึ่งแปลว่า "odds ผู้ชายเทียบผู้หญิง" แทน ไม่ใช่คำตอบที่โจทย์ต้องการ</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>Odds vs Probability</span></div>
+  <div class="qtext">π̂ = 0.742 ให้ ω̂ = 2.876 ข้อใดอธิบายความหมายของ ω̂ = 2.876 ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ω̂ คือ log-odds ของเหตุการณ์นี้โดยตรง</button>
+  <button class="opt" data-correct="true">มีการเกิดเหตุการณ์ (เช่น รอดชีวิต) ประมาณ 3 ครั้ง ต่อการไม่เกิดเหตุการณ์ 1 ครั้ง — เป็นอัตราส่วน ไม่ใช่ความน่าจะเป็น</button>
+  <button class="opt" data-correct="false">π และ ω เป็นค่าเดียวกันเสมอในทุกกรณี เพียงแค่ปัดเศษต่างกัน</button>
+  <button class="opt" data-correct="false">ความน่าจะเป็นของการเกิดเหตุการณ์คือ 2.876 (หรือ 287.6%)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. Case Study 2: Birdkeeping and Lung Cancer — Retrospective Study</h2>
+<p>นี่คือ retrospective observational study: การสำรวจสุขภาพปี 1972–1981 ที่กรุงเฮก เนเธอร์แลนด์ พบความสัมพันธ์ระหว่างการเลี้ยงนกกับความเสี่ยงมะเร็งปอดที่เพิ่มขึ้น เพื่อตรวจสอบว่าการเลี้ยงนกเป็น risk factor จริงหรือไม่ นักวิจัยทำ case-control study ปี 1985 ที่โรงพยาบาล 4 แห่งในเฮก — ระบุผู้ป่วยมะเร็งปอดอายุ ≤65 ปี 49 คน (cases) และเลือก control จากประชากรอายุใกล้เคียงกัน 98 คน (รวม n=147) ตัวแปรที่เก็บ ได้แก่ เพศ (FM), สถานะทางสังคมเศรษฐกิจ (SS), การเลี้ยงนก (BK), อายุ (AG), ปีที่สูบบุหรี่ (YR), จำนวนบุหรี่ต่อวัน (CD):</p>
+<figure>
+<img src="../assets/slides/as9-p18-birdkeeping-data-table.png" alt="Table of birdkeeping and lung cancer data with columns SN (subject number), LC (lung cancer indicator), FM (female indicator), SS (socioeconomic status), BK (birdkeeping), AG (age), YR (years smoked), CD (cigarettes per day), showing the first 10 subjects all lung cancer cases">
+<figcaption>Slide: Case Study 2 Birdkeeping and Lung Cancer — โครงสร้างข้อมูล (Lecture 9, p.18)</figcaption>
+</figure>
+<p>อ่านตัวเลขในตาราง: subject 1 คือผู้ป่วยมะเร็งปอด (LC=1) เพศชาย (FM=0), สถานะเศรษฐกิจต่ำ (SS=0), เลี้ยงนก (BK=1), อายุ 37 ปี, สูบบุหรี่มา 19 ปี, สูบ 12 มวนต่อวัน — ข้อมูลดิบแบบนี้แหละที่ต้องแปลงเป็น dummy variable (<code>FMMale</code>, <code>SSLow</code>, <code>BKNoBird</code>) ก่อนใส่ใน <code>glm()</code> ให้ R เลือก reference level ให้อัตโนมัติตามลำดับตัวอักษร/factor level.</p>
+<pre><code>> modelbd<-glm(Cancer~FM+SS+BK+AG+YR+CD, data=birds, family=binomial)
+> summary(modelbd)
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.09196    1.75465   0.052 0.958204
+FMMale      -0.56127    0.53116  -1.057 0.290653
+SSLow       -0.10545    0.46885  -0.225 0.822050
+BKNoBird    -1.36259    0.41128  -3.313 0.000923 ***
+AG          -0.03976    0.03548  -1.120 0.262503
+YR           0.07287    0.02649   2.751 0.005940 **
+CD           0.02602    0.02552   1.019 0.308055
+---
+(Dispersion parameter for binomial family taken to be 1)
+    Null deviance: 187.14  on 146  degrees of freedom
+Residual deviance: 154.20  on 140  degrees of freedom
+AIC: 168.2</code></pre>
+<p>สังเกตชื่อ dummy <code>BKNoBird</code> — แปลว่า R เลือก <strong>"Bird" เป็น reference level</strong> (ตัวแปรนี้ = 1 เมื่อ "NoBird") สัมประสิทธิ์ <code>−1.36259</code> (p=0.000923, มีนัยสำคัญมากที่สุดในตาราง) จึงหมายถึงผลของการ<strong>ไม่เลี้ยงนก</strong>เทียบกับการเลี้ยงนก — <code>exp(−1.36259) = 0.256</code>: odds ของมะเร็งปอดของคนที่ไม่เลี้ยงนก เป็น 0.256 เท่าของคนที่เลี้ยงนก (ตัวแปรอื่นคงที่) หรือกลับเศษส่วน \(\dfrac{1}{0.256} \approx 3.91\) — <strong>คนที่เลี้ยงนกมี odds เป็นมะเร็งปอดสูงกว่าคนที่ไม่เลี้ยงนกประมาณ 3.9 เท่า แม้ควบคุมเพศ สถานะเศรษฐกิจ อายุ และประวัติการสูบบุหรี่แล้ว</strong> — ยืนยันสมมติฐานเริ่มต้นของงานวิจัยนี้ (การเลี้ยงนกสัมพันธ์กับความเสี่ยงมะเร็งปอดที่เพิ่มขึ้น) และยังคงมีนัยสำคัญแม้หักผลของการสูบบุหรี่ออกแล้ว. อีกตัวที่มีนัยสำคัญคือ <code>YR</code> (จำนวนปีที่สูบบุหรี่) \(\hat{\beta}=0.07287\) (p=0.00594): <code>exp(0.07287)=1.076</code> — ทุก 1 ปีที่สูบบุหรี่เพิ่มขึ้น odds ของมะเร็งปอดเพิ่มขึ้นประมาณ 7.6% (ตัวแปรอื่นคงที่).</p>
+
+<h3>Prospective vs Retrospective Study — ทำไม Intercept แปลผลไม่ได้</h3>
+<p><em class="term">Prospective study</em>: กำหนดตัวแปรอิสระ (predictor) ก่อน แล้วสังเกตผลลัพธ์ตามมา — เช่น เลือกทารกที่พ่อแม่กำหนดวิธีให้นม (ขวด/นมแม่) ไว้แล้ว แล้วติดตามดูว่าใครป่วยโรคทางเดินหายใจ. <em class="term">Retrospective study</em> (รวมถึง case-control): กำหนดผลลัพธ์ก่อน แล้วย้อนไปสังเกตตัวแปรอิสระ — เหมือน Case Study 2 นี้ที่เลือกคนไข้มะเร็งปอด (ผลลัพธ์คงที่ไว้ก่อน) แล้วย้อนไปถามประวัติการเลี้ยงนก.</p>
+<p>ข้อควรระวังสำคัญ: ใน retrospective/case-control study <strong>ค่า intercept ที่ประมาณได้ไม่ใช่ค่า intercept ของ prospective model จริง</strong> (เพราะสัดส่วน case:control ในตัวอย่างถูกกำหนดโดยนักวิจัย ไม่ใช่สัดส่วนที่แท้จริงในประชากร — ในที่นี้คือ 49:98 ซึ่งไม่ใช่อัตราการเป็นมะเร็งปอดจริงของกรุงเฮก) แต่ <strong>ค่าสัมประสิทธิ์ของตัวแปรอิสระ (BK, YR, ฯลฯ) ยังคงเป็นค่าประมาณที่ถูกต้อง และแปลผลได้แบบเดียวกับ prospective study ทุกประการ</strong> — นี่คือเหตุผลที่การแปลผล odds ratio ของ BKNoBird ข้างต้นยังใช้ได้ แม้ intercept 0.09196 จะไม่มีความหมายในฐานะ baseline odds ของประชากรจริง.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Prospective vs Retrospective</span></div>
+  <div class="qtext">ในโมเดล Birdkeeping (retrospective/case-control study) ข้อใดถูกต้องเกี่ยวกับการแปลผลค่าที่ประมาณได้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ต้องคูณทุกสัมประสิทธิ์ด้วยสัดส่วน 49/98 ก่อนแปลผลเสมอ</button>
+  <button class="opt" data-correct="true">Intercept ไม่ใช่ค่าประมาณของ prospective intercept ที่แท้จริง (เพราะสัดส่วน case:control ถูกกำหนดโดยนักวิจัย) แต่สัมประสิทธิ์ของตัวแปรอิสระ (เช่น BKNoBird) ยังคงประมาณได้ถูกต้องและแปลผลแบบเดียวกับ prospective study</button>
+  <button class="opt" data-correct="false">Retrospective study ให้ผลลัพธ์เชิงเหตุผล (causal) ได้ดีกว่า prospective study เสมอ</button>
+  <button class="opt" data-correct="false">ทั้ง intercept และสัมประสิทธิ์ของตัวแปรอิสระใช้แปลผลไม่ได้เลย เพราะเป็น retrospective study</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>6. เช็คว่าโมเดล Logistic เหมาะสมไหม: Graphical Check</h2>
+<p>ก่อนเชื่อผล glm() ควรพล็อต "sample logit" กับ X ดูว่าความสัมพันธ์เป็นเส้นตรงบน scale ของ logit หรือไม่ (เทียบเท่ากับ scatter plot ก่อนฟิตใน Lecture 1) ปัญหาคือ sample logit ดิบ \(\log(y_i/(1-y_i))\) ของข้อมูล binary จะได้แค่ <code>0</code> หรือ \(\infty\) เท่านั้น (เพราะ y_i มีแค่ 0 กับ 1) ใช้ไม่ได้ตรง ๆ Haldane (1956) จึงเสนอปรับสูตรเป็น \(\hat{\eta}_i = \log((y_i+0.5)/(1-y_i+0.5))\) และแนะนำให้จัดกลุ่มข้อมูลตามช่วงของ X ก่อนคำนวณ adjusted sample logit ของแต่ละกลุ่ม.</p>
+<p>ตัวอย่างจาก Case Study 3 (Pima Indians Diabetes Survey — สำรวจหญิงชาวอินเดียนแดงเผ่า Pima วัยผู้ใหญ่ 768 คน ตัวแปรได้แก่ pregnant, glucose, diastolic, triceps, insulin, bmi, diabetes pedigree, age, test) ฟังก์ชัน <code>logitplot()</code> แบ่งข้อมูลเป็น 10 กลุ่มตาม quantile ของ X แล้วคำนวณ adjusted sample logit เฉลี่ยของแต่ละกลุ่ม:</p>
+<figure>
+<img src="../assets/slides/as9-p28-logitplot-diabetes-4panel.png" alt="Four scatterplots of adjusted sample logit against glucose, age, pregnant, and bmi respectively, each showing an approximately increasing linear trend across the grouped x-axis values, supporting the logistic regression assumption of linearity in the logit scale">
+<figcaption>Slide: Example — Diabetes Survey on Pima Indians, adjusted sample logit ของ glucose/age/pregnant/bmi (Lecture 9, p.28)</figcaption>
+</figure>
+<p>อ่านทั้ง 4 แผง: ทุกแผงมีแนวโน้ม "เพิ่มขึ้นแบบใกล้เคียงเส้นตรง" ตลอดช่วง X ที่ชัดเจนที่สุดคือ <code>glucose</code> (แผงซ้ายสุด) ที่จุดเรียงตัวใกล้เส้นตรงมากเป็นพิเศษ ตั้งแต่ประมาณ −2.3 ที่ glucose ต่ำสุด ไปจนถึงเกือบ +1.3 ที่ glucose สูงสุด — สนับสนุนว่า logit ของความน่าจะเป็นเป็นเชิงเส้นกับ glucose สมเหตุสมผลตาม assumption ของ logistic regression. แผง <code>bmi</code> (ขวาสุด) มีจุดแรกต่ำผิดปกติ (ประมาณ −2.5) แล้วจึงเพิ่มขึ้นตามแนวโน้ม — ความไม่เรียบนี้เกิดจากขนาดกลุ่มเล็กในบางช่วง แต่ภาพรวมยังคงเป็นแนวโน้มขึ้นสมเหตุสมผล ไม่ใช่รูปโค้งหรือรูปตัว U ที่จะบ่งชี้ว่าต้อง transform ตัวแปรก่อน.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Sample Logit Plot</span></div>
+  <div class="qtext">ทำไมต้องปรับสูตร sample logit เป็น <code>log((y_i+0.5)/(1−y_i+0.5))</code> แทนที่จะใช้ <code>log(y_i/(1−y_i))</code> ตรง ๆ สำหรับข้อมูล binary?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะ y_i มีแค่ค่า 0 หรือ 1 การใช้สูตรดิบจะได้ log(0)=−∞ หรือ log(∞)=∞ ซึ่งพล็อตไม่ได้ การบวก 0.5 (Haldane's adjustment) ทำให้ได้ค่าจำกัดที่พล็อตได้ โดยมี bias เพียงเล็กน้อย</button>
+  <button class="opt" data-correct="false">เพื่อให้ค่าที่ได้อยู่ในช่วง [0,1] เสมอ เหมือนความน่าจะเป็น</button>
+  <button class="opt" data-correct="false">เพราะ R บังคับให้บวก 0.5 เสมอเมื่อใช้ฟังก์ชัน log() กับข้อมูล integer</button>
+  <button class="opt" data-correct="false">เพื่อแปลง scale จาก log-odds กลับไปเป็น probability โดยตรง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>7. Inference: Goodness-of-Fit, Wald's Test, Likelihood Ratio Test, Pseudo R²</h2>
+<p>เพราะมี likelihood function อยู่แล้ว จึงใช้วิธี likelihood-based inference ได้ทั้งหมด (MLE ของ β ใน R คำนวณด้วย Fisher's scoring algorithm) มี 3 เรื่องที่ต้องทำได้: (1) Goodness-of-fit test, (2) hypothesis test สำหรับ parameter เดี่ยว \(H_0: \beta_k=0\), (3) เปรียบเทียบ nested model.</p>
+
+<h3>Goodness-of-Fit: Hosmer-Lemeshow Test</h3>
+<p>ทดสอบ \(H_0\): โมเดล fit ข้อมูล vs \(H_1\): โมเดลไม่ fit — ถ้าปฏิเสธ H₀ แปลว่าโมเดล lack of fit อาจเพราะ (i) logistic regression ไม่เหมาะกับข้อมูลชุดนี้ หรือ (ii) โมเดลขาดตัวแปรสำคัญไป. Hosmer-Lemeshow ใช้ได้เมื่อทุก <code>n_i=1</code> (ข้อมูล binary แท้) โดยแบ่งคู่ \((y_i, \hat{\pi}_i)\) เป็น g กลุ่ม (ปกติ g=10) เรียงตาม π̂_i แล้วเทียบค่าที่สังเกตกับค่าที่คาดหวังในแต่ละกลุ่ม สถิติทดสอบมีการแจกแจงประมาณ \(\chi^2(g-2)\) ตัวอย่างจาก Pima Diabetes:</p>
+<pre><code>> hosmerlem(pima$test, fullmodel$fitted.values)
+      X^2       Df   P(>Chi)
+5.764984 8.000000 0.673538</code></pre>
+<p>อ่านผล: \(X^2=5.765, df=8, p=0.6735\) — p-value สูงมาก (&gt;0.05) จึง<strong>ไม่ปฏิเสธ H₀</strong> สรุปว่า<strong>ไม่มีหลักฐานว่าโมเดลนี้ fit ข้อมูลไม่ดี</strong> (ต่างจาก hypothesis test ปกติที่อยากปฏิเสธ H₀ — goodness-of-fit test นี้ "อยากให้ไม่ปฏิเสธ" ถึงจะแปลว่าโมเดลใช้ได้).</p>
+
+<h3>Pseudo R² (Nagelkerke)</h3>
+<p>Pseudo R² พัฒนาขึ้นเพื่อให้ logistic regression มี "R²-like" measure แต่<strong>ไม่ใช่ R² แบบเดียวกับ linear regression</strong> เพียงแค่อยู่บนสเกลเดียวกันคือ 0 ถึง 1 และตีความแบบเดียวกันว่ายิ่งสูงยิ่ง fit ดี — แต่<strong>ไม่มีการตีความที่ตรงไปตรงมา (simple interpretation)</strong> แบบ "สัดส่วนความแปรปรวนที่อธิบายได้" เหมือน R² จริง Nagelkerke (1991) เสนอสูตรจากสัดส่วน deviance ที่อธิบายได้:</p>
+<div class="box">
+\[R^2 = \dfrac{1 - \exp\left[\dfrac{D(\hat{\beta})-D_{null}}{n}\right]}{1 - \exp\left[-\dfrac{D_{null}}{n}\right]}\]
+</div>
+<pre><code>> glm.rsq<-function(glmobj, N) {
++   (1-exp((glmobj$deviance-glmobj$null.deviance)/N)) /
++   (1-exp(-glmobj$null.deviance/N))
++ }
+> glm.rsq(model, nrow(donner))
+[1] 0.2802908</code></pre>
+<p>โมเดล Donner Party ได้ pseudo R² = 0.280 — ต่างจาก R² ปกติที่แปลว่า "อธิบายความแปรปรวนได้ 28%" ตรง ๆ ไม่ได้ ให้อ่านแค่ว่า "โมเดลนี้ fit ดีกว่าโมเดลที่มีแค่ intercept ในระดับปานกลาง (0.28 จากสเกล 0–1)" เท่านั้น.</p>
+
+<h3>Hypothesis Testing สำหรับ β_k เดี่ยว: Wald's Test vs LRT</h3>
+<p><strong>Wald's Test:</strong> จาก property ของ MLE, \(\hat{\beta}_k\) มีการแจกแจงแบบ normal โดยประมาณ ดังนั้น \(z = (\hat{\beta}_k-\beta_k)/SE[\hat{\beta}_k] \sim N(0,1)\) — นี่คือคอลัมน์ <code>z value</code> ที่เห็นใน <code>summary(glm(...))</code> ทุกครั้ง (นิยมใช้เพราะมีอยู่แล้วใน output มาตรฐาน).</p>
+<p><strong>Likelihood Ratio Test (LRT):</strong> เรียกอีกชื่อว่า "drop-in-deviance test" เปรียบเทียบ "reduced model" (ภายใต้ H₀) กับ "full model" (ภายใต้ H₁):</p>
+<div class="box">
+\(LRT = -2\log(L_{max,reduced}) - (-2\log(L_{max,full})) = D(\hat{\beta}_{reduced}) - D(\hat{\beta}_{full}) \sim \text{asymp. } \chi^2_{df}\)
+</div>
+<p>โดย df คือผลต่างจำนวนพารามิเตอร์ระหว่าง full กับ reduced model — เหตุผลที่ใช้ deviance แทน log-likelihood ตรง ๆ ในสูตรจริง เพราะซอฟต์แวร์สถิติมักไม่รายงาน log-likelihood ตรง ๆ ใน output มาตรฐาน แต่รายงาน deviance แทน. ตัวอย่างจาก Pima Diabetes ทดสอบว่า <code>age</code> มีนัยสำคัญไหม (เทียบกับ Wald's test):</p>
+<pre><code>> tmod1<-update(fmod, .~.-age)
+> pchisq(deviance(tmod1)-deviance(fmod), df=1, lower=F)
+[1] 0.1122535</code></pre>
+<p>LRT p-value = 0.1123 สอดคล้องทิศทางเดียวกับ Wald's test ของ <code>age</code> ใน <code>summary(fmod)</code> ที่ให้ p=0.111 (ทั้งคู่ไม่ปฏิเสธ H₀: β_age=0 ที่ α=0.05) — สองวิธีนี้มักให้ข้อสรุปตรงกัน แต่ไม่จำเป็นต้องเท่ากันเป๊ะเหมือน t-test/F-test ใน SLR.</p>
+
+<h3>Comparing Nested Models</h3>
+<p>ขยาย LRT ไปทดสอบตัวแปรหลายตัวพร้อมกัน: \(LRT = D(\hat{\beta}_{reduced}) - D(\hat{\beta}_{full}) \sim \text{asymp. } \chi^2_{df}\) โดย df = จำนวนพารามิเตอร์ที่ถูกทดสอบ ตัวอย่าง full model (<code>glucose+diastolic+bmi+diabetes+age</code>) เทียบ reduced model (<code>glucose+bmi+age</code>) — ทดสอบว่า diastolic กับ diabetes pedigree จำเป็นต้องอยู่ในโมเดลร่วมกันหรือไม่:</p>
+<pre><code>> LRT<-deviance(redmodel)-deviance(fullmodel)
+> 1-pchisq(LRT, df.residual(redmodel)-df.residual(fullmodel))
+[1] 0.000739802</code></pre>
+<p>p-value = 0.00074 น้อยกว่า 0.05 มาก → <strong>ปฏิเสธ H₀</strong> สรุปว่า diastolic และ diabetes pedigree (สองตัวที่ต่างกันระหว่าง full กับ reduced) มีส่วนช่วยอธิบายผลลัพธ์อย่างมีนัยสำคัญ ควรเก็บ full model ไว้ ไม่ควรตัดสองตัวนี้ออก.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>Hosmer-Lemeshow Test</span></div>
+  <div class="qtext">ผล Hosmer-Lemeshow test ของโมเดล Pima Diabetes คือ X²=5.765, df=8, p=0.6735 สรุปได้ว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ทดสอบนี้ใช้ตัดสิน goodness-of-fit ไม่ได้เลย เพราะ df=8 น้อยเกินไป</button>
+  <button class="opt" data-correct="false">ปฏิเสธ H₀ เพราะ p=0.6735 สูงเกินไปจนน่าสงสัย ต้องเปลี่ยนโมเดล</button>
+  <button class="opt" data-correct="true">ไม่ปฏิเสธ H₀ (โมเดล fit ข้อมูล) เพราะ p=0.6735 มากกว่า 0.05 มาก — ไม่มีหลักฐานว่า logistic model นี้ fit ข้อมูลไม่ดี</button>
+  <button class="opt" data-correct="false">p=0.6735 บอกว่าตัวแปรอิสระทุกตัวในโมเดลมีนัยสำคัญทางสถิติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>LRT สำหรับ Nested Models</span></div>
+  <div class="qtext">การเปรียบเทียบ full model (glucose+diastolic+bmi+diabetes+age) กับ reduced model (glucose+bmi+age) ได้ LRT p-value = 0.00074 ข้อสรุปใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ปฏิเสธ H₀ (ว่า diastolic กับ diabetes pedigree ไม่มีผล) เพราะ p=0.00074 น้อยกว่า 0.05 มาก สรุปว่าสองตัวแปรนี้ช่วยอธิบายผลลัพธ์อย่างมีนัยสำคัญ ควรเก็บ full model ไว้</button>
+  <button class="opt" data-correct="false">ควรใช้ reduced model เพราะมีตัวแปรน้อยกว่า ประหยัดกว่าเสมอ</button>
+  <button class="opt" data-correct="false">ผลนี้บอกว่า glucose ไม่มีนัยสำคัญในทั้งสองโมเดล</button>
+  <button class="opt" data-correct="false">ต้องใช้ Wald's test ยืนยันซ้ำเสมอ ก่อนสรุปจาก LRT ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. Model Selection: Stepwise, AIC, BIC</h2>
+<p>Stepwise procedure มี 3 แบบ: <strong>Forward selection</strong> (เริ่มจากโมเดลว่าง ค่อย ๆ เพิ่มตัวแปรที่ทำให้ fit ดีขึ้นมากที่สุดทีละตัว จนเพิ่มต่อไม่ช่วยอะไรแล้ว), <strong>Backward selection</strong> (เริ่มจากโมเดลเต็ม ค่อย ๆ ตัดตัวแปรที่เอาออกแล้วเสียหายน้อยที่สุดทีละตัว), และ<strong>ใช้ทั้งสองแบบพร้อมกัน</strong>. ข้อควรระวัง: สำหรับตัวแปร categorical ที่มีมากกว่า 2 กลุ่ม (มี dummy หลายตัว) ต้องพิจารณาทั้งตัวแปรพร้อมกัน ไม่ใช่ทีละ dummy — นักสถิติส่วนใหญ่นิยม backward elimination มากกว่า forward selection เพราะรู้สึกว่าปลอดภัยกว่าที่จะตัดตัวแปรออกจากโมเดลที่ซับซ้อนเกินไป มากกว่าค่อย ๆ เพิ่มเข้าไปในโมเดลที่ง่ายเกินไป.</p>
+<p>เกณฑ์การเลือกโมเดล (แทนที่จะดู p-value ทีละตัวไปเรื่อย ๆ) ให้ p = จำนวนตัวแปรอิสระในโมเดล และ N = ผลรวมของ n_i:</p>
+<div class="box">
+\(AIC = -2\times l(\hat{\beta}) + 2(p+1) = \text{Deviance} + 2(p+1)\)<br>
+\(BIC = -2\times l(\hat{\beta}) + (p+1)\log(N) = \text{Deviance} + (p+1)\log(N)\)
+</div>
+<p>สังเกตว่า BIC ลงโทษจำนวนพารามิเตอร์แรงกว่า AIC เมื่อ N มาก (เพราะ <code>log(N) &gt; 2</code> เมื่อ N &gt; e² ≈ 7.4) จึงมักเลือกโมเดลที่เล็กกว่า AIC. ตัวอย่างจริงจาก Pima Diabetes เทียบสองเกณฑ์:</p>
+<pre><code>> testaic<-step(fmod,trace=F); testaic$anova
+Step    Df    Deviance Resid. Df Resid. Dev      AIC
+1             NA           NA       759   723.4454 741.4454
+2 - triceps    1  0.008051802       760   723.4534 739.4534
+
+> testbic<-step(fmod, k=log(768), trace=F); testbic$anova
+           Step Df    Deviance Resid. Df Resid. Dev      AIC
+1               NA          NA        759   723.4454 783.2395
+2     - triceps  1 0.008051802        760   723.4534 776.6037
+3     - insulin  1 2.008267852        761   725.4617 771.9682
+4         - age  1 3.097908342        762   728.5596 768.4223
+5 - diastolic    1 5.746278627        763   734.3059 767.5248</code></pre>
+<p>อ่านผล: AIC-based selection ตัดออกแค่ <code>triceps</code> ตัวเดียว (โมเดลสุดท้ายมี 7 ตัวแปร, AIC=739.45) แต่ BIC-based selection ตัดออกถึง 4 ตัว (<code>triceps, insulin, age, diastolic</code>) เหลือแค่ <code>pregnant+glucose+bmi+diabetes</code> — ยืนยันสิ่งที่บอกไว้ข้างต้นว่า BIC มักเลือกโมเดลที่กระชับกว่า AIC เพราะบทลงโทษต่อพารามิเตอร์แรงกว่า (ในที่นี้ N=768 มาก ทำให้ \(\log(768)\approx 6.6\) ซึ่งมากกว่า 2 ของ AIC เกือบ 3.3 เท่า).</p>
+
+<h2>9. Diagnostic: Influence — Cook's Distance</h2>
+<p>Cook's distance นิยามคล้ายกับใน linear regression ใช้วัดว่าจุดข้อมูลแต่ละจุดมีอิทธิพลต่อการฟิตโมเดลมากแค่ไหน:</p>
+<pre><code>> plot(model, 4)
+> cutoff<-qf(0.5,3,nrow(donner)-3)  # F(p+1, n-p-1)
+> cutoff
+[1] 0.8016219
+> cutoff2<-4/nrow(donner)
+> cutoff2
+[1] 0.08888889</code></pre>
+<figure>
+<img src="../assets/slides/as9-p45-cooks-distance-plot.png" alt="Cook's distance plot for the Donner Party glm model, x-axis observation number 0 to 45, y-axis Cook's distance 0.00 to 0.20, with three points labeled 3, 11, and 35 standing out above the general noise, point 35 the tallest around 0.19">
+<figcaption>Slide: Logistic Regression Diagnostic — Cook's Distance ของโมเดล Donner Party (Lecture 9, p.45)</figcaption>
+</figure>
+<p>อ่านภาพ: จุดสังเกตที่ 35 มี Cook's distance สูงที่สุดในกราฟ (ประมาณ 0.19) ตามด้วยจุดที่ 11 (ประมาณ 0.10) และจุดที่ 3 (ประมาณ 0.095) — ทั้งสามจุดสูงกว่าเส้นฐานของจุดอื่น ๆ อย่างชัดเจน แต่เทียบกับ cutoff สองแบบที่คำนวณไว้ (0.802 จากสูตร F-distribution และ 0.0889 จากกฎง่าย 4/n) จุดที่ 35 (0.19) ยังต่ำกว่า cutoff แบบ F-distribution (0.802) มาก แต่<strong>สูงกว่า cutoff แบบ 4/n (0.0889) ทั้งสามจุด</strong> — สะท้อนว่ากฎ 4/n ไวกว่าและมักจะ flag จุดที่ "น่าสงสัยพอสมควร" ไว้ให้ตรวจสอบเพิ่มเติม ไม่ใช่ตัดออกจากข้อมูลทันที.</p>
+
+<h2>10. การทำนายด้วย Logistic Regression: Point Estimate และ Interval Estimation</h2>
+<p>ทำนาย π_i เป็น 2 ขั้น: คำนวณ linear predictor ก่อน แล้วแปลงผ่าน logistic function:</p>
+<div class="box">
+\(\hat{\eta}_i = \text{logit}(\hat{\pi}_i) = \hat{\beta}_0+\hat{\beta}_1 X_{i1}+\cdots+\hat{\beta}_p X_{ip}\), &nbsp; \(\hat{\pi}_i = \dfrac{e^{\hat{\eta}_i}}{1+e^{\hat{\eta}_i}}\)
+</div>
+<p>ถ้าต้องการทำนาย <code>Ŷ_i</code> เป็น class (0/1) ต้องกำหนด cutoff point (ปกติ 0.5): ถ้า \(\hat{\pi}_i > 0.5\) ให้ <code>Ŷ_i=1</code> มิฉะนั้น <code>Ŷ_i=0</code>. Interval estimate ของ η ใช้ normal approximation ของ \(\hat{\beta}\) (จาก property MLE) แล้วแปลงกลับเป็น interval ของ π ผ่าน logistic function (การแปลง monotonic รักษาลำดับ endpoint ไว้):</p>
+<div class="box">
+\(\hat{\eta}_l, \hat{\eta}_u = x\hat{\beta} \mp z_{(1-\alpha/2)} \sqrt{xV(\hat{\beta})x^T}\) &nbsp;⟹&nbsp; \(\hat{\pi}_l = \dfrac{e^{\hat{\eta}_l}}{1+e^{\hat{\eta}_l}}\), &nbsp;\(\hat{\pi}_u = \dfrac{e^{\hat{\eta}_u}}{1+e^{\hat{\eta}_u}}\)
+</div>
+<p>ตัวอย่างจาก Case Study 2 (Birdkeeping) — ทำนาย 2 คนใหม่: (1) ชาย, SES ต่ำ, เลี้ยงนก, อายุ 40, สูบบุหรี่ 15 ปี, 12 มวน/วัน; (2) หญิง, SES ต่ำ, เลี้ยงนก, อายุ 50, สูบบุหรี่ 19 ปี, 15 มวน/วัน:</p>
+<pre><code>> etahat<-predict(modelbd, newdata=newX)
+> pihat<-predict(modelbd, newdata=newX, type="response")
+> output
+      etahat     pihat yhat
+1 -0.7597511 0.3187003    0
+2 -0.2265080 0.4436139    0
+
+> etahat<-predict(modelbd, newdata=newX, se.fit=TRUE)
+> eta_lower<-etahat$fit-1.96*etahat$se.fit
+> eta_upper<-etahat$fit+1.96*etahat$se.fit
+> pi_lower<-exp(eta_lower)/(1+exp(eta_lower))
+> pi_upper<-exp(eta_upper)/(1+exp(eta_upper))
+> output
+      etahat     pihat yhat  eta_lower  eta_upper  pi_lower  pi_upper
+1 -0.7597511 0.3187003    0  -1.916410  0.3969079 0.1282624 0.5979445
+2 -0.2265080 0.4436139    0  -1.088211  0.6351952 0.2519553 0.6536665</code></pre>
+<p>อ่านตัวเลข: คนที่ 1 (ชาย อายุ 40) ได้ \(\hat{\pi}=0.3187\) — "ความน่าจะเป็นที่จะเป็นมะเร็งปอด (ตามโมเดลนี้) อยู่ที่ประมาณ 31.9%" และมั่นใจ 95% ว่าความน่าจะเป็นที่แท้จริงอยู่ระหว่าง 12.8% ถึง 59.8% — <strong>ช่วงกว้างมาก</strong> (0.128 ถึง 0.598 ครอบคลุมเกือบครึ่งของสเกล 0–1 ทั้งหมด) สะท้อนว่า n=147 ยังไม่มากพอที่จะให้ interval แคบ ๆ ได้. คนที่ 2 (หญิง อายุ 50) ได้ \(\hat{\pi}=0.4436\) สูงกว่าคนที่ 1 (เพราะเพศหญิงมีค่า FMMale=0 ซึ่งไม่ถูกลบด้วยสัมประสิทธิ์ลบ 0.561) แม้ทั้งคู่ยังถูกจัดเป็น "ไม่เป็นมะเร็ง" (yhat=0) เพราะ π̂ ทั้งคู่ยังต่ำกว่า cutoff 0.5.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 11 (Free response)</span><span>แปลผล Probability ที่จุด X เฉพาะเจาะจง</span></div>
+  <div class="qtext">จากตัวอย่างข้างต้น คนที่ 2 (หญิง, SES ต่ำ, เลี้ยงนก, อายุ 50, สูบบุหรี่ 19 ปี, 15 มวน/วัน) ได้ π̂=0.4436 (95% CI: 0.252 ถึง 0.654) จงเขียนประโยคแปลผลที่ถูกต้องแบบ probability พร้อมอธิบายว่าทำไมประโยคนี้ต้องระบุค่าตัวแปรทุกตัวไว้ด้วย ไม่ใช่พูดลอย ๆ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>"สำหรับผู้หญิงที่มีสถานะทางเศรษฐกิจสังคมต่ำ เลี้ยงนก อายุ 50 ปี สูบบุหรี่มา 19 ปี วันละ 15 มวน โมเดลทำนายความน่าจะเป็นที่จะเป็นมะเร็งปอดไว้ที่ 44.36% (มั่นใจ 95% ว่าอยู่ระหว่าง 25.2% ถึง 65.4%)"</p>
+  <p>เหตุผลที่ต้องระบุค่าตัวแปรทุกตัว: เพราะ π (ต่างจาก log-odds) ไม่ได้เปลี่ยนแบบคงที่ตาม X แต่ละตัว — ผลของแต่ละตัวแปรต่อ π ขึ้นกับว่าตัวแปรอื่น ๆ อยู่ที่ค่าใดด้วย (เพราะความสัมพันธ์ไม่เชิงเส้นบนสเกล π ตามรูป Logistic Function ในหัวข้อ 2) การพูดว่า "π ของคนอายุ 50 คือ 0.44" โดยไม่บอกค่าตัวแปรอื่นจึงไม่มีความหมายที่ตรวจสอบซ้ำได้ ต่างจาก log-odds ที่ผลของแต่ละตัวแปรคงที่เสมอไม่ว่าตัวแปรอื่นจะเป็นเท่าไร</p>
+  </div>
+</div>
+
+<h2>11. วัดความแม่นยำการจำแนก: Confusion Matrix และ Evaluation Metrics</h2>
+<p>เมื่อแปลง π̂ เป็น class ด้วย cutoff แล้ว วัดความแม่นยำด้วย confusion matrix:</p>
+<figure>
+<img src="../assets/slides/as9-p50-confusion-matrix-diagram.png" alt="Confusion matrix diagram with rows for Actual value (positive/negative) and columns for Prediction outcome (positive/negative), showing cells TP, FN in the positive actual row and FP, TN in the negative actual row, with row and column sums TP+FN, FP+TN, TP+FP, FN+TN">
+<figcaption>Slide: Measuring Accuracy in Binary Classification — Confusion Matrix (Lecture 9, p.50)</figcaption>
+</figure>
+<p>สูตร metric หลัก 4 ตัวจาก TP (true positive), FP (false positive), TN (true negative), FN (false negative):</p>
+<div class="box">
+<code>Precision = TP/(TP+FP)</code>, &nbsp;<code>Recall (Sensitivity) = TP/(TP+FN)</code>, &nbsp;<code>Specificity = TN/(TN+FP)</code><br>
+\(F_1 = \dfrac{2\times(\text{Precision}\times\text{Recall})}{\text{Precision}+\text{Recall}}\)
+</div>
+<p>ตัวอย่างจริงจาก Pima Diabetes (fullmodel, cutoff=0.5):</p>
+<pre><code>> xtab<-table(truth, predclass)
+> xtab
+      predclass
+truth    0   1
+    0  441  59
+    1  113 155</code></pre>
+<p>คำนวณมือ: <code>TP=155</code> (truth=1, pred=1), <code>FN=113</code> (truth=1, pred=0), <code>FP=59</code> (truth=0, pred=1), <code>TN=441</code> (truth=0, pred=0) — ดังนั้น <code>Recall = 155/(155+113) = 155/268 = 0.5784</code> และ <code>Precision = 155/(155+59) = 155/214 = 0.7243</code>.</p>
+
+<div class="box win">
+<div class="label">ข้อควรระวังเวลาอ่าน R output จริง: caret::confusionMatrix() สลับความหมาย Sensitivity ↔ Precision ได้ถ้าสร้างตารางผิดแนว</div>
+<pre><code>> cm<-confusionMatrix(xtab, positive="1")
+> cm
+           Sensitivity : 0.7243
+           Specificity : 0.7960
+        Pos Pred Value : 0.5784
+        Neg Pred Value : 0.8820</code></pre>
+<p>สังเกตว่าตัวเลขที่ caret พิมพ์ว่า "Sensitivity: 0.7243" กลับตรงกับค่า <strong>Precision</strong> ที่คำนวณมือได้ข้างบน (155/214=0.7243) ไม่ใช่ Recall (0.5784) ที่ควรจะเป็น! สาเหตุ: <code>confusionMatrix()</code> ตีความแถวของตารางเป็น "Prediction" และคอลัมน์เป็น "Reference" เสมอตามธรรมเนียมของฟังก์ชันนี้ แต่ตาราง <code>xtab</code> ที่สร้างด้วย <code>table(truth, predclass)</code> มี <strong>truth อยู่แถว (ที่จริงคือ Reference/ความจริง) และ predclass อยู่คอลัมน์ (ที่จริงคือ Prediction)</strong> — สลับกับที่ caret คาดหวังพอดี ทำให้ Sensitivity/Specificity/PPV/NPV ที่พิมพ์ออกมาทั้งหมดคำนวณผิดแนว (สลับ role ของ Prediction กับ Reference) ยืนยันได้จากแพ็กเกจ <code>Metrics</code> ที่รับ argument ตามชื่อฟังก์ชันตรง ๆ:</p>
+<pre><code>> recall(truth, predclass)
+[1] 0.5783582
+> precision(truth, predclass)
+[1] 0.7242991</code></pre>
+<p><code>Metrics::recall(truth,predclass) = 0.5784</code> ตรงกับ Recall ที่คำนวณมือถูกต้อง (155/268) — ยืนยันว่า "Sensitivity" ที่ caret พิมพ์ (0.7243) จริง ๆ แล้วคือค่า Precision <strong>บทเรียนสำคัญ: ต้องเช็คทิศทางของตารางที่ป้อนเข้าไปในฟังก์ชันเสมอ ก่อนเชื่อชื่อ field ในผลลัพธ์ตรง ๆ</strong> — สไลด์รายงาน <code>f1(truth,predclass)=1</code> ด้วย ซึ่งดูผิดปกติ (คำนวณจาก precision, recall ที่ถูกต้องข้างต้นควรได้ \(2\times 0.7243\times 0.5784/(0.7243+0.5784)\approx 0.643\)) แต่ขอคงค่าที่ปรากฏในสไลด์ต้นฉบับไว้ตรง ๆ เพื่อให้จำได้ตรงกับที่อาจเจอในข้อสอบ.</p>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>Confusion Matrix — ระวังทิศทางตาราง</span></div>
+  <div class="qtext">จากตาราง confusion matrix ของ Pima Diabetes (truth แถว, predclass คอลัมน์: [0,0]=441, [0,1]=59, [1,0]=113, [1,1]=155) ค่า Recall (Sensitivity) ที่คำนวณถูกต้องคือเท่าไร และทำไมค่าที่ caret::confusionMatrix() พิมพ์ว่า "Sensitivity" จึงไม่ตรงกับค่านี้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Recall = 0.7243 ตรงกับที่ caret พิมพ์พอดี ไม่มีปัญหาอะไร</button>
+  <button class="opt" data-correct="true">Recall ที่ถูกต้อง = TP/(TP+FN) = 155/268 = 0.5784 แต่ caret พิมพ์ 0.7243 (ซึ่งจริงคือ Precision) เพราะ confusionMatrix() ตีความแถวของ xtab เป็น Prediction และคอลัมน์เป็น Reference เสมอ ในขณะที่ xtab สร้างด้วย table(truth, predclass) ทำให้แถว/คอลัมน์สลับบทบาทกับที่ caret คาดหวัง</button>
+  <button class="opt" data-correct="false">Recall คำนวณไม่ได้เลยจากตารางนี้ เพราะไม่รู้ว่า TP คือช่องไหน</button>
+  <button class="opt" data-correct="false">Recall = 0.8820 เพราะต้องใช้สูตร TN/(TN+FN) ไม่ใช่ TP/(TP+FN)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>12. ROC Curve และ AUC</h2>
+<p>ROC (Receiver Operating Characteristic) curve สร้างจากการพล็อต true positive rate (sensitivity) กับ false positive rate (1−specificity) ที่ทุกค่า cutoff point ที่เป็นไปได้ — ต่างจาก confusion matrix ที่ตรึง cutoff ไว้ค่าเดียว (0.5) ROC curve แสดงผลลัพธ์ทุก cutoff พร้อมกัน ทำให้เห็นภาพรวมของความสามารถในการจำแนกโดยไม่ขึ้นกับการเลือก cutoff. <em class="term">Area Under the Curve (AUC)</em> ใช้เปรียบเทียบ classifier ต่างกัน — ยิ่ง AUC มากยิ่งดี (AUC=0.5 คือทายมั่ว, AUC=1.0 คือแยกได้สมบูรณ์แบบ):</p>
+<pre><code>> roc(truth, prob, plot=TRUE)
+Data: prob in 500 controls (truth 0) < 268 cases (truth 1).
+Area under the curve: 0.8316</code></pre>
+<figure>
+<img src="../assets/slides/as9-p57-roc-curve.png" alt="ROC curve plot with sensitivity on the y-axis (0 to 1.0) and specificity on the x-axis (1.0 to 0.0, reversed), showing a curve that bows sharply toward the top-left corner well above the diagonal reference line, indicating strong classifier discrimination">
+<figcaption>Slide: ROC Curve in R — โมเดล Pima Diabetes, AUC=0.8316 (Lecture 9, p.57)</figcaption>
+</figure>
+<p>อ่านภาพ: เส้นโค้งโก่งขึ้นไปทางมุมซ้ายบนอย่างชัดเจน ห่างจากเส้นทแยงมุม (diagonal, ทายมั่ว) มาก — ตรงกับ AUC=0.8316 ที่คำนวณได้ (สูงกว่า 0.8 ถือว่ามีความสามารถแยกแยะที่ดี) ที่จุดประมาณ sensitivity=0.75–0.8 เส้นโค้งยังอยู่ที่ specificity สูงกว่า 0.7 อยู่ ก่อนจะเริ่มลาดลงเร็วขึ้นเมื่อ sensitivity เข้าใกล้ 1.0 — สะท้อนว่าโมเดลนี้แยกคนที่จะเป็นเบาหวานกับไม่เป็นได้ดีในช่วง cutoff ส่วนใหญ่ ไม่ใช่แค่บาง cutoff เดียว.</p>
+<p>การเลือก cutoff ที่ดีที่สุดจาก ROC curve ใช้ <em class="term">Youden's Index</em>: <code>J = sensitivity + specificity − 1</code> (ค่าสูงสุดของ J คือจุดที่สมดุลระหว่าง sensitivity กับ specificity ดีที่สุด):</p>
+<figure>
+<img src="../assets/slides/as9-p58-youden-index-roc.png" alt="Same ROC curve as before, with an arrow pointing to a highlighted point near the top-left bend of the curve and a vertical line labeled J connecting that point down to the diagonal line, illustrating Youden's index as the maximum vertical distance between the ROC curve and the diagonal">
+<figcaption>Slide: Best Cutoff from ROC Curve — Youden's Index J = sensitivity + specificity − 1 (Lecture 9, p.58)</figcaption>
+</figure>
+<p>อ่านภาพ: จุดที่ถูกวงกลมไว้ (ใกล้มุมบนซ้ายสุดของโค้ง) คือจุดที่ระยะแนวตั้ง <code>J</code> จากเส้นโค้งลงมาถึงเส้นทแยงมุมยาวที่สุด — นี่คือนิยามเชิงเรขาคณิตของ Youden's index โดยตรง: <code>J</code> คือระยะห่างสูงสุดระหว่างเส้น ROC กับเส้นทแยงมุม (ทายมั่ว) ยิ่ง J มากยิ่งไกลจากการทายมั่ว จุดนั้นจึงเป็น cutoff ที่ให้ sensitivity และ specificity รวมกันสูงสุด — เป็นอีกวิธีเลือก cutoff แทนการใช้ 0.5 ตายตัวเสมอ.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 13</span><span>ROC Curve และ AUC</span></div>
+  <div class="qtext">โมเดล A มี AUC=0.55 และโมเดล B มี AUC=0.83 (จากข้อมูลชุดเดียวกัน) ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">AUC ไม่เกี่ยวกับความสามารถในการจำแนก เกี่ยวกับ goodness-of-fit เท่านั้น</button>
+  <button class="opt" data-correct="false">ทั้งสองโมเดลใช้ไม่ได้เลย เพราะ AUC ต้องมากกว่า 0.9 เท่านั้นถึงจะยอมรับได้</button>
+  <button class="opt" data-correct="false">โมเดล A ดีกว่า เพราะ AUC ยิ่งใกล้ 0.5 ยิ่งสมดุล</button>
+  <button class="opt" data-correct="true">โมเดล B มีความสามารถในการแยกแยะ (discriminate) ระหว่างกลุ่ม positive กับ negative ดีกว่ามาก เพราะ AUC=0.83 ห่างจาก 0.5 (การทายมั่ว) มากกว่า AUC=0.55 ของโมเดล A ที่เกือบเท่ากับทายมั่ว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 14 (Free response — เขียนสมการโมเดล)</span><span>ประยุกต์ทักษะที่ 1: เขียนสมการ</span></div>
+  <div class="qtext">ธนาคารอยากทำนายว่าลูกค้าจะผิดนัดชำระหนี้ (default) หรือไม่ จากรายได้ต่อเดือน (Income, พันบาท) และคะแนนเครดิต (Score) โดยเก็บข้อมูลลูกค้า 500 ราย จงเขียนสมการ logistic regression พร้อมระบุความหมายของแต่ละพจน์ และบอกว่าโมเดลนี้จัดอยู่ใน GLM framework แบบใด (random component, link function)</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(\log\left(\dfrac{\pi_i}{1-\pi_i}\right) = \beta_0 + \beta_1 \text{Income}_i + \beta_2 \text{Score}_i\), สำหรับ i=1,…,500</p>
+  <p>โดย \(\pi_i = P(\text{Default}_i=1)\) คือความน่าจะเป็นที่ลูกค้าคนที่ i จะผิดนัดชำระหนี้, \(\beta_0\) = log-odds การผิดนัดเมื่อ Income และ Score เท่ากับ 0 (มักไม่มีความหมายตรงตัว เพราะ 0 อยู่นอกช่วงข้อมูลจริง), \(\beta_1\) = การเปลี่ยนแปลงของ log-odds การผิดนัดต่อรายได้ที่เพิ่มขึ้น 1 พันบาท (โดย Score คงที่), \(\beta_2\) = การเปลี่ยนแปลงของ log-odds ต่อคะแนนเครดิตที่เพิ่มขึ้น 1 หน่วย (โดย Income คงที่)</p>
+  <p>GLM framework: random component คือ \(\text{Default}_i \sim \text{Bernoulli}(\pi_i)\) (หรือ Binomial(1,π_i)), link function คือ <strong>logit</strong> (\(g(\pi)=\log(\pi/(1-\pi))\)) ซึ่งเป็น canonical link ของ Binomial family ตามตาราง GLMs with Canonical Links ใน Lecture 8</p>
+  </div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ logistic regression พร้อมเชื่อมกับ GLM framework ได้ (random component=Bernoulli/Binomial, link=logit), อ่าน <code>summary(glm(family=binomial))</code> ได้ครบทุกบรรทัดพร้อมรู้ว่าต่างจาก <code>lm()</code> ตรงไหน (z value แทน t value, deviance แทน SSE, ไม่มี R²), เช็ค goodness-of-fit ด้วย Hosmer-Lemeshow และเลือกโมเดลด้วย AIC/BIC/LRT ได้, และที่สำคัญที่สุด — <strong>แปลผลสัมประสิทธิ์เป็น log-odds, odds ratio, และ probability ได้ถูกต้องครบทั้ง 3 แบบ พร้อมระบุว่าตัวแปรอื่นคงที่เสมอ</strong> — ทักษะทั้งหมดนี้จะขยายผลต่อใน Lecture 10 (Binomial Counts) ที่ n_i ไม่ใช่แค่ 1 อีกต่อไป
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (58 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture9.pdf</code> ตั้งแต่หน้า 1 ถึง 58 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/ภาพประกอบตกแต่ง/บทความอ้างอิงภายนอกที่ไม่มีเนื้อหาทฤษฎีใหม่ให้ทำ quiz เพิ่ม</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 9: Binary Data"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Binary Data — นิยาม Y_i~Bernoulli(π_i), mean/variance</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Case Study 1 Donner Party — เรื่องราว + ตารางรายชื่อ 45 คน</td><td>✓ หัวข้อ 3 (สรุปตัวเลขในเนื้อหา ไม่ใส่ภาพตารางรายชื่อเต็ม)</td></tr>
+<tr><td>4</td><td>Case Study 1 Donner Party — แผนที่เส้นทาง Springfield→California (Google Maps)</td><td>etc — ภาพประกอบเส้นทางเดินทาง ไม่มีเนื้อหาสถิติ</td></tr>
+<tr><td>5</td><td>Fitting Regression with Binomial Responses — ปัญหาของ linear regression + scatter</td><td>✓ หัวข้อ 1 (มีรูป)</td></tr>
+<tr><td>6</td><td>Logistic Regression Model — ที่มาจาก log-likelihood, logit link ปรากฏขึ้นเอง</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>7</td><td>Logit Link Function — นิยาม g(π)=logit(π), สมการโมเดล, logistic function</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>8</td><td>Logistic Function — เส้นโค้งรูปตัว S (Ramsey&amp;Schafer)</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>9</td><td>Logistic Regression Models in R — glm() syntax</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>10</td><td>Case Study 1 Donner Party — โหลดข้อมูล R (Sleuth3::case2001)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>11</td><td>Case Study 1 Donner Party — scatter Survived vs Age, bar vs Sex</td><td>✓ หัวข้อ 3 (มีรูป)</td></tr>
+<tr><td>12</td><td>Case Study 1 Donner Party — glm() + summary() output เต็ม</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>13</td><td>Case Study 1 Donner Party — coef(), fitted equation</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>14</td><td>Interpreting Parameters — นิยาม odds ω, ตัวอย่าง π̂=0.742</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>15</td><td>Interpreting Parameters (cont) — กฎแปลผล β เป็น odds ratio</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>16</td><td>Case Study 1 Donner Party — ประยุกต์ odds ratio (age, sex)</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>17</td><td>Case Study 2 Birdkeeping and Lung Cancer — เรื่องราว retrospective study</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>18</td><td>Case Study 2 Birdkeeping — ตารางโครงสร้างข้อมูล</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>19</td><td>Case Study 2 Birdkeeping — โหลดข้อมูล R (Sleuth3::case2002)</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>20</td><td>Case Study 2 Birdkeeping — glm(modelbd) + summary() output เต็ม</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>21</td><td>Prospective and Retrospective Studies — นิยาม + ตัวอย่าง</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>22</td><td>Prospective and Retrospective Studies (cont) — ผลต่อ intercept</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>23</td><td>บทความอ้างอิงภายนอก — Pet ownership and lung cancer risk (Environmental Research 2019)</td><td>etc — บทความอ้างอิงประกอบ ไม่ใช่เนื้อหาสไลด์หลัก</td></tr>
+<tr><td>24</td><td>Graphical Check of the Logistic Regression Model — sample logit, Haldane's adjustment</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>25</td><td>Case Study 3 Diabetes Survey on Pima Indians — เรื่องราว + ตัวแปร</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>26</td><td>บทความอ้างอิงภายนอก — Multiple pregnancies and diabetes risk (Menopause 2019)</td><td>etc — บทความอ้างอิงประกอบ ไม่ใช่เนื้อหาสไลด์หลัก</td></tr>
+<tr><td>27</td><td>Example Diabetes Survey — โหลดข้อมูล R (faraway::pima)</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>28</td><td>Example Diabetes Survey — logitplot() function + 4-panel plot</td><td>✓ หัวข้อ 6 (มีรูป)</td></tr>
+<tr><td>29</td><td>Inference for Logistic Regression — ภาพรวม MLE, Fisher scoring</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>30</td><td>Goodness-of-fit Test — นิยาม H₀/H₁</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>31</td><td>Hosmer-Lemeshow Test — สูตรสถิติทดสอบ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>32</td><td>Hosmer-Lemeshow Test — ตัวอย่าง R (hosmerlem function + output)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>33</td><td>Pseudo R² — ที่มาและข้อจำกัด</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>34</td><td>R² (Nagelkerke) — สูตร + ตัวอย่าง Donner Party</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>35</td><td>Hypothesis testing β_k — Wald's Test</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>36</td><td>Hypothesis testing β_k — Likelihood Ratio Test (LRT)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>37</td><td>LRT (cont) — เชื่อมกับ deviance ที่ software รายงาน</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>38</td><td>Example Diabetes Survey — Wald's test, glm(fmod) summary() เต็ม</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>39</td><td>Example Diabetes Survey — LRT ทดสอบ age (update, pchisq)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>40</td><td>Comparing Nested Models — full vs reduced, ตัวอย่าง diastolic+diabetes</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>41</td><td>Strategies in Model Selection — Forward/Backward Stepwise</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>42</td><td>Strategies in Model Selection (cont) — categorical predictors, backward นิยม</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>43</td><td>Selection Criteria — สูตร AIC, BIC</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>44</td><td>Example Diabetes Survey — step() ด้วย AIC และ BIC เทียบกัน</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>45</td><td>Logistic Regression Diagnostic — Cook's Distance + plot</td><td>✓ หัวข้อ 9 (มีรูป)</td></tr>
+<tr><td>46</td><td>Use of Logistic Regression in Prediction — η̂, π̂, cutoff 0.5</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>47</td><td>Interval Estimation for Prediction — สูตร CI ของ η และ π</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>48</td><td>Case Study 2 Birdkeeping — predict() newX, point estimate</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>49</td><td>Case Study 2 Birdkeeping — interval estimation output เต็ม</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>50</td><td>Measuring Accuracy in Binary Classification — Confusion Matrix diagram</td><td>✓ หัวข้อ 11 (มีรูป)</td></tr>
+<tr><td>51</td><td>Creating a Confusion Matrix — R code + xtab output (Pima)</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>52</td><td>Evaluation Metrics — สูตร Precision, Recall, Specificity, F1</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>53</td><td>caret::confusionMatrix() — output เต็ม (Accuracy, Sensitivity ฯลฯ)</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>54</td><td>Compute Evaluation Metrics — Metrics package (recall, precision, f1)</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>55</td><td>Receiver Operating Characteristic (ROC Curve) — นิยาม, AUC</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>56</td><td>ROC Curve in R — roc() function output (AUC=0.8316)</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>57</td><td>ROC Curve in R — ภาพกราฟ</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+<tr><td>58</td><td>Best cutoff from ROC Curve — Youden's Index J diagram</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0008-exponential-family-and-glms.html">← Lesson 8: Exponential Family and GLMs</a></span>
+  <span><a href="0010-binomial-counts.html">Lesson 10: Binomial Counts →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

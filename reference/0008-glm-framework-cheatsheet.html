@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: GLM Framework Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 8</span>
+  <span><a href="../lessons/0008-exponential-family-and-glms.html">← Lesson 8: Exponential Family and GLMs</a></span>
+</nav>
+
+<p class="kicker">Lecture 8 — Exponential Family and Generalized Linear Models</p>
+<h1>Exponential Family + GLM Framework Cheat Sheet</h1>
+
+<p>สรุปกรอบทฤษฎีที่ Lecture 9–14 ทั้งหมดตั้งอยู่บน — รูปทั่วไปของ exponential family, 3 องค์ประกอบของ GLM, ตาราง canonical link, และวิธี inference — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. Exponential Family Distribution — รูปทั่วไป</h2>
+<div class="box source">
+\(f(y; \theta, \phi) = \exp\left\{ \frac{y\theta - b(\theta)}{a(\phi)} + c(y,\phi) \right\}\)
+<p>\(\theta\) = canonical parameter (location, ผูกกับ mean) &nbsp;|&nbsp; \(\phi\) = dispersion parameter (scale) &nbsp;|&nbsp; \(a(\cdot), b(\cdot), c(\cdot)\) = ฟังก์ชันที่รู้รูปแบบแน่นอนแล้ว (ไม่ใช่พารามิเตอร์ที่ต้องประมาณ) &nbsp;|&nbsp; มักเขียน \(a(\phi)=\phi/w\)</p>
+</div>
+<div class="box win">
+\(\mu \equiv E[Y] = b'(\theta)\), &nbsp;\(\text{Var}[Y] = b''(\theta)\cdot a(\phi)\), &nbsp;<em class="term">variance function</em> \(V(\mu) \equiv b''(\theta)\) ⟹ \(\text{Var}[Y] = a(\phi)\cdot V(\mu)\)
+<p>ใช้ 2 สูตรนี้ตรวจว่าจัดรูป EFD ถูกหรือไม่ได้เสมอ (ไม่ต้องหา E[Y] จาก definition ตรง ๆ)</p>
+</div>
+
+<h2>2. 3 องค์ประกอบของ GLM (ท่องให้ขึ้นใจ)</h2>
+<div class="box win">
+<p><strong>1) Random component:</strong> \(y_i \mid x_{i1},\ldots,x_{ip} \sim \text{ind. EFD}(\theta_i, \phi)\) — response แจกแจงแบบใดแบบหนึ่งใน exponential family, แต่ละ observation อิสระต่อกัน</p>
+<p><strong>2) Systematic component:</strong> \(\eta_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} = x_i\beta\) — linear predictor เหมือน classical linear model ทุกประการ</p>
+<p><strong>3) Link function:</strong> \(g(\mu_i) = \eta_i\) — เชื่อม mean ของ response (μ_i) เข้ากับ linear predictor (η_i)</p>
+</div>
+<p><em class="term">Canonical link</em>: link function g(·) ที่ทำให้ \(\eta_i = g(\mu_i) = \theta_i\) พอดี — คือฟังก์ชันผกผันของ b'(·) — R ใช้เป็น default เสมอถ้าไม่ระบุ link เอง (ไม่ใช่ทางเลือกเดียวที่ใช้ได้ แต่สวยที่สุดทางคณิตศาสตร์)</p>
+
+<h2>3. Template: เขียนสมการ GLM ให้ครบ (ต้องมี 3 บรรทัด)</h2>
+<div class="box win">
+<p>1) \(y_i \mid x_{i1},\ldots,x_{ip} \sim \text{ind.}\) [distribution](พารามิเตอร์) — เลือกจาก range ของ y (ดูตารางข้อ 4)</p>
+<p>2) \(\eta_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip}\) — เหมือนเดิมทุกครั้งไม่ว่า distribution ใด</p>
+<p>3) \(g(\mu_i) = \eta_i\) พร้อมระบุรูปของ g(·) ชัดเจน (เช่น log(μ_i)=η_i, logit(μ_i)=η_i) — ไม่ระบุ link = สมการยังไม่สมบูรณ์</p>
+</div>
+
+<h2>4. ตาราง GLM ที่ใช้ Canonical Link (ใช้ซ้ำทุกบท 9–14)</h2>
+<table>
+<tr><th>Distribution</th><th>Range of y</th><th>\(\phi\)</th><th>Canonical Link</th><th>\(g(\mu)\)</th><th>\(V(\mu)\)</th></tr>
+<tr><td>\(\text{Normal}(\mu,\sigma^2)\)</td><td>\((-\infty,\infty)\)</td><td>\(\sigma^2\) (ประมาณ)</td><td>Identity</td><td>\(\mu\)</td><td>\(1\)</td></tr>
+<tr><td>\(\text{Poisson}(\lambda)\)</td><td>\(0,1,2,\ldots\)</td><td>\(1\) (คงที่)</td><td>Log</td><td>\(\log(\mu)\)</td><td>\(\mu\)</td></tr>
+<tr><td>\(\text{Binomial}(n,\pi)\)</td><td>\(0,1,\ldots,n\)</td><td>\(1\) (คงที่)</td><td>Logit</td><td>\(\log(\mu/(1-\mu))\)</td><td>\(\mu(1-\mu)\)</td></tr>
+<tr><td>\(\text{Gamma}(\nu,\mu/\nu)\)</td><td>\((0,\infty)\)</td><td>\(1/\nu\) (ประมาณ)</td><td>Inverse (reciprocal)</td><td>\(-1/\mu\) (หรือ \(1/\mu\))</td><td>\(\mu^2\)</td></tr>
+<tr><td>\(\text{Inverse Gaussian}(\mu,\lambda)\)</td><td>\((0,\infty)\)</td><td>\(1/\lambda\) (ประมาณ)</td><td>\(1/\mu^2\)</td><td>\(1/\mu^2\)</td><td>\(\mu^3\)</td></tr>
+</table>
+<p><strong>ข้อสังเกตสำคัญ:</strong> Normal V(μ)=1 คือที่มาของ assumption "constant variance" ใน Lecture 1–7 — distribution อื่นทุกตัว variance ขึ้นกับ mean โดยตรง ซึ่งเป็นเหตุผลที่ classical linear model ใช้ไม่ได้กับ response เหล่านี้</p>
+
+<h2>5. OLS คือ GLM แบบพิเศษ</h2>
+<div class="box win">
+<strong>OLS/classical linear regression = GLM ที่เลือก random component = Normal และ link function = identity (canonical link ของ Normal)</strong> — เมื่อ \(g(\mu_i)=\mu_i=\eta_i\) แทนกลับได้ \(E[y_i]=\beta_0+\beta_1 x_{i1}+\cdots\) ซึ่งคือ linearity assumption ของ Lecture 1 ทุกตัวอักษร ไม่ใช่โมเดลคนละตระกูล
+</div>
+
+<h2>6. Fitting: MLE, Newton-Raphson ≡ IRWLS</h2>
+<p>β ประมาณด้วย <em class="term">maximum likelihood</em> — Gaussian GLM (=OLS) มี closed-form; distribution อื่นทั้งหมดต้องใช้ numerical optimization</p>
+<div class="box">
+\(x^{(t+1)} = x^{(t)} - [g''(x^{(t)})]^{-1}g'(x^{(t)})\) (Newton-Raphson) &nbsp;≡&nbsp; Fisher scoring บน log-likelihood ของ GLM ≡ <em class="term">IRWLS</em>:
+<p>\(Z^{(k)} = \hat{\eta}^k + (Y-\hat{\mu}^{(k)})\left(\dfrac{d\eta}{d\mu}\right)_{(k)}\) (working response), &nbsp;\(W^k = \text{diag}\left\{\text{Var}^{-1}[Y_i]\left(\dfrac{d\mu}{d\eta}\right)^2_{(k)}\right\}\) (weight)</p>
+<p>\(\hat{\beta}^{(k+1)} = (X^TW^{(k)}X)^{-1}X^TW^{(k)}Z^{(k)}\) — เหมือน weighted least squares แต่ Z, W คำนวณใหม่ทุกรอบ (นี่คือที่มาของ "iteratively")</p>
+</div>
+
+<h2>7. Deviance และ Goodness-of-Fit</h2>
+<div class="box">
+\(D(\hat{\beta}) = 2\phi(l_F - l(\hat{\beta}))\), &nbsp;scaled deviance \(D(\hat{\beta})/\phi = 2(l_F - l(\hat{\beta})) \sim \text{exact } \chi^2\)
+<p>\(l_F\) = log-likelihood ของ saturated model (μ̃_i=y_i ทำนายเป๊ะทุกจุด, uninformative แต่เป็น baseline), \(l(\hat{\beta})\) = log-likelihood ของโมเดลที่สนใจ</p>
+</div>
+<p><strong>เส้นจำนวน likelihood:</strong> Worst fit (intercept only, l(β̂₀)) → Model analysed (l(β̂)) → Perfect fit (l_s, saturated) — ระยะจาก model ไป perfect fit = \(D\) (deviance); ระยะจาก worst fit ไป perfect fit ทั้งหมด = \(D_0\) (null deviance)</p>
+<div class="box win">
+\(H_0: g(\theta)=X\beta\) (โมเดลฟิตดี) vs \(H_1: g(\theta)\neq X\beta\) &nbsp;|&nbsp; test stat = deviance \(\sim \chi^2_{(n-p-1)}\) &nbsp;|&nbsp; <strong>ปฏิเสธ H₀ เมื่อ deviance สูง</strong> (ตรงข้าม R² — deviance ยิ่งสูงยิ่งแย่ อย่าจำสลับ)
+</div>
+
+<h2>8. ทดสอบ H₀: β_j=0 — Wald's Test vs LRT</h2>
+<table>
+<tr><th>วิธี</th><th>สูตร</th><th>ลักษณะ</th></tr>
+<tr><td>Wald's Test</td><td>\(z = \hat{\beta}_j/SE[\hat{\beta}_j] \sim \text{asymp. } N(0,1)\)</td><td>ง่าย, R ให้อัตโนมัติในตาราง Coefficients — แต่ประมาณความโค้งที่จุดเดียว</td></tr>
+<tr><td>Likelihood Ratio Test (LRT)</td><td>\(2(l_1-l_0) \sim \text{asymp. } \chi^2_1\)</td><td>ต้องรัน glm() สองครั้ง (full vs reduced) — แม่นยำกว่าโดยทั่วไป</td></tr>
+</table>
+
+<h2>9. Comparing Nested Models — Drop-in-Deviance Test</h2>
+<div class="box win">
+\(H_0: \beta_1=\cdots=\beta_k=0\) &nbsp;⟹&nbsp; \(D_0 - D_1 \sim \text{asymp. } \chi^2_k\) &nbsp;(D₀=deviance โมเดลเล็ก, D₁=deviance โมเดลใหญ่, k=จำนวนพารามิเตอร์ที่ตัดออก)
+</div>
+<pre><code>anova(model_reduced, model_full, test="Chisq")   # คำนวณ D0-D1 พร้อม p-value อัตโนมัติ</code></pre>
+
+<h2>10. Diagnostics for GLM</h2>
+<p>Hat matrix (ขยายจาก OLS ด้วย weight W): \(H = W^{1/2}X(X^TWX)^{-1}X^TW^{1/2}\) — h_ii สูง = ศักยภาพสูงที่จะดึงผลฟิต (ไม่ใช่ influential point เสมอไป) — ดึงด้วย <code>influence(model)$hat</code></p>
+<p>Influential points ใช้เครื่องมือชุดเดียวกับ linear model: <code>cooks.distance()</code>, <code>dffits()</code>, <code>dfbetas()</code>, <code>covratio()</code>, <code>influence.measures()</code></p>
+<p>เช็ค model adequacy: plot \(g(\hat{\mu})\) เทียบกับ \(\hat{\eta}\) — ควรเป็นเส้นตรง ถ้าโค้ง = link function หรือรูปแบบ linear predictor ไม่เหมาะสม</p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

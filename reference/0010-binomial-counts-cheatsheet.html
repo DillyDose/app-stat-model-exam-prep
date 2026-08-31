@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Binomial Counts Formulas + R Output Guide</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 10</span>
+  <span><a href="../lessons/0010-binomial-counts.html">← Lesson 10: Binomial Counts</a></span>
+</nav>
+
+<p class="kicker">Lecture 10 — Binomial Counts</p>
+<h1>Binomial Counts: <code>cbind()</code> Syntax + Overdispersion Cheat Sheet</h1>
+
+<p>สรุปความต่างระหว่าง binary (Lesson 9) กับ binomial-count logistic regression, syntax <code>cbind()</code>, และการเช็ค overdispersion — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. Binary vs Binomial Counts</h2>
+<div class="box source">
+\(Y \sim \text{Binomial}(n, \pi)\), &nbsp;\(\text{Mean}[Y]=n\pi\), &nbsp;\(\text{Var}[Y]=n\pi(1-\pi)\)
+<p>Binary (Lesson 9) = กรณีพิเศษเมื่อ \(n=1\) ทุกแถว &nbsp;|&nbsp; Binomial counts (บทนี้) = กรณีทั่วไปที่ n ต่างกันได้ในแต่ละแถว (แต่ละแถวคือ "จำนวนสำเร็จจาก n ครั้งลอง" ไม่ใช่คนคนเดียว)</p>
+</div>
+
+<h2>2. สิ่งที่เหมือน vs สิ่งที่ต่างจาก Binary Logistic (Lesson 9)</h2>
+<div class="box win">
+<p><strong>เหมือนเดิมทั้งหมด:</strong> ความหมายของสัมประสิทธิ์ β ยังคือ log-odds ของ π ที่เปลี่ยนไปต่อ 1 หน่วย X (ไม่ว่าจะมาจากข้อมูล n=1 หรือ n&gt;1) — ทฤษฎีเบื้องหลังและวิธีตีความไม่เปลี่ยนเลย</p>
+<p><strong>สิ่งที่เปลี่ยนจริง ๆ มีแค่ 2 อย่าง:</strong> (1) รูปแบบข้อมูล — ต้องมีทั้งจำนวนสำเร็จและจำนวนครั้งลองต่อแถว ไม่ใช่แค่ 0/1 ต่อแถว (2) syntax ใน R — ต้องระบุ response เป็นคู่ (สำเร็จ, ไม่สำเร็จ) แทนที่จะเป็น Y ตัวเดียว</p>
+</div>
+
+<h2>3. Syntax: <code>cbind()</code> แทน Y เดียว</h2>
+<table>
+<tr><th></th><th>Binary (n_i=1, Lesson 9)</th><th>Binomial Counts (n_i&gt;1, บทนี้)</th></tr>
+<tr><td>Response ใน formula</td><td>\(Y\) ตรง ๆ</td><td><code>cbind(Y, n−Y)</code> คือคู่ (สำเร็จ, ไม่สำเร็จ)</td></tr>
+<tr><td>ตัวอย่างโค้ด</td><td><code>glm(Survived~Age+Sex, family=binomial)</code></td><td><code>glm(cbind(damage,6-damage)~temp, family=binomial)</code></td></tr>
+<tr><td>ทางเลือกเทียบเท่า</td><td>—</td><td><code>glm(Y/n ~ x, weights=n, family=binomial)</code> ให้ β̂, SE เหมือนกันเป๊ะ</td></tr>
+</table>
+<p>ทั้ง <code>family=binomial</code> และ default link=logit เหมือนเดิมทุกประการ — เปลี่ยนแค่การระบุ response</p>
+
+<h2>4. Interpretation Template (เหมือน Lesson 9 ทุกประการ)</h2>
+<div class="box win">
+<p><strong>1. Log-odds:</strong> "เมื่อ X เพิ่มขึ้น 1 หน่วย log-odds ของความสำเร็จเปลี่ยนไป β̂ หน่วย (คุมตัวแปรอื่นคงที่)"</p>
+<p><strong>2. Odds ratio:</strong> "odds คูณด้วย \(e^{\hat{\beta}}\) ทุก 1 หน่วยที่ X เพิ่มขึ้น"</p>
+<p><strong>3. Probability:</strong> \(\hat{\pi} = e^{\hat{\eta}}/(1+e^{\hat{\eta}})\) ที่จุด X เฉพาะเจาะจง</p>
+</div>
+<div class="box">
+<div class="label">กฎพิเศษ: เมื่อตัวแปรอิสระเป็น log(X) — "k-fold rule"</div>
+\(\log(\omega) = \beta_0 + \beta_1 \log(X)\) ⟹ ถ้า X เพิ่มขึ้นเป็น <strong>k เท่า</strong> (kX) odds จะเปลี่ยนไปด้วยตัวคูณ \(k^{\beta_1}\) (ไม่ใช่ e^β₁ ต่อหน่วยแบบปกติ เพราะ X ไม่ได้เพิ่มทีละ 1 หน่วยแต่เพิ่มเป็นสัดส่วน)
+</div>
+
+<h2>5. CI ของ Prediction — ทำบน Link Scale ก่อนเสมอ</h2>
+<div class="box">
+\(\hat{\eta}(x) \pm z_{(1-\alpha/2)}\times SE[\hat{\eta}]\) → แปลงกลับ → \(\hat{\pi}(x)=e^{\hat{\eta}}/(1+e^{\hat{\eta}})\), ขอบเขต \((\hat{\pi}_l,\hat{\pi}_u)=(e^{\hat{\eta}_l}/(1+e^{\hat{\eta}_l}), e^{\hat{\eta}_u}/(1+e^{\hat{\eta}_u}))\)
+<p><strong>ห้าม</strong>สร้าง CI ของ π ตรง ๆ ด้วยสูตร normal — π ถูกจำกัดใน (0,1) การแจกแจงไม่สมมาตร ต้องสร้าง CI บน η (ที่ β̂ เป็น normal โดยประมาณ) แล้วค่อยแปลงกลับ</p>
+</div>
+<pre><code>plink <- predict(model, newdata=data.frame(x=x0), se.fit=T, type="link")
+CIeta <- c(plink$fit-1.96*plink$se.fit, plink$fit+1.96*plink$se.fit)
+CIprob <- exp(CIeta)/(1+exp(CIeta))</code></pre>
+
+<h2>6. Goodness-of-Fit และ Nested Model Tests</h2>
+<div class="box">
+<code>pchisq(deviance(model), df.residual(model), lower=FALSE)</code> ~ \(\chi^2(n-(p+1))\) เมื่อ n_i≥5 ทุกแถว — p สูง (&gt;0.05) → ไม่ปฏิเสธว่าโมเดล fit เพียงพอ (แต่ไม่ได้พิสูจน์ว่าถูกต้องหรือดีที่สุด)
+</div>
+<table>
+<tr><th>วิธี</th><th>สูตร</th><th>เมื่อไรใช้</th></tr>
+<tr><td>Wald's Test</td><td>\(z=\hat{\beta}_k/SE \sim N(0,1)\)</td><td>ทดสอบ β_k เดี่ยว — ง่าย ใน summary() อยู่แล้ว</td></tr>
+<tr><td>LRT / drop-in-deviance</td><td>\(D(\hat{\beta}_0)-D(\hat{\beta}) \sim \chi^2_{df}\)</td><td>ทดสอบเดี่ยวหรือหลายตัวพร้อมกัน — วิธีเดียวที่ใช้ได้จริงเมื่อทดสอบหลายตัว</td></tr>
+</table>
+<pre><code>anova(reducedmodel, model, test="LRT")   # LRT / drop-in-deviance test พร้อม p-value</code></pre>
+
+<h2>7. ★ Overdispersion — เช็ค Assumption สำคัญที่สุดของบทนี้ ★</h2>
+<div class="box win">
+\(\text{Overdispersion: } \text{Var}[Y_i] > n_i\pi_i(1-\pi_i)\) &nbsp;|&nbsp; \(\text{Underdispersion: } \text{Var}[Y_i] < n_i\pi_i(1-\pi_i)\)
+<p><strong>ผลกระทบ:</strong> β̂ ไม่เอนเอียงมากนัก แต่ <strong>SE[β̂] จากโมเดล binomial มาตรฐานจะเล็กกว่าความเป็นจริง</strong> → p-value เตี้ยเกินไป (ดูมีนัยสำคัญเกินจริง)</p>
+</div>
+<div class="box">
+\(\hat{\phi} = X^2/(n-(p+1))\) (Pearson's X² หารด้วย residual df) — <strong>φ&gt;1.5 บ่งชี้ overdispersion, φ≫2 บ่งชี้รุนแรง</strong>
+</div>
+<pre><code>est.phi <- function(glmobj) sum(residuals(glmobj, type="pearson")^2)/df.residual(glmobj)
+est.phi(model)</code></pre>
+<p>วิธีแก้: <em class="term">quasi-likelihood</em> — \(\text{Var}[Y_i]=\phi \cdot n_i\pi_i(1-\pi_i)\), เปลี่ยน <code>family=binomial</code> → <code>family=quasibinomial</code></p>
+<div class="box win">
+<p><strong>สิ่งที่เปลี่ยน:</strong> SE[β̂] ขยายขึ้นด้วยตัวคูณ \(\sqrt{\hat{\phi}}\), สถิติทดสอบเปลี่ยนจาก z เป็น \(t=\hat{\beta}/SE \sim t_{(n-(p+1))}\), p-value สูงขึ้น</p>
+<p><strong>สิ่งที่ไม่เปลี่ยน:</strong> β̂ เหมือนเดิมทุกประการ (φ ไม่กระทบ E[Y_i])</p>
+</div>
+<p>Nested model test ภายใต้ overdispersion — ใช้ F-test แทน χ²:</p>
+<div class="box">
+\(F = \dfrac{(\text{Deviance}_{reduced}-\text{Deviance}_{full})/(df_{reduced}-df_{full})}{\hat{\phi}_{full}} \sim F(df_{reduced}-df_{full},\, df_{full})\)
+</div>
+<pre><code>qmodel <- glm(cbind(y,n-y)~x, family=quasibinomial, data=data)
+anova(redqmodel, qmodel, test="F")</code></pre>
+
+<h2>8. Link Function อื่นนอกจาก Logit</h2>
+<table>
+<tr><th>Link</th><th>สูตร</th><th>ลักษณะ</th><th>R</th></tr>
+<tr><td>Logit (default)</td><td>\(\log(\pi/(1-\pi))=x\beta\)</td><td>สมมาตรรอบ π=0.5</td><td><code>family=binomial</code></td></tr>
+<tr><td>Probit</td><td>\(\Phi^{-1}(\pi)=x\beta\)</td><td>สมมาตร ใกล้เคียง logit มาก</td><td><code>family=binomial(link="probit")</code></td></tr>
+<tr><td>Complementary Log-Log</td><td>\(\log\{-\log(1-\pi)\}=x\beta\)</td><td><strong>ไม่สมมาตร</strong> — π เข้าใกล้ 0 ช้ากว่าเข้าใกล้ 1</td><td><code>family=binomial(link="cloglog")</code></td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

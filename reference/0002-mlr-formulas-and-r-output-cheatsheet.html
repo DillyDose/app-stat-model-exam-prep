@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: MLR Formulas + R Output Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 2</span>
+  <span><a href="../lessons/0002-multiple-linear-regression.html">← Lesson 2: Multiple Linear Regression</a></span>
+</nav>
+
+<p class="kicker">Lecture 2 — Multiple Linear Regression</p>
+<h1>MLR Formulas + Reading <code>summary(lm(...))</code> — Cheat Sheet</h1>
+
+<p>สรุปสูตร, dummy/interaction, และ template แปลผลแบบ "holding other variables constant" ที่ต้องใช้ซ้ำทุกครั้งที่ fit MLR — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. โมเดลและจำนวนพารามิเตอร์</h2>
+<div class="box source">
+\(Y_i = \beta_0 + \beta_1 X_{i1} + \beta_2 X_{i2} + \cdots + \beta_p X_{ip} + \varepsilon_i\), &nbsp;\(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\)
+<p>มีตัวแปรอิสระ p ตัว → พารามิเตอร์ β ทั้งหมด <strong>p+1</strong> ตัวเสมอ (นับ intercept รวมด้วย) — df ของการทดสอบ/CI จึงเป็น \(n-p-1\) (ไม่ใช่ \(n-2\) แบบ SLR)</p>
+</div>
+
+<h2>2. Template แปลผลสัมประสิทธิ์ — "Holding Other Variables Constant"</h2>
+<div class="box win">
+<p><strong>ไม่มี interaction (เช่น <code>Y~X1+X2</code>):</strong> "เมื่อ [X_j] เพิ่มขึ้น 1 หน่วย <strong>โดยคุม [ตัวแปรอื่นทั้งหมด] ให้คงที่</strong> [Y] คาดว่าจะเพิ่มขึ้น/ลดลงโดยเฉลี่ย [|β̂_j|] หน่วย" — ตัวเลขนี้ใช้ได้เหมือนกันทุกระดับของตัวแปรอื่น เพราะไม่มี interaction</p>
+<p><strong>มี interaction (เช่น <code>Y~X1*X2</code>, X2 เป็น dummy):</strong> slope ของ X1 <strong>ไม่คงที่</strong>ข้ามกลุ่มของ X2 อีกต่อไป — ต้องระบุกลุ่ม (baseline) กำกับเสมอ: "สำหรับกลุ่ม [baseline], เมื่อ X1 เพิ่มขึ้น 1 หน่วย Y คาดว่าจะเปลี่ยนโดยเฉลี่ย [β̂(X1)] หน่วย"</p>
+<p><strong>Interaction term เอง (β̂ ของ X1:X2):</strong> "ความชันของ X1 ที่มีต่อ Y ในกลุ่ม [ไม่ใช่ baseline] ต่างจากกลุ่ม [baseline] อยู่ [β̂(X1:X2)] หน่วย" — วัด "ความต่างของ slope" ไม่ใช่ effect ของตัวแปรใดตัวหนึ่งตรง ๆ</p>
+<p><strong>Intercept ของ dummy (β̂ ของ X2 เอง เมื่อไม่มี interaction):</strong> "ที่ระดับ X1 เดียวกัน กลุ่ม [ไม่ใช่ baseline] มี Y ต่ำ/สูงกว่ากลุ่ม [baseline] โดยเฉลี่ย [β̂(X2)] หน่วย — เท่ากันทุกระดับของ X1"</p>
+<p><strong>Intercept ของ dummy (เมื่อ<em>มี</em> interaction):</strong> ความต่างนี้เป็นเฉพาะที่ <strong>X1=0</strong> เท่านั้น ไม่ใช่ค่าเฉลี่ยตลอดช่วง เพราะช่องว่างระหว่างกลุ่มเปลี่ยนไปตาม X1</p>
+</div>
+
+<h2>3. Dummy Variable vs Interaction — ผลต่อเส้นถดถอย</h2>
+<table>
+<tr><th>รูปแบบโมเดล</th><th>Intercept ต่างกัน?</th><th>Slope ต่างกัน?</th><th>ภาพเส้น</th></tr>
+<tr><td><code>Y ~ X1 + X2(dummy)</code> — additive</td><td>ใช่ (ต่าง β̂₂)</td><td>ไม่ (เท่ากันเสมอ)</td><td>เส้นขนาน 2 เส้น</td></tr>
+<tr><td><code>Y ~ X1 * X2(dummy)</code> — interaction</td><td>ใช่ (ที่ X1=0)</td><td>ใช่ (ต่าง β̂(X1:X2))</td><td>เส้นตัดกัน/ไม่ขนาน</td></tr>
+</table>
+<p>k ระดับของตัวแปรเชิงกลุ่ม → ต้องใช้ dummy \((k-1)\) ตัว (กัน multicollinearity สมบูรณ์แบบกับ intercept) — R เลือก baseline โดยอัตโนมัติ (เรียงตามตัวอักษร) แล้วตั้งชื่อ dummy ว่า <code>[ชื่อตัวแปร][ชื่อระดับที่ไม่ใช่ baseline]</code> เช่น <code>InsulAfter</code></p>
+<p><strong>Marginality/hierarchy principle:</strong> ถ้ามีพจน์ interaction <code>X1:X2</code> ต้องมีพจน์เดี่ยว <code>X1</code> และ <code>X2</code> อยู่ในโมเดลเสมอ แม้พจน์เดี่ยวจะไม่มีนัยสำคัญก็ตาม (เขียน <code>X1*X2</code> ไม่ใช่ <code>X1:X2</code> เฉย ๆ)</p>
+
+<h2>4. Formula Notation ใน <code>lm()</code></h2>
+<table>
+<tr><th>Formula</th><th>ความหมาย</th></tr>
+<tr><td><code>y ~ x</code></td><td>regress y บน x ตัวเดียว</td></tr>
+<tr><td><code>y ~ .</code></td><td>regress y บนตัวแปรทุกตัวใน data frame (ไม่มี interaction)</td></tr>
+<tr><td><code>y ~ x1+x2</code></td><td>ใส่ x1, x2 (additive, ไม่มี interaction)</td></tr>
+<tr><td><code>y ~ x1-x2</code></td><td>ใส่ x1 แต่ตัด x2 ออก</td></tr>
+<tr><td><code>y ~ x1:x2</code></td><td>interaction ของ x1,x2 <strong>อย่างเดียว</strong> (ผิดกฎ marginality ถ้าใช้เดี่ยว ๆ)</td></tr>
+<tr><td><code>y ~ x1*x2</code></td><td>= <code>x1+x2+x1:x2</code> ครบทั้งพจน์เดี่ยวและ interaction (ถูกต้องตามกฎ)</td></tr>
+<tr><td><code>y ~ x^n</code></td><td>ทุกพจน์ของ x พร้อม interaction จนถึงลำดับ n</td></tr>
+<tr><td><code>y ~ I(Arg)</code></td><td><code>Arg</code> คือนิพจน์คณิตศาสตร์จริง เช่น <code>I(Age^2)</code></td></tr>
+<tr><td><code>subset=(cond)</code></td><td>argument ของ <code>lm()</code> — ฟิตเฉพาะแถวที่ตรงเงื่อนไข</td></tr>
+</table>
+
+<h2>5. Polynomial Model</h2>
+<div class="box">
+First-order: \(Y=\beta_0+\beta_1 x+\varepsilon\) &nbsp;| Second-order: \(Y=\beta_0+\beta_1 x+\beta_2 x^2+\varepsilon\) &nbsp;| Third-order: \(Y=\beta_0+\beta_1 x+\beta_2 x^2+\beta_3 x^3+\varepsilon\)
+<p>ยังนับเป็น "linear regression" เพราะ<strong>เชิงเส้นในพารามิเตอร์ β</strong> ไม่ใช่เชิงเส้นในรูปกราฟ — x² คือตัวแปรอิสระอีกตัวที่ transform มา</p>
+</div>
+<table>
+<tr><th>เครื่องหมาย β₁,β₂ (second-order)</th><th>รูปทรง</th></tr>
+<tr><td>β₁&lt;0, β₂&gt;0</td><td>ลดลงเร็วช่วงต้น แล้วแบนราบ (decreasing convex)</td></tr>
+<tr><td>β₁&gt;0, β₂&gt;0</td><td>เพิ่มขึ้นเร่งตัว (increasing convex)</td></tr>
+<tr><td>β₁&lt;0, β₂&lt;0</td><td>ลดลงเร่งตัว (decreasing concave)</td></tr>
+<tr><td>β₁&gt;0, β₂&lt;0</td><td>diminishing returns — เพิ่มเร็วตอนแรกแล้วชะลอ (increasing concave)</td></tr>
+</table>
+<p><strong>ห้ามตัด intercept หรือพจน์อันดับต่ำทิ้ง</strong> แม้ไม่มีนัยสำคัญ — X และ X² เป็นตัวแปรเดียวกัน ตัดพจน์ใดพจน์หนึ่งจะบิดรูปทรงเส้นโค้งทั้งเส้น</p>
+
+<h2>6. การทดสอบสัมประสิทธิ์รายตัว และ Extra-Sum-of-Squares F-test</h2>
+<div class="box">
+\(t = \dfrac{\hat{\beta}_j-\beta_j}{SE[\hat{\beta}_j]} \sim t(n-p-1)\), &nbsp;\(CI: \hat{\beta}_j \pm t(1-\alpha/2,n-p-1)\times SE[\hat{\beta}_j]\)
+</div>
+<p>ทดสอบ<strong>กลุ่มตัวแปร</strong>พร้อมกัน (full vs reduced model):</p>
+<div class="box win">
+\[ESS = SSE_{reduced} - SSE_{full}\]<br>
+\(F = \dfrac{ESS/q}{SSE_{full}/(n-p_{full}-1)} \sim F(q, n-p_{full}-1)\), q = จำนวนสัมประสิทธิ์ที่ตัดออกพร้อมกัน<br>
+R: <code>anova(reduced_model, full_model)</code> — argument แรก="Model 1"(reduced), argument ที่สอง="Model 2"(full) ในตาราง ไม่ใช่ชื่อตัวแปร R
+</div>
+<p><code>anova(model)</code> ตัวเดียว (ไม่เทียบสองโมเดล) ให้ <strong>sequential/Type I SS</strong> — ตัวเลขแต่ละแถวขึ้นกับ<strong>ลำดับ</strong>ที่ตัวแปรถูกใส่เข้าไปใน formula (สลับลำดับ Sum Sq เปลี่ยน แต่ F ภาพรวม/R² ไม่เปลี่ยน)</p>
+
+<h2>7. R² และ Adjusted R²</h2>
+<div class="box">
+\(SST=SSE+SSR\), &nbsp;\(R^2=SSR/SST\)<br>
+\[\text{Adjusted } R^2 = 1 - \dfrac{SSE/(n-(p+1))}{SST/(n-1)}\]
+</div>
+<p><strong>R² เพิ่มขึ้นเสมอ (หรือเท่าเดิม)</strong> เมื่อใส่ตัวแปรเพิ่ม ไม่ว่าจะมีความหมายจริงหรือไม่ — Adjusted R² ลงโทษการเพิ่มตัวแปร ใช้เปรียบเทียบโมเดลที่มี p ต่างกันได้แฟร์กว่า แต่<strong>ไม่มีการตีความตรงไปตรงมาแบบ R²</strong> (ใช้เปรียบเทียบเท่านั้น)</p>
+
+<h2>8. F-test ภาพรวมและ ANOVA Table</h2>
+<div class="box">
+\(H_0: \beta_1=\cdots=\beta_p=0\) vs \(H_1\): อย่างน้อยหนึ่ง β_j≠0
+</div>
+<table>
+<tr><th>Source</th><th>df</th><th>Sum Sq</th><th>Mean Sq</th><th>F</th></tr>
+<tr><td>Regression</td><td>p</td><td>SSR</td><td>MSR=SSR/p</td><td>F=MSR/MSE</td></tr>
+<tr><td>Error</td><td>n−p−1</td><td>SSE</td><td>MSE=SSE/(n−p−1)</td><td></td></tr>
+<tr><td>Total</td><td>n−1</td><td colspan="3"></td></tr>
+</table>
+
+<h2>9. Prediction และ Hidden Extrapolation (MLR เท่านั้น)</h2>
+<div class="box win">
+<p>ค่า X₀=(X₀₁,…,X₀_p) อาจอยู่<strong>ในช่วงข้อมูลจริงของแต่ละตัวแปรแยกกัน</strong> แต่ยังเป็น extrapolation ได้ ถ้าไม่เคยมีข้อมูลจุดไหนที่ตัวแปรเหล่านั้นมีค่า<strong>คู่กัน</strong>แบบนั้นมาก่อน — ต้องเช็ค<strong>ขอบเขตร่วม (joint scope)</strong> ของทุกตัวแปรพร้อมกัน ไม่ใช่แค่ทีละตัว</p>
+</div>
+
+<h2>10. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit MLR</td><td><code>model &lt;- lm(y ~ x1+x2, data=data)</code></td></tr>
+<tr><td>ฟิตเฉพาะบางแถว</td><td><code>lm(y~x, data=d, subset=(group=="A"))</code></td></tr>
+<tr><td>ผลวิเคราะห์เต็ม</td><td><code>summary(model)</code></td></tr>
+<tr><td>ANOVA (sequential SS)</td><td><code>anova(model)</code></td></tr>
+<tr><td>Extra-sum-of-squares F-test</td><td><code>anova(reduced, full)</code></td></tr>
+<tr><td>CI ของ β</td><td><code>confint(model, level=0.95)</code></td></tr>
+<tr><td>ทำนายค่าใหม่</td><td><code>predict(model, newdata, interval="confidence"|"prediction")</code></td></tr>
+<tr><td>Scatter plot matrix</td><td><code>plot(dataframe)</code></td></tr>
+<tr><td>Coded scatter (2 กลุ่ม)</td><td><code>plot(...); points(..., col="red", pch=16)</code></td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

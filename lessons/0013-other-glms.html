@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 13: Other GLMs — Gamma และ Inverse Gaussian สำหรับข้อมูลต่อเนื่องเบ้ขวา</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0012-multinomial-data.html">← Lesson 12: Multinomial Data</a></span>
+  <span>Lesson 13 / 14 · Other GLMs</span>
+  <span><a href="../reference/0013-other-glms-cheatsheet.html">Reference: Gamma/IG GLM cheat sheet →</a></span>
+</nav>
+
+<p class="kicker">Lecture 13 — Other GLMs</p>
+<h1>Other GLMs: Gamma และ Inverse Gaussian สำหรับข้อมูลต่อเนื่องเบ้ขวา</h1>
+
+<p>Lecture 8 วางกรอบ GLM ทั่วไปไว้แล้ว (exponential family, link function, canonical link, deviance) และ Binomial/Poisson เป็น GLM ที่ใช้บ่อยที่สุดสำหรับข้อมูลนับ/สัดส่วน บทนี้ขยายไปยัง 2 family ที่ใช้น้อยกว่าแต่สำคัญมากสำหรับ<strong>ข้อมูลต่อเนื่อง เป็นบวกเสมอ และเบ้ขวา</strong> (เช่น เวลาถึงจุดเสียหาย, ค่าใช้จ่ายเคลมประกัน, ความต้านทานไฟฟ้า) — <em class="term">Gamma GLM</em> และ <em class="term">Inverse Gaussian GLM</em>. ตามลำดับความสำคัญของวิชานี้ บทเรียนนี้เน้น 3 อย่าง: <strong>เขียนสมการโมเดลของแต่ละ family ให้ถูก</strong> (พร้อม link function ที่เหมาะสม), <strong>เช็คได้ว่าโมเดลไหน/link ไหนดีกว่ากัน</strong> จาก deviance และ AIC ใน R output จริง, และ<strong>แปลผลสัมประสิทธิ์</strong> ด้วย \(\exp(\hat\beta)\) เมื่อใช้ log link — เหมือนหลักการเดียวกับ Poisson regression ที่เคยเรียนมา</p>
+
+<h2>1. ทำไมต้องมี GLM แบบอื่นนอกจาก Normal/Poisson/Binomial</h2>
+<p>สไลด์เปิดเรื่องตรง ๆ: Binomial, Gaussian, และ Poisson เป็น GLM ที่ใช้บ่อยที่สุด ส่วน <strong>gamma และ inverse Gaussian</strong> เป็น GLM ที่ใช้น้อยกว่า และถูกออกแบบมาสำหรับ<strong>ข้อมูลต่อเนื่องที่เบ้ (skewed)</strong> โดยเฉพาะ — นี่คือจุดต่างสำคัญจาก normal linear regression ที่สมมติ error แจกแจงแบบสมมาตร (normal) รอบเส้นถดถอย</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Motivation</span></div>
+  <div class="qtext">ข้อมูลชุดหนึ่งเป็นค่าใช้จ่ายในการซ่อมเครื่องจักร (บาท) ซึ่งเป็นบวกเสมอและมีการกระจายเบ้ขวาอย่างชัดเจน (ส่วนใหญ่ค่าซ่อมน้อย มีบางเครื่องซ่อมแพงมาก) เหตุผลใดอธิบายได้ดีที่สุดว่าทำไม normal linear regression ไม่เหมาะกับข้อมูลนี้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Normal linear regression ทำนายได้แค่ค่าเฉลี่ย ไม่สามารถทำนายค่าที่สูงผิดปกติได้เลย</button>
+  <button class="opt" data-correct="true">Error ของ normal linear regression สมมติว่าแจกแจงแบบสมมาตรรอบเส้นถดถอยและมี variance คงที่ ซึ่งขัดกับข้อมูลเบ้ขวาที่ variance มักโตขึ้นตามค่าเฉลี่ย</button>
+  <button class="opt" data-correct="false">Gamma GLM ให้ \(R^2\) สูงกว่า normal linear regression เสมอเมื่อข้อมูลเป็นบวก</button>
+  <button class="opt" data-correct="false">Normal linear regressionใช้กับข้อมูลที่มีค่ามากกว่า 0 ไม่ได้เลยในทุกกรณี</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. ที่มาของ Gamma GLM: ปัญหา Variance ไม่คงที่แบบ Quadratic</h2>
+<p>Normal linear regression เขียนเป็น \(Y = X\beta + \varepsilon\), \(\varepsilon \sim N(0, \sigma^2 I)\) ซึ่งสมมติ \(\text{Var}(Y_i) = \sigma^2\) คงที่ทุกจุด (variance function \(\text{Var}(\mu_i) = \phi\)) สไลด์ตั้งคำถาม: ถ้าสมมตินี้ผิด และ variance กลับเป็น<strong>รูปกำลังสองของค่าเฉลี่ย</strong> คือ \(\text{Var}(Y_i) = \sigma^2\mu_i^2\) (variance function \(\text{Var}(\mu_i) = \phi\mu_i^2\)) จะแก้ปัญหานี้อย่างไร?</p>
+<p>คำตอบที่สไลด์เสนอ: <strong>แปลง log ตัวแปรตอบสนอง</strong> (log-normal model) พิสูจน์ด้วย Taylor expansion อันดับ 1 ของ \(Z_i = \log(Y_i)\) รอบ \(\mu_i\):</p>
+<div class="box">
+\(Z_i = \log(Y_i) \approx \log(\mu_i) + \dfrac{1}{\mu_i}(Y_i - \mu_i)\)<br>
+\(\implies\) \(E[Z_i] \approx \log(\mu_i)\)<br>
+และเมื่อคำนวณ \(E[Z_i^2]\) ต่อด้วยสูตรเดียวกัน จะได้ \(\text{Var}(Z_i) \approx \sigma^2\) (ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป!)
+</div>
+<p>อ่านผลลัพธ์นี้ให้ทะลุ: <strong>ก่อน</strong> แปลง log, variance ของ \(Y_i\) คือ \(\sigma^2\mu_i^2\) — โตขึ้นเรื่อย ๆ ตามค่าเฉลี่ย (สังเกตข้อมูล mean สูงจะกระจายกว้างกว่าข้อมูล mean ต่ำ) <strong>หลัง</strong> แปลง log, variance ของ \(Z_i = \log(Y_i)\) กลายเป็น \(\sigma^2\) คงที่แล้ว ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป — นี่คือความหมายของคำว่า "log transformation stabilizes the variance" พอดี ถ้า variance รูปแบบ quadratic เกิดขึ้นจริง การ log ตัวแปรตอบสนองก่อน fit normal linear regression จะทำให้ constant-variance assumption กลับมาใช้ได้</p>
+<p>แต่สไลด์ก็ระบุทางเลือกที่สอง: <strong>ถ้าอยากทำงานบนสเกลเดิมของ Y</strong> (ไม่อยาก log ก่อน แล้วต้อง back-transform ทีหลัง) <strong>gamma regression คือทางแก้อีกทาง</strong> — เพราะ gamma distribution มี variance function เป็นรูปกำลังสองของ \(\mu\) โดยธรรมชาติอยู่แล้ว (จะเห็นในหัวข้อถัดไป) จึงจับ pattern \(\text{Var}(Y_i) \propto \mu_i^2\) ได้ตรง ๆ โดยไม่ต้องแปลงตัวแปรก่อน</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>Variance Stabilizing Transformation</span></div>
+  <div class="qtext">อธิบายด้วยคำพูดของตัวเองว่าทำไม \(\text{Var}(Y_i) = \sigma^2\mu_i^2\) (variance โตตามค่าเฉลี่ยแบบกำลังสอง) ถึงทำให้การ log-transform ตัวแปรตอบสนองได้ผลลัพธ์ที่มี variance คงที่ (\(\text{Var}(Z_i) \approx \sigma^2\)) และมีทางเลือกอื่นที่ไม่ต้อง log หรือไม่</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">Taylor expansion ของ \(\log(Y_i)\) รอบ \(\mu_i\) ให้ \(Z_i \approx \log(\mu_i) + \dfrac{Y_i-\mu_i}{\mu_i}\) — สังเกตว่าพจน์ที่มีความสุ่ม \(\dfrac{Y_i-\mu_i}{\mu_i}\) ถูก<strong>หารด้วย \(\mu_i\)</strong> ก่อน ซึ่งพอดีกับที่ \(Y_i - \mu_i\) มี SD เป็น \(\sigma\mu_i\) (เพราะ \(\text{Var}(Y_i)=\sigma^2\mu_i^2\)) — หารด้วย \(\mu_i\) แล้ว SD ที่เหลือกลายเป็น \(\sigma\) คงที่พอดี ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป นี่คือกลไกที่ log ทำให้ variance เสถียร ทางเลือกอื่นที่ไม่ต้อง log (ทำงานบนสเกลเดิมของ Y โดยตรง) คือใช้ gamma GLM ซึ่งมี variance function เป็น \(\mu^2\) อยู่แล้วในตัว</div>
+</div>
+
+<h2>3. Gamma Distribution และ GLM Setup</h2>
+<p>Gamma density เขียนทั่วไปเป็น \(f(y) = \dfrac{1}{\Gamma(\nu)} \lambda^\nu y^{\nu-1} e^{-\lambda y}\), \(y > 0\) โดย \(\nu\) คือ shape parameter และ \(\lambda\) คือ scale parameter สไลด์ reparameterize โดยแทน \(\lambda = \dfrac{\nu}{\mu}\) เพื่อให้อยู่ในรูป GLM:</p>
+<div class="box">
+\(f(y) = \dfrac{1}{\Gamma(\nu)} \left(\dfrac{\nu}{\mu}\right)^\nu y^{\nu-1} \exp\!\left(-\dfrac{y\nu}{\mu}\right)\), &nbsp;\(y > 0\)<br>
+\(\implies\) \(E[Y] = \mu\), &nbsp;\(\text{Var}(Y_i) = \dfrac{\mu^2}{\nu}\)<br>
+\(\implies\) canonical parameter \(\theta = -\dfrac{1}{\mu}\), dispersion \(\phi = \nu^{-1}\), \(a(\phi) = \phi\), \(b(\theta) = \log(1/\mu) = -\log(-\theta)\), variance function \(b''(\theta) = \mu^2\)
+</div>
+<p>อ่านความหมาย: \(\text{Var}(Y_i) = \dfrac{\mu_i^2}{\nu}\) คือรูป \(\text{Var}(Y_i) \propto \mu_i^2\) ที่หัวข้อ 2 พูดถึงพอดี — \(\nu\) ทำหน้าที่เหมือน "ตัวหารความแปรปรวน" ตัวเดียวกันทุกจุดข้อมูล (จึงเป็น dispersion parameter \(\phi=\nu^{-1}\) ไม่ขึ้นกับ X) ในขณะที่ตัวแปรผันตามค่าเฉลี่ยจริง ๆ คือ \(\mu^2\)</p>
+<p>Canonical parameter \(\theta=-1/\mu\) บอกว่า canonical link คือ \(\eta=-1/\mu\) แต่ในทางปฏิบัติมักตัดเครื่องหมายลบทิ้งแล้วใช้ \(\eta=1/\mu\) (inverse link) แทน</p>
+
+<h3>3 ทางเลือกของ Link Function สำหรับ Gamma GLM</h3>
+<p>สไลด์ให้เหตุผลการเลือก link แต่ละแบบไว้ชัดเจน ไม่ใช่แค่รายชื่อสูตร:</p>
+<table>
+<tr><th>Link</th><th>สูตร</th><th>เมื่อไรควรใช้ (ตามที่สไลด์ระบุ)</th></tr>
+<tr><td>Canonical (inverse)</td><td>\(\eta = \dfrac{1}{\mu}\)</td><td>ไม่การันตีว่า \(\mu > 0\) (อาจมีปัญหา) — เหมาะเมื่อรู้อยู่แล้วว่า mean response มีขอบเขต (bounded)</td></tr>
+<tr><td>Log</td><td>\(\eta = \log(\mu)\)</td><td>ควรใช้เมื่อสงสัยว่าผลของตัวแปรอิสระเป็นแบบ <strong>คูณ (multiplicative)</strong> กับค่าเฉลี่ย — เมื่อ variance เล็ก จะให้ผลใกล้เคียงกับ Gaussian model ที่ log ตัวแปรตอบสนองแล้ว</td></tr>
+<tr><td>Linear</td><td>\(\eta = \mu\)</td><td>เหมาะกับการโมเดล sum of squares หรือ variance component ที่เป็น \(\chi^2\) (กรณีพิเศษของ gamma ที่ \(\lambda=1/2,\ \nu=df/2\))</td></tr>
+</table>
+<p>ในทางปฏิบัติ <strong>log link เป็นตัวที่ใช้บ่อยที่สุด</strong> เพราะทำให้แปลผลสัมประสิทธิ์ได้ง่ายแบบเดียวกับ Poisson regression: \(\log(\mu_i) = X_i\beta \implies \mu_i = \exp(\beta_0)\cdot\exp(\beta_1 x_{1i})\cdots\exp(\beta_p x_{pi})\) — ผลของแต่ละ X เป็นตัว<strong>คูณ</strong>เข้ากับค่าเฉลี่ย ไม่ใช่บวก จึงต้องแปลผลด้วย \(\exp(\hat\beta)\) เสมอ ไม่ใช่ \(\hat\beta\) ตรง ๆ</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>เลือก Link Function</span></div>
+  <div class="qtext">นักวิเคราะห์สงสัยว่าตัวแปรอิสระแต่ละตัวมีผล "คูณ" (เช่น เพิ่มค่าเฉลี่ยขึ้น 20% ต่อหน่วย ไม่ใช่บวกคงที่) กับค่าเฉลี่ยของ response ที่เป็น gamma ควรเลือก link function แบบใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Linear link เพราะแปลผลง่ายที่สุดเสมอไม่ว่าข้อมูลจะเป็นแบบใด</button>
+  <button class="opt" data-correct="true">Log link เพราะสไลด์ระบุว่าควรใช้เมื่อผลของตัวแปรอิสระถูกสงสัยว่าเป็น multiplicative บนค่าเฉลี่ย</button>
+  <button class="opt" data-correct="false">Canonical (inverse) link เพราะเป็น link มาตรฐานของ gamma เสมอ</button>
+  <button class="opt" data-correct="false">Link function ไม่มีผลต่อการแปลผลสัมประสิทธิ์เลย เลือกอันไหนก็ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. ตัวอย่างที่ 1: Manufacturing Process for Semiconductors</h2>
+<p>ข้อมูลจาก Myers &amp; Montgomery (1997): 4 ปัจจัย (<code>x1–x4</code>, แต่ละตัวมี 2 ระดับ − /+) ที่คาดว่าส่งผลต่อ resistivity ของ wafer จาก full factorial experiment — สังเกตค่าสรุปของ <code>resist</code>: Min 165.7, Median 214.2, Mean 229.3, Max 339.9 — <strong>Mean (229.3) สูงกว่า Median (214.2)</strong> ชัดเจน ซึ่งเป็นลายเซ็นของการแจกแจงเบ้ขวา (ค่าผิดปกติที่สูงมากดึง mean ขึ้นไปเกิน median) ตรงกับที่สไลด์บอกไว้ล่วงหน้าว่า "resistivity would have a skewed distribution":</p>
+<pre><code>> data(wafer)
+> summary(wafer)
+ x1    x2     x3    x4          resist
+ -:8   -:8    -:8   -:8     Min.   :165.7
+ +:8   +:8    +:8   +:8     1st Qu.:201.0
+                            Median :214.2
+                            Mean   :229.3
+                            3rd Qu.:259.3
+                            Max.   :339.9</code></pre>
+<p>ก่อนลอง gamma GLM สไลด์ fit normal linear regression บนสเกล <code>log(resist)</code> ก่อน (Box-Cox แนะนำ log transform) แล้วเลือกโมเดลด้วย AIC (<code>step()</code>):</p>
+<pre><code>> lmodel<-lm(log(resist)~.^2, data=wafer)
+> reducelmodel<-step(lmodel)
+> summary(reducelmodel)
+Call:
+lm(formula = log(resist) ~ x1 + x2 + x3 + x4 + x1:x3 + x2:x3 + x3:x4, data = wafer)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 5.31111     0.04762 111.525 4.67e-14 ***
+x1+           0.20088   0.04762   4.218 0.00292 **
+x2+         -0.21073    0.04762 -4.425 0.00221 **
+x3+           0.43718   0.06735   6.491 0.00019 ***
+x4+           0.03537   0.04762   0.743 0.47892
+x1+:x3+     -0.15621    0.06735 -2.319 0.04896 *
+x2+:x3+     -0.17824    0.06735 -2.647 0.02941 *
+x3+:x4+     -0.18303    0.06735 -2.718 0.02635 *
+---
+Residual standard error: 0.06735 on 8 degrees of freedom
+Multiple R-squared: 0.9471,     Adjusted R-squared: 0.9008
+F-statistic: 20.46 on 7 and 8 DF, p-value: 0.000165</code></pre>
+<p>จากนั้นสไลด์ fit <strong>gamma GLM ด้วย log link</strong> บน <code>resist</code> โดยตรง (ไม่ log ก่อน) เพื่อเปรียบเทียบ:</p>
+<pre><code>> gmodel<-glm(resist~.^2, data=wafer, family=Gamma(link=log))
+> reducegmodel<-step(gmodel)
+> summary(reducegmodel)
+Call:
+glm(formula = resist ~ x1 + x2 + x3 + x4 + x1:x3 + x2:x3 + x3:x4,
+    family = Gamma(link = log), data = wafer)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 5.31195     0.04757 111.677 4.62e-14 ***
+x1+           0.20029   0.04757   4.211 0.00295 **
+x2+         -0.21101    0.04757 -4.436 0.00218 **
+x3+           0.43674   0.06727   6.493 0.00019 ***
+x4+           0.03537   0.04757   0.744 0.47836
+x1+:x3+     -0.15549    0.06727 -2.312 0.04957 *
+x2+:x3+     -0.17626    0.06727 -2.620 0.03064 *
+x3+:x4+     -0.18195    0.06727 -2.705 0.02687 *
+---
+(Dispersion parameter for Gamma family taken to be 0.004524942)
+    Null deviance: 0.697837 on 15 degrees of freedom
+Residual deviance: 0.036266 on 8 degrees of freedom
+AIC: 139.2
+Number of Fisher Scoring iterations: 4</code></pre>
+<p>เทียบตัวเลขจริงระหว่างสองโมเดล: <code>x1+</code> ได้ 0.20088 ใน log-normal model กับ 0.20029 ใน gamma GLM — ต่างกันแค่ในทศนิยมตำแหน่งที่ 3 แทบไม่มีนัยสำคัญในทางปฏิบัติ และสไลด์ชี้จุดที่แม่นยำกว่านั้นอีก: \(\sqrt{\text{dispersion}} = \sqrt{0.004524942} = 0.06726769\) ตรงกับ <strong>Residual standard error ของ lm = 0.06735</strong> เกือบเป๊ะ — เพราะ \(\nu = 1/\phi = 1/0.004524942 \approx 221\) เป็นค่าที่<strong>ใหญ่มาก</strong> ทำให้ gamma distribution ถูกประมาณได้ดีด้วย normal distribution (gamma distribution เข้าใกล้ normal เมื่อ shape parameter \(\nu\) โตขึ้น) จึงแทบแยกกามาโมเดลกับ log-normal ไม่ออกในกรณีนี้ — ข้อได้เปรียบของ gamma GLM คือ<strong>โมเดลตัวแปรตอบสนองบนสเกลเดิมโดยตรง</strong> (ไม่ต้อง back-transform log กลับ) ในขณะที่ log-normal สะดวกตรงที่ยังเป็น linear model มาตรฐาน</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Gamma vs Log-Normal</span></div>
+  <div class="qtext">จากตัวอย่าง wafer เหตุใดสัมประสิทธิ์และ standard error ของ gamma GLM (log link) กับ log-normal linear model จึงใกล้เคียงกันมาก?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะค่า \(\nu\ (=1/\phi)\) ที่ประมาณได้มีค่าใหญ่มาก ทำให้ gamma distribution ถูกประมาณด้วย normal distribution ได้ดี จึงมีความแตกต่างเล็กน้อยระหว่างสองโมเดล</button>
+  <button class="opt" data-correct="false">เพราะ R บังคับให้ผลลัพธ์ของ glm(family=Gamma) เท่ากับ lm(log(y)~...) เสมอ</button>
+  <button class="opt" data-correct="false">เพราะ gamma GLM กับ log-normal model เป็นโมเดลเดียวกันทางคณิตศาสตร์เสมอ ไม่ว่าข้อมูลจะเป็นอย่างไร</button>
+  <button class="opt" data-correct="false">เพราะข้อมูลชุดนี้มีขนาดตัวอย่างมากพอจนทุกโมเดลลู่เข้าหากันเสมอ (central limit theorem)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. ตัวอย่างที่ 2: Payments on Insurance Claims — Offset + การแปลผล</h2>
+<p>ข้อมูล Hallin &amp; Ingenbleek (1983): ค่าสินไหมประกันรถยนต์ในสวีเดนปี 1977 แบ่งตามระยะทางที่ขับ (<code>Kilometres</code>), ระดับ bonus จากการไม่เคลม (<code>Bonus</code>), และประเภทรถ (<code>Make</code>) เนื่องจากยอดรวมค่าสินไหมของแต่ละกลุ่มควรเป็นสัดส่วนกับ<strong>จำนวนกรมธรรม์ (Insured, policy-years)</strong> ในกลุ่มนั้น สไลด์จึงใส่ <code>offset(log(Insured))</code> เข้าไปในโมเดล — หลักการเดียวกับที่ Poisson regression ใช้ offset เพื่อโมเดล<strong>อัตรา (rate)</strong> แทนยอดรวมดิบ ๆ:</p>
+<pre><code>> data(motorins)
+> motor1<-motorins[motorins$Zone==1,]
+> gmodel<-glm(Payment~offset(log(Insured))+as.numeric(Kilometres)+Make+Bonus,
++ data=motor1, family=Gamma(link=log))
+> summary(gmodel)
+Coefficients:
+                       Estimate Std. Error t value Pr(>|t|)
+(Intercept)             6.52731    0.17774 36.723 < 2e-16 ***
+as.numeric(Kilometres) 0.12007     0.03115   3.855 0.000143 ***
+Make2                   0.40704    0.17824   2.284 0.023128 *
+Make3                   0.15535    0.17955   0.865 0.387666
+Make4                  -0.34394    0.19150 -1.796 0.073546 .
+Make5                   0.14467    0.18097   0.799 0.424726
+Make6                  -0.34557    0.17824 -1.939 0.053515 .
+Make7                   0.06136    0.18244   0.336 0.736893
+Make8                   0.75038    0.18726   4.007 7.85e-05 ***
+Make9                   0.03197    0.17824   0.179 0.857783
+Bonus                  -0.20069    0.02150 -9.334 < 2e-16 ***
+---
+(Dispersion parameter for Gamma family taken to be 0.5559565)
+    Null deviance: 238.97 on 294 degrees of freedom
+Residual deviance: 155.06 on 284 degrees of freedom
+AIC: 7167.5</code></pre>
+<p>เพราะ <code>offset(log(Insured))</code> รวมกับ log link ทำให้ \(\log(\mu_i) = \log(\text{Insured}_i) + X_i\beta \implies \dfrac{\mu_i}{\text{Insured}_i} = \exp(X_i\beta)\) — โมเดลนี้จึงทำนาย<strong>ค่าสินไหมเฉลี่ยต่อกรมธรรม์หนึ่งหน่วย</strong> ไม่ใช่ยอดรวมดิบ ซึ่งสมเหตุสมผลกว่ามากเมื่อแต่ละกลุ่มมีขนาดต่างกัน</p>
+
+<div class="box win">
+<div class="label">แปลผลสัมประสิทธิ์ gamma GLM (log link) — เหมือน Poisson ทุกจุด</div>
+<p>เพราะ log link ทำให้ผลของ X เป็นตัวคูณ (multiplicative) จึงต้อง<strong>ยกกำลัง exp() ก่อนแปลผล</strong> เสมอ ไม่ใช่อ่าน \(\hat\beta\) ตรง ๆ แบบ linear regression:</p>
+<p>Bonus: \(\hat\beta = -0.20069 \implies \exp(-0.20069) = 0.8182\) — "เมื่อ Bonus เพิ่มขึ้น 1 ระดับ ค่าสินไหมเฉลี่ยต่อกรมธรรม์คาดว่าจะ<strong>ลดลง 18.18%</strong> โดยประมาณ (คูณด้วย 0.8182) เมื่อควบคุม Kilometres และ Make ให้คงที่ — อย่างมีนัยสำคัญทางสถิติ (p&lt;2e-16)"</p>
+<p>Make8: \(\hat\beta = 0.75038 \implies \exp(0.75038) = 2.1178\) — "รถประเภท Make8 มีค่าสินไหมเฉลี่ยต่อกรมธรรม์สูงกว่ารถประเภทฐาน (Make1) โดยประมาณ <strong>111.78%</strong> (หรือคูณด้วย 2.12 เท่า) เมื่อควบคุมตัวแปรอื่นให้คงที่"</p>
+<p><code>as.numeric(Kilometres)</code>: \(\hat\beta = 0.12007 \implies \exp(0.12007) = 1.1276\) — "เมื่อระดับระยะทางขับเพิ่มขึ้น 1 หน่วย ค่าสินไหมเฉลี่ยคาดว่าจะเพิ่มขึ้นโดยประมาณ 12.76% เมื่อควบคุมตัวแปรอื่น"</p>
+<p>สังเกตรูปแบบที่ใช้ซ้ำได้เสมอ: <strong>\(\hat\beta > 0 \implies \exp(\hat\beta) > 1 \implies\) ค่าเฉลี่ยเพิ่มขึ้น</strong>, <strong>\(\hat\beta < 0 \implies \exp(\hat\beta) < 1 \implies\) ค่าเฉลี่ยลดลง</strong> — เปอร์เซ็นต์การเปลี่ยนแปลงคือ \((\exp(\hat\beta) - 1) \times 100\%\)</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>แปลผล Coefficient แบบ Multiplicative</span></div>
+  <div class="qtext">จากโมเดลข้างต้น <code>Make4</code> มี \(\hat\beta = -0.34394\) จงเขียนประโยคแปลผลที่ถูกต้อง (พร้อมตัวเลขเปอร์เซ็นต์)</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">\(\exp(-0.34394) = 0.7090\) — "รถประเภท Make4 มีค่าสินไหมเฉลี่ยต่อกรมธรรม์ต่ำกว่ารถประเภทฐาน (Make1) โดยประมาณ \((1-0.7090)\times100\%\) = <strong>29.10%</strong> เมื่อควบคุม Kilometres และ Bonus ให้คงที่ (p=0.0735 ไม่ถึงนัยสำคัญที่ \(\alpha=0.05\) ต้องระมัดระวังในการสรุป)"</div>
+</div>
+
+<p>ต่อมาสไลด์ fit log-normal model (<code>gaussian</code> family บน <code>log(Payment)</code>) เพื่อเทียบ:</p>
+<pre><code>> lnmodel<-glm(log(Payment)~offset(log(Insured))+as.numeric(Kilometres)+Make+Bonus,
++ data=motor1,family=gaussian)
+> summary(lnmodel)
+Coefficients:
+                        Estimate Std. Error t value Pr(>|t|)
+(Intercept)             6.514035   0.186339 34.958 < 2e-16 ***
+as.numeric(Kilometres) 0.057132    0.032654   1.750 0.08126 .
+...
+Bonus                  -0.178061   0.022540 -7.900 6.17e-14 ***
+(Dispersion parameter for gaussian family taken to be 0.611019)
+    Null deviance: 238.56 on 294 degrees of freedom
+Residual deviance: 173.53 on 284 degrees of freedom
+AIC: 704.64</code></pre>
+<p>ครั้งนี้<strong>ต่างจากตัวอย่าง wafer อย่างชัดเจน</strong>: <code>Kilometres</code> มีนัยสำคัญในโมเดล gamma (p=0.000143) แต่<strong>ไม่มีนัยสำคัญ</strong>ในโมเดล log-normal (p=0.08126 &gt; 0.05) — สัมประสิทธิ์บางตัวก็ต่างกันพอสมควรด้วย (เช่น <code>Bonus</code>: −0.20069 vs −0.178061) นี่คือกรณีที่การเลือก distribution/link มีผลจริงต่อข้อสรุปทางสถิติ ไม่ใช่แค่รายละเอียดปลีกย่อย</p>
+<p>คำถามที่ตามมา: <strong>โมเดลไหนดีกว่ากัน?</strong> สไลด์เตือนว่า<strong>สองโมเดลนี้ไม่ nested กัน</strong> (คนละ distribution assumption กันโดยสิ้นเชิง) จึง<strong>ใช้ Likelihood Ratio Test (LRT) เทียบกันไม่ได้</strong> และ AIC ก็เทียบตรง ๆ ไม่ได้ตรงไปตรงมา เพราะ AIC ขึ้นกับ likelihood ที่คำนวณจาก distribution ที่ต่างกัน อย่างไรก็ตาม สไลด์สังเกตว่า <strong>null deviance ของทั้งสองโมเดลใกล้เคียงกันมาก (238.97 vs 238.56)</strong> ในขณะที่ <strong>residual deviance ของ gamma GLM เล็กกว่า (155.06 vs 173.53)</strong> — เมื่อจุดเริ่มต้น (null deviance) เท่ากันโดยประมาณ แต่ gamma GLM ลดลงได้มากกว่าหลัง fit ตัวแปรอิสระ จึงสรุปว่า <strong>ควรเลือก gamma GLM</strong> ในกรณีนี้</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>เปรียบเทียบโมเดลต่าง Distribution</span></div>
+  <div class="qtext">ทำไมจึงใช้ Likelihood Ratio Test (LRT) เปรียบเทียบ gamma GLM กับ log-normal (gaussian) model ในตัวอย่างค่าสินไหมประกันไม่ได้โดยตรง?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะสองโมเดลนี้ไม่ได้ nested กัน (สมมติ distribution คนละแบบ) LRT ใช้ได้เฉพาะเปรียบเทียบโมเดลที่ nested กันเท่านั้น</button>
+  <button class="opt" data-correct="false">เพราะ offset(log(Insured)) ทำให้ LRT ใช้ไม่ได้เสมอ</button>
+  <button class="opt" data-correct="false">เพราะ LRT ใช้ได้กับ Poisson GLM เท่านั้น</button>
+  <button class="opt" data-correct="false">เพราะ deviance ของทั้งสองโมเดลเท่ากันอยู่แล้ว ไม่จำเป็นต้องทดสอบ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>6. Inverse Gaussian GLM</h2>
+<p>Inverse Gaussian เป็นอีก family สำหรับข้อมูลต่อเนื่องบวกเบ้ขวา แต่มี variance function ที่ "แรง" กว่า gamma:</p>
+<div class="box">
+\(f(y|\mu,\lambda) = \sqrt{\dfrac{\lambda}{2\pi y^3}} \exp\!\left(-\dfrac{\lambda(y-\mu)^2}{2\mu^2 y}\right)\), &nbsp;\(y, \mu, \lambda > 0\)<br>
+\(\implies\) \(E[Y]=\mu\), &nbsp;\(\text{Var}(Y)=\dfrac{\mu^3}{\lambda}\)<br>
+\(\implies\) canonical parameter \(\theta=-1/\mu^2\), dispersion \(\phi=2/\lambda\), \(a(\phi)=\phi=2/\lambda\), \(b(\theta)=-2/\mu=-2\sqrt{-\theta}\), variance function \(V(\mu)=\mu^3\)
+</div>
+<p>Canonical link คือ \(\eta=1/\mu^2\) ส่วน link ทางเลือกอื่นที่ใช้ได้คือ inverse (\(\eta=1/\mu\)), identity (\(\eta=\mu\)), และ log (\(\eta=\log \mu\)) — <strong>สังเกตความต่างจาก gamma</strong>: variance function ของ inverse Gaussian คือ \(\mu^3\) ในขณะที่ gamma คือ \(\mu^2\) — เลขชี้กำลังสูงกว่าหมายความว่า variance ของ inverse Gaussian <strong>โตเร็วกว่า</strong>ตามค่าเฉลี่ย</p>
+<p>กรณีพิเศษ \(\mu=1\) เรียกว่า <em class="term">Wald distribution</em> ภาพต่อไปนี้แสดงรูปทรงของ density เมื่อ \(\lambda\) เปลี่ยนค่า:</p>
+<figure>
+<img src="../assets/slides/as13-p19-wald-distribution-plots.png" alt="Three density plots of the inverse Gaussian (Wald) distribution with mu=1 at lambda=0.5, lambda=1, and lambda=5, all right-skewed and peaking near x=0 to 1">
+<figcaption>Slide: Inverse Gaussian GLM — Wald distribution ที่ \(\mu=1\), \(\lambda=0.5/1/5\) (Lecture 13, p.19)</figcaption>
+</figure>
+<p>อ่านตัวเลขในภาพ: ทั้งสามกราฟใช้ \(\mu=1\) เหมือนกัน แต่ปรับ \(\lambda\) จาก 0.5 → 1 → 5 — สังเกตว่ายอดของ density (mode) <strong>ขยับเข้าใกล้ 1 มากขึ้นเรื่อย ๆ และแคบลง</strong> เมื่อ \(\lambda\) เพิ่ม (จากยอดสูงสุดที่ประมาณ 1.4 ใกล้ 0 ตอน \(\lambda=0.5\) ไปเป็นยอดที่ประมาณ 1.1 ใกล้ x=1 ตอน \(\lambda=5\)) — ตรงกับสูตร \(\text{Var}(Y)=\dfrac{\mu^3}{\lambda}\) พอดี: \(\lambda\) มากขึ้น \(\implies\) variance น้อยลง \(\implies\) การกระจายแคบลงและสมมาตรมากขึ้นรอบ \(\mu\) ทุกกราฟยังคงเบ้ขวาชัดเจน (หางขวายาว) ซึ่งเป็นลักษณะร่วมของทั้ง gamma และ inverse Gaussian ตามที่กล่าวไว้ในหัวข้อถัดไป</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Inverse Gaussian — Canonical Link</span></div>
+  <div class="qtext">Canonical link ของ Inverse Gaussian GLM คือข้อใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">\(\eta = \log(\mu)\)</button>
+  <button class="opt" data-correct="false">\(\eta = \mu\)</button>
+  <button class="opt" data-correct="false">\(\eta = \dfrac{1}{\mu}\)</button>
+  <button class="opt" data-correct="true">\(\eta = \dfrac{1}{\mu^2}\)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>7. Gamma หรือ Inverse Gaussian — เลือกอย่างไร</h2>
+<p>ทั้งสอง family มีจุดร่วมคือ response เป็นบวกและเบ้ขวา แต่ variance function ต่างกันที่เลขชี้กำลังของ \(\mu\):</p>
+<table>
+<tr><th>Family</th><th>Var(Y)</th><th>ความหมาย</th></tr>
+<tr><td>Gamma GLM</td><td>\(\propto \mu^2\)</td><td>variance โตตามค่าเฉลี่ยแบบกำลังสอง</td></tr>
+<tr><td>Inverse Gaussian GLM</td><td>\(\propto \mu^3\)</td><td>variance โตเร็วกว่า gamma — เหมาะกับข้อมูลที่มีค่าสุดโต่ง (extreme values) มากกว่าปกติ</td></tr>
+</table>
+<p>กฎที่สไลด์สรุปไว้ตรง ๆ: <strong>ถ้าข้อมูลมีค่าที่สุดโต่งกว่า (heavier right tail) ให้เลือก inverse Gaussian GLM แทน gamma GLM</strong> เพราะ variance function ที่โตเร็วกว่า (\(\mu^3\) vs \(\mu^2\)) จับความแปรปรวนที่รุนแรงกว่าได้ดีกว่า</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Gamma vs Inverse Gaussian — Recognition</span></div>
+  <div class="qtext">นักวิเคราะห์มีข้อมูลเวลาถึงความเสียหายของอุปกรณ์ ซึ่งเป็นบวกเสมอ เบ้ขวารุนแรงมาก และมีบางค่าที่สูงผิดปกติมาก (extreme outliers) เมื่อเทียบกับ gamma GLM ควรพิจารณา family ใดเพิ่มเติม และเพราะเหตุใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไม่มี GLM ใดเหมาะกับข้อมูลแบบนี้เลย ต้องใช้ normal linear regression เท่านั้น</button>
+  <button class="opt" data-correct="false">Poisson GLM เพราะเป็น GLM มาตรฐานสำหรับข้อมูลเวลา</button>
+  <button class="opt" data-correct="true">Inverse Gaussian GLM เพราะ variance function ของมัน (\(\propto\mu^3\)) โตเร็วกว่า gamma (\(\propto\mu^2\)) จึงจับข้อมูลที่มีค่าสุดโต่งมากได้ดีกว่า</button>
+  <button class="opt" data-correct="false">Binomial GLM เพราะข้อมูลเป็นบวกเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. ตัวอย่างที่ 3: A Life Test Experiment — เลือก Link Function ด้วย AIC และ Deviance</h2>
+<p>การทดลองอายุการใช้งานของฉนวนไฟฟ้าเหลว ทดสอบที่ความเครียดแรงดัน 3 ระดับ (28, 30, 32 kV) จนกว่าจะเสียหาย บันทึกเวลาที่เสียหาย (นาที) เริ่มจาก histogram ของเวลาเสียหายทั้งหมด:</p>
+<figure>
+<img src="../assets/slides/as13-p21-lifetest-histogram.png" alt="Histogram of lifetest breakdown times, heavily right-skewed with most values under 200 minutes and a few extreme values near 1000-1200 minutes">
+<figcaption>Slide: Example — A Life Test Experiment, histogram(lifetest$y) (Lecture 13, p.21)</figcaption>
+</figure>
+<p>อ่านภาพ: แท่งความถี่ส่วนใหญ่กระจุกตัวอยู่ในช่วง 0–200 นาที (สูงเกิน 25 จุดข้อมูล) แต่มีอย่างน้อย 1 จุดที่หลุดไปถึงช่วง 1000–1200 นาที — ห่างจากกลุ่มหลักหลายเท่าตัว นี่คือรูปร่างเบ้ขวารุนแรงตามที่คาดไว้ และสัญญาณของ "extreme value" ที่หัวข้อ 7 พูดถึง — เป็นเบาะแสว่า inverse Gaussian อาจเหมาะสมกว่า gamma ในกรณีนี้</p>
+<p>ต่อมา plot ความสัมพันธ์ระหว่างระดับแรงดัน (x) กับเวลาเสียหาย (y):</p>
+<figure>
+<img src="../assets/slides/as13-p22-lifetest-scatter-voltage-vs-time.png" alt="Scatterplot of voltage stress (28, 30, 32 kV) against breakdown time in minutes, showing points clustered near 0-200 minutes at each voltage level with one high outlier near 1000 minutes at 28 kV">
+<figcaption>Slide: Example — A Life Test Experiment, plot(lifetest$x, lifetest$y) (Lecture 13, p.22)</figcaption>
+</figure>
+<p>อ่านตัวเลขในภาพ: ที่ x=28 kV มีจุดหนึ่งอยู่สูงถึงประมาณ 1050 นาที ในขณะที่จุดอื่น ๆ ที่ x=28 กระจุกอยู่ต่ำกว่า 500 — และที่ x=30, 32 kV จุดข้อมูลส่วนใหญ่กระจุกตัวต่ำกว่า 200 นาทีทั้งหมด สไลด์สรุปว่า "<strong>ทุกระดับของแรงดันมีเวลาเสียหายที่เบ้ขวา</strong>" ไม่ใช่แค่ภาพรวมทั้งชุดข้อมูลเบ้ — เป็นสัญญาณ่ว่า variance สัมพันธ์กับค่าเฉลี่ยของแต่ละกลุ่มด้วย ไม่ใช่แค่ความหลากหลายระหว่างกลุ่ม</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>อ่าน Diagnostic Plot</span></div>
+  <div class="qtext">จากภาพ histogram และ scatter plot ของ lifetest data สิ่งใดคือเหตุผลหลักที่บ่งชี้ว่าข้อมูลนี้ไม่เหมาะกับ normal linear regression ตรง ๆ?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะเวลาเสียหายเป็นบวกเสมอและเบ้ขวาอย่างชัดเจนในทุกระดับของ x พร้อมมีค่าสุดโต่งอยู่ (เช่นจุดที่ ~1050 นาทีที่ x=28) ขัดกับสมมติฐาน normal error ที่สมมาตร</button>
+  <button class="opt" data-correct="false">เพราะ x เป็นตัวแปรที่มีแค่ 3 ค่า (28, 30, 32) ทำให้ fit เส้นตรงไม่ได้</button>
+  <button class="opt" data-correct="false">เพราะมีตัวแปรอิสระเพียงตัวเดียว (x) ทำให้ normal linear regression ใช้ไม่ได้</button>
+  <button class="opt" data-correct="false">เพราะจำนวนข้อมูล (n=31) น้อยเกินไปสำหรับ regression ใด ๆ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p>สไลด์ fit inverse Gaussian GLM ด้วย 3 link function แล้วเทียบกัน — เริ่มจาก <strong>canonical link</strong> (\(\eta=1/\mu^2\)):</p>
+<pre><code>> model1<-glm(y~x, data=lifetest, family=inverse.gaussian)
+> summary(model1)
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) -3.319e-03 1.557e-03 -2.131     0.0417 *
+x            1.188e-04 5.553e-05    2.140   0.0409 *
+(Dispersion parameter for inverse.gaussian family taken to be 0.0259203)
+    Null deviance: 10.0028   on 30     degrees of freedom
+Residual deviance: 9.7849    on 29     degrees of freedom
+AIC: 364.58
+> 1-pchisq(9.7849,29)
+[1] 0.9996777</code></pre>
+<p><strong>Inverse link</strong> (\(\eta=1/\mu\)):</p>
+<pre><code>> model2<-glm(y~x, data=lifetest, family=inverse.gaussian(link=inverse))
+> summary(model2)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) -0.146905   0.055851 -2.630    0.0135 *
+x            0.005345   0.001906   2.805   0.0089 **
+(Dispersion parameter for inverse.gaussian family taken to be 0.02905859)
+    Null deviance: 10.0028   on 30     degrees of freedom
+Residual deviance: 9.7766    on 29     degrees of freedom
+AIC: 364.55
+> 1-pchisq(9.7766,29)
+[1] 0.9996804</code></pre>
+<p><strong>Identity link</strong> (\(\eta=\mu\)):</p>
+<pre><code>> model3<-glm(y~x, data=lifetest, family=inverse.gaussian(link=identity))
+> summary(model3)
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 1179.26      874.91   1.348    0.188
+x             -35.59      27.41 -1.298     0.204
+(Dispersion parameter for inverse.gaussian family taken to be 0.03239784)
+    Null deviance: 10.0028   on 30     degrees of freedom
+Residual deviance: 9.8043    on 29     degrees of freedom
+AIC: 364.64
+> 1-pchisq(9.8043,29)
+[1] 0.9996712</code></pre>
+<p>วิธี <code>1-pchisq(residual deviance, df)</code> นี้คือ <strong>goodness-of-fit test</strong> ตามกรอบ Lecture 8 — deviance มีการแจกแจงประมาณ \(\chi^2(df)\) ภายใต้ \(H_0\): โมเดลนี้ fit ข้อมูลได้ดี — p-value ที่สูงมาก (~0.9997 ทั้งสามโมเดล) แปลว่า<strong>ไม่มีหลักฐานปฏิเสธว่าโมเดล fit ไม่ดี</strong> ทั้งสามแบบ ดังนั้นต้องใช้เกณฑ์อื่นเลือกว่า link ไหนดีที่สุด</p>
+<p>เทียบทั้งสามโมเดล (เพราะเป็น family เดียวกัน ต่างแค่ link — <strong>เปรียบเทียบ AIC กันได้ตรง ๆ</strong> ต่างจากการเทียบข้าม distribution ในหัวข้อ 5):</p>
+<table>
+<tr><th>Link</th><th>AIC</th><th>Residual deviance</th><th>1-pchisq (goodness-of-fit p-value)</th><th>x significant?</th></tr>
+<tr><td>Canonical \(\left(1/\mu^2\right)\)</td><td>364.58</td><td>9.7849</td><td>0.99968</td><td>p=0.0409</td></tr>
+<tr><td>Inverse \(\left(1/\mu\right)\)</td><td><strong>364.55</strong> (ต่ำสุด)</td><td>9.7766</td><td>0.99968</td><td>p=0.0089 (แน่นสุด)</td></tr>
+<tr><td>Identity \(\left(\mu\right)\)</td><td>364.64</td><td>9.8043</td><td>0.99967</td><td>p=0.204 (ไม่นัยสำคัญ!)</td></tr>
+</table>
+<p>ทั้งเกณฑ์ AIC (364.55 ต่ำสุด) และ p-value ของ goodness-of-fit test ชี้ไปทาง <strong>inverse link</strong> เหมือนกัน — และ identity link ยังมีปัญหาเพิ่มคือสัมประสิทธิ์ของ x ไม่มีนัยสำคัญเลย (p=0.204) ต่างจากอีกสอง link ที่ x มีนัยสำคัญชัดเจน สไลด์ยืนยันด้วยการ plot ค่าเฉลี่ยที่สังเกตได้ (\(\mu\)) ที่แต่ละระดับ x ผ่าน link function ทั้งสามแบบ:</p>
+<figure>
+<img src="../assets/slides/as13-p26-link-function-diagnostic-plots.png" alt="Three scatter plots of x (28, 30, 32) against 1/mu-squared, 1/mu, and mu, showing which transformation produces the most linear relationship with x">
+<figcaption>Slide: Example — A Life Test Experiment, plot(unique(x), 1/mu^2 | 1/mu | mu) (Lecture 13, p.26)</figcaption>
+</figure>
+<p>อ่านภาพ: มีแค่ 3 จุด (ที่ x=28, 30, 32) ในแต่ละกราฟเพราะคำนวณจากค่าเฉลี่ยของแต่ละกลุ่ม แต่รูปแบบชัดเจน — กราฟกลาง (\(\dfrac{1}{\mu}\) เทียบ x) จุดทั้งสามเรียงตัวใกล้เส้นตรงมากที่สุดเมื่อเทียบกับกราฟซ้าย (\(\dfrac{1}{\mu^2}\)) ที่จุดแรกอยู่ติดศูนย์แล้วกระโดดขึ้นแรงตอน x=32 หรือกราฟขวา (\(\mu\)) ที่ก็มีลักษณะโค้งเช่นกัน — เพราะ GLM ตั้งสมมติฐานว่า \(g(\mu) = X\beta\) เป็นเชิงเส้นใน X, link function ที่ทำให้จุดเรียงเป็นเส้นตรงมากที่สุดคือ link ที่เหมาะกับข้อมูลมากที่สุด สไลด์สรุปตรงกับผลจาก AIC และ p-value ก่อนหน้า: <strong>Inverse link คือคำตอบทั้งสามเกณฑ์</strong></p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 10 (Free response)</span><span>เลือก Link Function ด้วยหลายเกณฑ์</span></div>
+  <div class="qtext">สรุป 3 เกณฑ์ที่ใช้เลือก link function ที่ดีที่สุดสำหรับ inverse Gaussian GLM ในตัวอย่าง Life Test Experiment และบอกว่าทำไมทั้ง 3 เกณฑ์จึงเปรียบเทียบกันได้ตรง ๆ ในกรณีนี้ (ต่างจากการเทียบ gamma กับ log-normal ในหัวข้อ 5)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">3 เกณฑ์: (1) AIC ต่ำสุด — inverse link ได้ 364.55 ต่ำสุดในสามแบบ (2) goodness-of-fit p-value จาก <code>1-pchisq(residual deviance, df)</code> — ใกล้เคียงกันมากทั้งสามแบบ (~0.9997) แต่ inverse link ยังให้สัมประสิทธิ์ x ที่มีนัยสำคัญชัดเจนที่สุด (p=0.0089) ในขณะที่ identity link ทำให้ x ไม่มีนัยสำคัญเลย (3) plot ของ \(g(\mu)\) เทียบ x แบบต่าง ๆ — กราฟของ \(1/\mu\) เทียบ x เรียงใกล้เส้นตรงมากที่สุด ตรงกับสมมติฐาน GLM ที่ว่า \(g(\mu)=X\beta\) ต้องเป็นเชิงเส้น ทั้ง 3 เกณฑ์เทียบกันได้ตรง ๆ เพราะทั้งสามโมเดลใช้ distribution เดียวกัน (inverse Gaussian) ต่างกันแค่ link function เท่านั้น ไม่เหมือนหัวข้อ 5 ที่เทียบข้าม distribution (gamma vs gaussian) ซึ่งทำให้ AIC และ LRT เทียบกันตรง ๆ ไม่ได้</div>
+</div>
+
+<h2>9. ตารางสรุป: Gamma vs Inverse Gaussian GLM</h2>
+<p>รวมทุกอย่างจาก 3 ตัวอย่างเป็นตารางเปรียบเทียบกลาง ๆ ที่ใช้ตอบข้อสอบได้ทันที:</p>
+<table>
+<tr><th>Family</th><th>ข้อมูลที่เหมาะสม</th><th>Var(Y)</th><th>Link ที่นิยม</th><th>สมการโมเดล (log link)</th><th>การแปลผล \(\hat\beta\)</th></tr>
+<tr><td>Gamma</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวา (เช่น ค่าใช้จ่ายเคลม, resistivity)</td><td>\(\propto \mu^2\)</td><td>log (multiplicative), canonical/inverse \((\eta=1/\mu)\), linear \((\eta=\mu\), สำหรับ \(\chi^2)\)</td><td>\(\log(\mu_i)=X_i\beta\)</td><td>\(\exp(\hat\beta)\) = ตัวคูณของค่าเฉลี่ยต่อการเพิ่ม X 1 หน่วย; % เปลี่ยนแปลง = \((\exp(\hat\beta)-1)\times100\%\)</td></tr>
+<tr><td>Inverse Gaussian</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวารุนแรงกว่า มีค่าสุดโต่งมากกว่า Gamma</td><td>\(\propto \mu^3\)</td><td>canonical \((\eta=1/\mu^2)\), inverse \((\eta=1/\mu)\), identity \((\eta=\mu)\), log</td><td>ขึ้นกับ link ที่เลือก เช่น \(\dfrac{1}{\mu_i}=X_i\beta\) ถ้าใช้ inverse link</td><td>ถ้าใช้ log link: แปลผลแบบ \(\exp(\hat\beta)\) เหมือน Gamma; ถ้า link อื่น (identity/inverse) ต้องอ่านทิศทาง (บวก/ลบ) ของผลต่อ \(\eta\) โดยตรง ซึ่งตีความยากกว่า</td></tr>
+</table>
+<p>วิธีเลือกระหว่างสอง family: (1) ถ้า response บวกเบ้ขวาปกติ ให้เริ่มจาก <strong>Gamma</strong> เป็นค่าเริ่มต้น (2) ถ้ามีค่าสุดโต่งมากกว่าปกติ (heavy tail ชัดเจน เช่น histogram มีจุดหลุดไปไกลจากกลุ่มหลัก) ลอง <strong>Inverse Gaussian</strong> เพิ่ม (3) เปรียบเทียบ AIC/deviance ระหว่าง link ภายใน family เดียวกันได้ตรง ๆ แต่เทียบข้าม family/distribution ต้องระวัง (ดูหัวข้อ 5–6)</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 11</span><span>สรุปรวม — Recognition</span></div>
+  <div class="qtext">บริษัทวิเคราะห์ "เวลารอคิวการซ่อมเครื่องจักร (นาที)" ซึ่งเป็นบวกเสมอ เบ้ขวาปานกลาง ไม่มี extreme outlier ผิดปกติ และสงสัยว่าปัจจัยแต่ละตัว (เช่น จำนวนช่างซ่อม) มีผล "คูณ" กับเวลารอคิวเฉลี่ย ควรเริ่มต้นด้วย family และ link ใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Inverse Gaussian GLM ด้วย identity link เสมอ เพราะเป็น default ของทุกข้อมูลต่อเนื่องบวก</button>
+  <button class="opt" data-correct="false">Binomial GLM ด้วย logit link เพราะเวลารอคิวเป็นตัวแปรต่อเนื่อง</button>
+  <button class="opt" data-correct="true">Gamma GLM ด้วย log link — เพราะข้อมูลเป็นบวกเบ้ขวาปกติไม่มี extreme outlier (เหมาะกับ Gamma มากกว่า Inverse Gaussian) และสงสัยผลแบบ multiplicative (log link)</button>
+  <button class="opt" data-correct="false">Normal linear regression ตรง ๆ เพราะข้อมูลเป็นตัวเลขต่อเนื่อง ไม่ต้องสนใจการแจกแจง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>Dispersion Parameter</span></div>
+  <div class="qtext">ในตัวอย่าง wafer, gamma GLM (log link) รายงาน "Dispersion parameter for Gamma family taken to be 0.004524942" ค่านี้สอดคล้องกับตัวเลขใดใน lm(log(resist)~...) และบอกอะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">สอดคล้องกับ R-squared ของ lm โดยตรง — ทั้งสองค่าควรเท่ากันเป๊ะเสมอ</button>
+  <button class="opt" data-correct="false">สอดคล้องกับค่า AIC ของ lm โดยตรง</button>
+  <button class="opt" data-correct="false">Dispersion parameter ของ gamma ไม่มีความหมายใด ๆ เทียบกับ lm เลย เพราะเป็นคนละ scale กัน</button>
+  <button class="opt" data-correct="true">รากที่สองของ dispersion \((\sqrt{0.004524942} \approx 0.0673)\) ใกล้เคียงกับ Residual standard error ของ lm (0.06735) มาก เพราะ \(\nu=1/\phi\) มีค่าใหญ่ทำให้ gamma \(\approx\) normal</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรบอกได้ว่าเมื่อ response เป็นข้อมูลต่อเนื่องบวกเบ้ขวา ควรเลือก <strong>Gamma GLM</strong> (variance \(\propto\mu^2\)) หรือ <strong>Inverse Gaussian GLM</strong> (variance \(\propto\mu^3\) — เมื่อมี extreme values มากกว่า) เขียนสมการโมเดลพร้อม link function ที่เหมาะสม (มักเป็น log link เมื่อสงสัยผลแบบ multiplicative) แปลผลสัมประสิทธิ์ด้วย \(\exp(\hat\beta)\) แบบเดียวกับ Poisson regression ที่เคยเรียนมา อ่าน dispersion parameter และ deviance จาก R output เพื่อทำ goodness-of-fit test (<code>1-pchisq(deviance, df)</code>) และเลือก link function ที่ดีที่สุดด้วยการเทียบ AIC ภายใน family เดียวกัน — พร้อมรู้ข้อจำกัดว่าเมื่อไรเทียบ AIC/LRT ข้าม distribution ไม่ได้เลย
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (26 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture13.pdf</code> ตั้งแต่หน้า 1 ถึง 26 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปกที่ไม่มีเนื้อหาทฤษฎีใหม่</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 13: Other GLMs"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Other GLMs — ภาพรวม Binomial/Gaussian/Poisson vs Gamma/Inverse Gaussian</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Motivation for Gamma GLM — ปัญหา \(\text{Var}(Y_i)=\sigma^2\mu_i^2\) (quadratic variance)</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>4</td><td>Motivation for Gamma GLM — proof \(E[Z_i]\approx\log(\mu_i)\) ด้วย Taylor expansion</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>5</td><td>Motivation for Gamma GLM — proof (cont.) \(\text{Var}(Z_i)\approx\sigma^2\)</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>6</td><td>Motivation for Gamma GLM — ทางเลือก gamma regression บนสเกลเดิม</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>7</td><td>Gamma GLM — density, reparameterization, canonical parameter/link</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>8</td><td>Three common choices of link function (canonical/log/linear)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>9</td><td>Example: Manufacturing semiconductors — wafer data summary()</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>10</td><td>Example (cont.) — lm(log(resist)~.^2) + step() + summary() เต็ม</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>11</td><td>Example (cont.) — gamma glm(family=Gamma(link=log)) + step() + summary()</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>12</td><td>Example (cont.) — เปรียบเทียบสัมประสิทธิ์/SE ระหว่าง gamma กับ log-normal</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>13</td><td>Example: Payments on insurance claims — บริบทข้อมูล motorins + offset</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>14</td><td>Example (cont.) — gamma GLM (log link, offset) summary() เต็ม</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>15</td><td>Example (cont.) — log-normal (gaussian) model summary() เต็ม</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>16</td><td>Example (cont.) — เปรียบเทียบโมเดล, เหตุผลว่าทำไม LRT ใช้ไม่ได้, สรุปเลือก gamma</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>17</td><td>Inverse Gaussian GLM — density, E[Y], Var(Y), canonical parameter/dispersion</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>18</td><td>Inverse Gaussian GLM — canonical link, link ทางเลือกอื่น, เปรียบเทียบ variance function</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>19</td><td>Inverse Gaussian GLM — Wald distribution \((\mu=1)\), R code + 3 density plots</td><td>✓ หัวข้อ 6 (มีรูป)</td></tr>
+<tr><td>20</td><td>Gamma or Inverse Gaussian GLM — เปรียบเทียบ \(\text{Var}(Y)\propto\mu^2\) vs \(\mu^3\)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>21</td><td>Example: A Life Test Experiment — บริบทข้อมูล + histogram(lifetest$y)</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>22</td><td>Example (cont.) — plot(x,y) แสดงความเบ้ขวาในแต่ละระดับแรงดัน</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>23</td><td>Example (cont.) — inverse Gaussian GLM ด้วย canonical link + goodness-of-fit test</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>24</td><td>Example (cont.) — inverse Gaussian GLM ด้วย inverse link + goodness-of-fit test</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>25</td><td>Example (cont.) — inverse Gaussian GLM ด้วย identity link + goodness-of-fit test</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>26</td><td>Example (cont.) — สรุปเลือก link ที่ดีที่สุด (AIC, p-value, plot \(g(\mu)\) vs x)</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0012-multinomial-data.html">← Lesson 12: Multinomial Data</a></span>
+  <span><a href="0014-linear-mixed-effects-models.html">Lesson 14: Introduction to Linear Mixed-Effects Models →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

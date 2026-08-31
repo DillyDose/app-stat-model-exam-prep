@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 2: Multiple Linear Regression — สมการ, Dummy/Interaction, และการอ่านผล R</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 2 / 14 · Multiple Linear Regression</span>
+  <span><a href="../reference/0002-mlr-formulas-and-r-output-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output →</a></span>
+</nav>
+
+<p class="kicker">Lecture 2 — Multiple Linear Regression</p>
+<h1>Multiple Linear Regression: ขยายจาก Line สู่ Plane, Dummy/Interaction, และอ่านผลจาก R</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก <a href="../lessons/0001-simple-linear-regression.html">Lesson 1: Simple Linear Regression</a> ตรง ๆ — ทุกอย่างที่ทำได้กับ X ตัวเดียว ตอนนี้ต้องทำได้กับ X หลายตัวพร้อมกัน ทักษะที่ต้องได้จากบทนี้: <strong>เขียนสมการ MLR ถูก</strong> (พร้อมรู้ว่าพารามิเตอร์มีกี่ตัว), <strong>แปลผลสัมประสิทธิ์แบบ "holding other variables constant"</strong> — ทักษะใหม่ที่ SLR ไม่มีและเป็นจุดที่ข้อสอบเช็คหนักที่สุดในบทนี้, <strong>อ่าน output จาก <code>summary(lm(...))</code> ที่มีหลายแถว</strong> รวมถึง extra-sum-of-squares F-test และ ANOVA table ที่ซับซ้อนขึ้น, และ<strong>เข้าใจตัวแปรเชิงกลุ่ม (dummy variable) และ interaction term</strong> ซึ่งเป็นของใหม่ที่ SLR ไม่มีเลย.</p>
+
+<h2>1. เป้าหมายและสัญกรณ์ของ MLR</h2>
+<p>เป้าหมายของ regression ไม่เปลี่ยนจาก Lesson 1: (1) อธิบายความสัมพันธ์ (association) ระหว่างชุดตัวแปรอิสระ \(X_1, X_2, \ldots, X_p\) กับ Y และ (2) ทำนายค่า Y ในอนาคตจากชุดตัวแปรนั้น — <strong>ความแตกต่างเดียวคือตอนนี้มี X ได้มากกว่า 1 ตัวพร้อมกัน</strong> ไม่ใช่ความสัมพันธ์เชิงเหตุผล (causal) เว้นแต่ข้อมูลมาจาก randomized experiment เหมือนที่เน้นไว้ในหัวข้อ 2 ของ Lesson 1 ทุกประการ.</p>
+<p>\(X_1, X_2, \ldots, X_p\) เรียก independent/explanatory variables (ตอนนี้มี p ตัว ไม่ใช่ตัวเดียว), Y ยังคงเรียก dependent/response variable เหมือนเดิม — และในตอนนี้ให้สมมติว่าทั้ง X และ Y เป็นตัวแปรเชิงปริมาณ (quantitative) ก่อน ค่อยขยายไปเป็นตัวแปรเชิงกลุ่มในหัวข้อ 9.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>สัญกรณ์ MLR</span></div>
+  <div class="qtext">โมเดล MLR ที่มีตัวแปรอิสระ 4 ตัว (p=4) มีพารามิเตอร์ β (สัมประสิทธิ์) ทั้งหมดกี่ตัว?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">5 ตัว (β₀ ถึง β₄ — นับ intercept รวมด้วยเสมอ)</button>
+  <button class="opt" data-correct="false">ขึ้นอยู่กับขนาดตัวอย่าง n เท่านั้น ไม่เกี่ยวกับ p</button>
+  <button class="opt" data-correct="false">3 ตัว เพราะเสีย 1 ตัวให้ error term</button>
+  <button class="opt" data-correct="false">4 ตัว (β₁ ถึง β₄)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. สมการโมเดล MLR</h2>
+<p>ข้อมูลตอนนี้เป็น \(Y_i, X_{i1}, \ldots, X_{ip}\) สำหรับ \(i = 1, 2, \ldots, n\) (แต่ละแถว i มีค่า X ให้ครบ p ตัว ไม่ใช่ตัวเดียวเหมือน SLR) และสมการถดถอยเชิงเส้นพหุคูณเขียนเป็น:</p>
+<div class="box">
+\(Y_i = \beta_0 + \beta_1 X_{i1} + \beta_2 X_{i2} + \cdots + \beta_p X_{ip} + \varepsilon_i\)<br>
+โดย \(\beta_0, \beta_1, \ldots, \beta_p\) คือ regression coefficients, \(\varepsilon_i\) คือ error term ที่ \(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\)
+</div>
+<p>เทียบกับสมการ SLR จาก Lesson 1 (\(Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i\)) โครงสร้างเหมือนเดิมทุกอย่าง — มี intercept, มีพจน์เชิงเส้นของแต่ละ X, มี error term ท้ายสุดที่ assumption 4 ข้อเดียวกัน (mean zero, independent, constant variance, normal) — สิ่งที่เพิ่มมาอย่างเดียวคือ<strong>จำนวนพจน์สัมประสิทธิ์</strong>: จาก 1 ตัว (β₁) กลายเป็น p ตัว (β₁ ถึง β_p) และ β₀, β₁, …, β_p ยังคงเป็น<strong>พารามิเตอร์ทฤษฎีที่ไม่รู้ค่าจริง</strong> ต้องประมาณจากข้อมูลตัวอย่างเป็น \(\hat{\beta}_0, \hat{\beta}_1, \ldots, \hat{\beta}_p\) เหมือนกฎเรื่องหมวกที่เน้นไว้ใน Lesson 1.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>เขียนสมการโมเดล MLR</span></div>
+  <div class="qtext">บริษัทอสังหาริมทรัพย์อยากทำนายราคาบ้าน (ล้านบาท) จากขนาดพื้นที่ (ตร.ม.), จำนวนห้องนอน, และระยะทางจาก BTS (กม.) จากข้อมูลบ้าน 80 หลัง จงเขียนสมการ MLR พร้อมระบุว่ามีพารามิเตอร์กี่ตัวและแต่ละตัวหมายถึงอะไร</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(Price_i = \beta_0 + \beta_1\, Area_i + \beta_2\, Bedroom_i + \beta_3\, Distance_i + \varepsilon_i\), สำหรับ i = 1,…,80</p>
+  <p>มีพารามิเตอร์ 4 ตัว (p=3 ตัวแปรอิสระ + 1 intercept): \(\beta_0\) = ราคาคาดการณ์เมื่อ Area=0, Bedroom=0, Distance=0 (มักไม่มีความหมายทางปฏิบัติ เพราะ extrapolation), \(\beta_1\) = ราคาที่เปลี่ยนไปโดยเฉลี่ยเมื่อ Area เพิ่ม 1 ตร.ม. <strong>โดยคุมจำนวนห้องนอนและระยะทางจาก BTS ให้คงที่</strong>, \(\beta_2\) และ \(\beta_3\) ตีความแบบเดียวกันกับตัวแปรของตัวเอง โดยคุมอีกสองตัวให้คงที่, \(\varepsilon_i\) = ความคลาดเคลื่อนของบ้านหลังที่ i ที่โมเดลอธิบายไม่ได้ (\(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\))</p>
+  </div>
+</div>
+
+<h2>3. จาก Line สู่ Plane: มุมมองเรขาคณิตของ MLR</h2>
+<p>ในกรณี p=1 (Lesson 1) เราวาดเส้นถดถอยบนระนาบ 2 มิติได้ตรง ๆ (\(\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_1\)) — พอมี X ตัวที่สองเข้ามา (p=2) สมการกลายเป็น \(\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_1 + \hat{\beta}_2 X_2\) ซึ่งวาดในพื้นที่ 3 มิติ (แกน Y, X₁, X₂) แล้วไม่ได้เป็นเส้นตรงอีกต่อไป แต่เป็น<strong>ระนาบ (plane)</strong>:</p>
+<figure>
+<img src="../assets/slides/as2-p06-two-variable-plane-diagram.png" alt="3D diagram showing the two-variable regression model as a blue plane in Y, X1, X2 space, with the fitted equation Y-hat = beta-hat-0 + beta-hat-1 X1 + beta-hat-2 X2, and separate slope labels for each axis">
+<figcaption>Slide: Linear Regression Model when p=2 (Lecture 2, p.6)</figcaption>
+</figure>
+<p>สังเกตภาพ: มีความชัน (slope) แยกกัน <strong>2 ตัว</strong> ในระนาบเดียวกัน — "Slope for variable x₁" (ทิศทางเดินตามแกน X₁) และ "Slope for variable x₂" (ทิศทางเดินตามแกน X₂) — นี่คือที่มาของกฎการแปลผลที่จะเจอตลอดบทนี้: \(\hat{\beta}_1\) วัดความชันไปตามแกน X₁ <strong>เมื่อ X₂ ถูกตรึงไว้คงที่</strong> (เพราะถ้า X₂ เปลี่ยนด้วย จุดจะเคลื่อนไปคนละทิศบนระนาบ ไม่ใช่แค่ตามแกน X₁) และ \(\hat{\beta}_2\) ก็เช่นกันในทิศตรงข้าม — ระนาบมีความชัน 2 ทิศพร้อมกันได้ในเวลาเดียวกัน ต่างจากเส้นตรงที่มีความชันทิศเดียว.</p>
+<p>ส่วน residual ก็นิยามแบบเดียวกับ SLR เป๊ะ เพียงแต่วัดระยะห่างจากจุดข้อมูลถึง<strong>ระนาบ</strong>แทนที่จะเป็นเส้นตรง:</p>
+<figure>
+<img src="../assets/slides/as2-p07-estimating-coefficients-residual-diagram.png" alt="3D diagram showing a sample observation Yi above the fitted regression plane, with Y-hat-i as the point on the plane directly below it and ei = Yi - Y-hat-i as the vertical gap, plus a note that the best-fit plane minimizes the sum of squared errors">
+<figcaption>Slide: Estimating the Coefficients (Lecture 2, p.7)</figcaption>
+</figure>
+<p>จุดสังเกตสำคัญ: \(e_i = (Y_i - \hat{Y}_i)\) ยังคงเป็นระยะทาง<strong>แนวตั้ง</strong> (ตามแกน Y เท่านั้น) จากจุดสังเกตจริง \(Y_i\) ลงมาที่ระนาบทำนาย \(\hat{Y}_i\) ที่ตำแหน่ง \((x_{1i}, x_{2i})\) เดียวกัน — นิยามเดียวกับ SLR ทุกประการ, และ OLS ก็ยังคงหา \(\hat{\beta}_0, \hat{\beta}_1, \ldots, \hat{\beta}_p\) ที่ทำให้ \(\sum e_i^2\) น้อยที่สุดเหมือนเดิม เพียงแต่ตอนนี้กำลังหาระนาบ (หรือ hyperplane เมื่อ p≥3) ที่ดีที่สุด แทนที่จะเป็นเส้นตรง.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>เรขาคณิตของ MLR</span></div>
+  <div class="qtext">โมเดล MLR ที่มี p=2 ตัวแปรอิสระ เมื่อวาดในปริภูมิ 3 มิติ (Y, X₁, X₂) จะมีรูปทรงเป็นอะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">วงกลม เพราะต้องครอบคลุมทุกทิศทางของข้อมูล</button>
+  <button class="opt" data-correct="false">ไม่สามารถวาดภาพได้เลยไม่ว่ากรณีใด</button>
+  <button class="opt" data-correct="true">ระนาบ (plane) — มีความชัน 2 ทิศพร้อมกัน ทิศละหนึ่งตัวแปร</button>
+  <button class="opt" data-correct="false">เส้นตรง เหมือนกรณี SLR ทุกประการ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. Scatter Plot สำหรับหลายตัวแปรใน R</h2>
+<p><code>plot(x, y, type=...)</code> ยังใช้ได้เหมือนเดิม โดยมี argument <code>type</code> เพิ่มเข้ามาเลือกรูปแบบเส้น/จุด ("p"=points, "l"=lines, "b"=both ฯลฯ) — ส่วน graphical parameters <code>cex</code>, <code>pch</code>, <code>lty</code>/<code>lwd</code> เหมือนที่สรุปไว้แล้วในตารางอ้างอิงของ Lesson 1 ทุกประการ ไม่มีอะไรใหม่ให้ทำ quiz เพิ่มตรงนี้.</p>
+<p>ตัวอย่างที่จะใช้ตลอดครึ่งแรกของบทเรียนนี้คือชุดข้อมูล <code>whiteside</code> (จากแพ็กเกจ <code>MASS</code>) — วัดการใช้แก๊ส (Gas) เทียบกับอุณหภูมิภายนอก (Temp) ของบ้านหลังหนึ่ง ก่อนและหลังติดฉนวนกันความร้อน (Insul = "Before"/"After"):</p>
+<pre><code>&gt; library(MASS)
+&gt; data(whiteside)
+&gt; head(whiteside)
+  Insul Temp Gas
+1 Before -0.8 7.2
+2 Before -0.7 6.9
+3 Before  0.4 6.4
+4 Before  2.5 6.0
+5 Before  2.9 5.8
+6 Before  3.2 5.8</code></pre>
+<p>สังเกตว่า <code>Insul</code> เป็นตัวแปรเชิงกลุ่ม (categorical, 2 ระดับ) — จะกลับมาขยายผลเรื่องนี้เต็ม ๆ ในหัวข้อ 9 เมื่อพูดถึง dummy variable แต่ตอนนี้ให้โฟกัสที่ <code>Temp</code> กับ <code>Gas</code> ก่อน (ทั้งคู่เป็นตัวแปรเชิงปริมาณ).</p>
+<p>ก่อนฟิตโมเดลใด ๆ ควรสำรวจความสัมพันธ์ระหว่าง<strong>ทุกคู่ตัวแปร</strong>พร้อมกันด้วย scatter plot matrix — <code>plot(whiteside)</code> วาด scatter plot ของทุกคู่ตัวแปรในหนึ่งตาราง (n×n panel):</p>
+<figure>
+<img src="../assets/slides/as2-p13-scatter-plot-matrix-whiteside.png" alt="Scatterplot matrix of the whiteside dataset with Insul, Temp, and Gas on both axes, showing the Temp-Gas panel with a clear negative relationship and the Insul panels showing the two-level categorical spread">
+<figcaption>Slide: Scatter Plot Matrix in R — plot(whiteside) (Lecture 2, p.13)</figcaption>
+</figure>
+<p>อ่านตาราง 3×3 นี้: แผงกลาง-ขวา (Temp แถว, Gas คอลัมน์ หรือกลับกัน) แสดงความสัมพันธ์เชิงลบชัดเจนระหว่าง Temp กับ Gas — อากาศยิ่งอุ่น ใช้แก๊สยิ่งน้อย ตามสามัญสำนึก. ส่วนแผงที่เกี่ยวกับ <code>Insul</code> (แถว/คอลัมน์บนสุด) จะเห็นจุดเรียงเป็น<strong>สองแถบแนวตั้ง/แนวนอน</strong> เท่านั้น (ที่ตำแหน่ง 1 กับ 2 บนแกน) เพราะ <code>Insul</code> มีแค่ 2 ค่าที่เป็นไปได้ ไม่ใช่ตัวเลขต่อเนื่อง — สัญญาณนี้บอกได้ทันทีว่า <code>Insul</code> ต้องถูกจัดการต่างจาก <code>Temp</code> เมื่อเอาเข้าโมเดล.</p>
+
+<h2>5. Coded Scatter Plot: มองเห็นผลของ Dummy Variable ล่วงหน้า</h2>
+<p>เพื่อดูว่า Insul มีผลต่อความสัมพันธ์ Temp-Gas อย่างไร ให้ระบายสี/สัญลักษณ์ต่างกันตามกลุ่ม:</p>
+<pre><code>&gt; plot(Temp[Insul=="Before"], Gas[Insul=="Before"],
++ xlab="Temp", ylab="Gas", pch=17, col="blue", ylim=c(1,7.5))
+&gt; points(Temp[Insul=="After"], Gas[Insul=="After"],
++ pch=16, col="red")</code></pre>
+<figure>
+<img src="../assets/slides/as2-p14-coded-scatter-before-after.png" alt="Scatterplot of Gas versus Temp for the whiteside dataset, with blue triangles for Before-insulation points sitting systematically higher than red dots for After-insulation points, both showing a downward-sloping trend">
+<figcaption>Slide: Coded Scatter Plot in R (Lecture 2, p.14)</figcaption>
+</figure>
+<p>อ่านภาพนี้ให้ละเอียด: ที่ <code>Temp</code> ใกล้เคียงกัน (เช่นรอบ ๆ 4) จุดสีน้ำเงิน (Before) อยู่สูงกว่าจุดสีแดง (After) อย่างชัดเจนตลอดช่วง — ทั้งสองกลุ่มมีแนวโน้มลาดลง (slope เป็นลบ) แบบใกล้เคียงกัน แต่ระดับ (level) ของกลุ่ม Before สูงกว่า After สม่ำเสมอ ราวกับเส้นสองเส้นที่ขนานกันแต่อยู่คนละความสูง — นี่คือรูปร่างที่ dummy variable "แตกต่างที่ intercept แต่ slope เท่ากัน" จะให้ผลลัพธ์ (จะพิสูจน์ด้วยตัวเลขจริงในหัวข้อ 9) ก่อนจะยืนยันด้วยการ interaction term ในหัวข้อ 11 ว่าจริง ๆ แล้ว slope ของสองกลุ่มต่างกันเล็กน้อยด้วยหรือไม่.</p>
+<p>สไลด์มีตัวเลือกพล็อตแบบเดียวกันด้วย <code>ggplot2</code> (<code>ggplot(whiteside, aes(x=Temp,y=Gas,color=Insul)) + geom_point()</code>) ซึ่งให้ภาพเดียวกันเป๊ะแค่ syntax คนละแบบ — ไม่มีเนื้อหาทฤษฎีใหม่ สรุปไว้ในตารางอ้างอิงแล้ว.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Coded Scatter Plot</span></div>
+  <div class="qtext">จากภาพ coded scatter plot ของ Whiteside data จุดสีน้ำเงิน (Before) อยู่สูงกว่าจุดสีแดง (After) สม่ำเสมอตลอดช่วง Temp โดยที่ทั้งสองกลุ่มมีความชันลาดลงใกล้เคียงกัน ลักษณะนี้บ่งชี้อะไรมากที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Insul ไม่มีผลต่อ Gas เลย เพราะทั้งสองกลุ่มมี slope เหมือนกัน</button>
+  <button class="opt" data-correct="true">Insul น่าจะมีผลแบบ "เปลี่ยน intercept" (ระดับการใช้แก๊สที่ Temp เดียวกัน) มากกว่าเปลี่ยน slope ของความสัมพันธ์ Temp-Gas</button>
+  <button class="opt" data-correct="false">ข้อมูลนี้ใช้ linear regression ไม่ได้เพราะมี 2 กลุ่มปนกัน</button>
+  <button class="opt" data-correct="false">Temp ไม่มีผลต่อ Gas เลย เพราะจุดกระจายเป็นแนวนอน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>6. Fitting MLR ด้วย <code>lm()</code>: ตัวอย่าง Whiteside's Data</h2>
+<p><code>lm(formula, data, subset, weights, na.action)</code> — argument เดียวกับ SLR ทุกตัว รวมถึง <code>subset</code> ที่ให้ระบุเลือกฟิตเฉพาะบางแถวของข้อมูล ซึ่งเป็นวิธีง่ายที่สุดที่จะ "แยกฟิต" สองกลุ่มออกจากกันโดยไม่ต้องยุ่งกับ dummy variable เลย:</p>
+<pre><code>&gt; modelBefore&lt;-lm(Gas~Temp, data=whiteside, subset=(Insul=="Before"))
+&gt; modelAfter&lt;-lm(Gas~Temp, data=whiteside, subset=(Insul=="After"))</code></pre>
+<p>ผลของ <code>modelBefore</code>:</p>
+<pre><code>&gt; print(modelBefore)
+
+Call:
+lm(formula = Gas ~ Temp, data = whiteside, subset = (Insul == "Before"))
+
+Coefficients:
+(Intercept)         Temp
+     6.8538      -0.3932
+
+&gt; anova(modelBefore)
+Analysis of Variance Table
+
+Response: Gas
+          Df Sum Sq Mean Sq F value   Pr(&gt;F)
+Temp       1 31.905 31.905 403.11 &lt; 2.2e-16 ***
+Residuals 24  1.900  0.079</code></pre>
+<p>และผลเต็มของ <code>modelAfter</code> (นี่คือ output รูปแบบเดียวกับ Lesson 1 เป๊ะ อ่านทุกบรรทัดแบบเดิม):</p>
+<pre><code>&gt; summary(modelAfter)
+
+Call:
+lm(formula = Gas ~ Temp, data = whiteside, subset = (Insul == "After"))
+
+Residuals:
+     Min       1Q    Median        3Q        Max
+-0.97802 -0.11082   0.02672   0.25294   0.63803
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)  4.72385    0.12974   36.41  &lt; 2e-16 ***
+Temp        -0.27793    0.02518  -11.04 1.05e-11 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.3548 on 28 degrees of freedom
+Multiple R-squared: 0.8131,     Adjusted R-squared: 0.8064
+F-statistic: 121.8 on 1 and 28 DF,  p-value: 1.046e-11</code></pre>
+<p>อ่านตัวเลข: สมการของกลุ่ม After คือ \(\widehat{Gas} = 4.72385 - 0.27793 \times Temp\) ในขณะที่กลุ่ม Before คือ \(\widehat{Gas} = 6.8538 - 0.3932 \times Temp\) — <strong>ทั้ง intercept และ slope ต่างกันเล็กน้อยระหว่างสองกลุ่ม</strong> (Before ใช้แก๊สตั้งต้นสูงกว่า และลดลงเร็วกว่าเมื่ออุณหภูมิเพิ่มด้วย) — จำตัวเลขชุดนี้ไว้ให้แม่น (<code>6.8538, -0.3932, 4.72385, -0.27793</code>) เพราะในหัวข้อ 11 จะฟิตโมเดล MLR ตัวเดียวที่รวมทั้งสองกลุ่มเข้าด้วยกัน แล้วพิสูจน์ด้วยตัวเลขจริงว่าได้ผลลัพธ์<strong>เดียวกันเป๊ะ</strong>กับการแยกฟิตแบบนี้.</p>
+
+<h2>7. รูปแบบของตัวแปรอิสระ X และ Polynomial Model</h2>
+<p>สไลด์เปิดหัวข้อนี้ด้วยข้อความสำคัญ: X ใน MLR ไม่จำเป็นต้องเป็นแค่ตัวแปรเชิงปริมาณดิบ ๆ เท่านั้น แต่เป็นได้ 4 แบบ: (1) quantitative regressor เดิม เช่น age, income (2) transformed regressor เช่น age², log(income) (3) categorical predictor (coded เป็น 0/1 dummy) (4) interaction ของ regressor เช่น (treatment × gender) — สามข้อหลังคือของใหม่ที่ SLR ไม่มี และจะเป็นหัวข้อหลักของบทนี้ที่เหลือ.</p>
+<p>เริ่มจาก transformed regressor แบบ polynomial — สังเกตว่าโมเดลกำลังสอง/สามยังคง "เชิงเส้น" อยู่ในความหมายของ <em class="term">linear regression</em> เพราะเชิงเส้นในที่นี้หมายถึง<strong>เชิงเส้นในพารามิเตอร์ β</strong> ไม่ใช่เชิงเส้นในรูปร่างกราฟ:</p>
+<div class="box">
+First-order: \(Y = \beta_0 + \beta_1 x + \varepsilon\)<br>
+Second-order: \(Y = \beta_0 + \beta_1 x + \beta_2 x^2 + \varepsilon\)<br>
+Third-order: \(Y = \beta_0 + \beta_1 x + \beta_2 x^2 + \beta_3 x^3 + \varepsilon\)
+</div>
+<p>โมเดลกำลังสองใช้เมื่อ scatter plot โค้งแบบพาราโบลา (จุดเปลี่ยนทิศทางครั้งเดียว) — ทิศทางของความโค้งขึ้นกับเครื่องหมายของ \(\beta_1\) และ \(\beta_2\) ร่วมกัน:</p>
+<figure>
+<img src="../assets/slides/as2-p21-second-order-model-shapes.png" alt="Four curve shapes for a second-order polynomial model: decreasing convex (beta1<0, beta2>0), increasing convex (beta1>0, beta2>0), decreasing concave (beta1<0, beta2<0), increasing concave (beta1>0, beta2<0)">
+<figcaption>Slide: Second-order Model (Lecture 2, p.21)</figcaption>
+</figure>
+<p>อ่านภาพ: กราฟซ้ายสุด (\(\beta_1<0, \beta_2>0\)) ลดลงเร็วช่วงต้นแล้วค่อย ๆ แบนราบ (ความชันติดลบแต่กำลังอ่อนแรงลงเรื่อย ๆ) — สัญลักษณ์ของ \(\beta_2>0\) คือ "แรงต้าน" ที่ค่อย ๆ ดึงความชันให้เพิ่มขึ้น (จากลบมากไปลบน้อย) เมื่อ x โต. ส่วนกราฟขวาสุด (\(\beta_1>0, \beta_2<0\)) คือรูปแบบ "ผลตอบแทนลดลง" (diminishing returns) แบบคลาสสิก — เพิ่มขึ้นเร็วตอนแรกแล้วชะลอตัว, พบบ่อยมากในข้อมูลเศรษฐศาสตร์/ธุรกิจ. โมเดลกำลังสามใช้เมื่อกราฟมีจุดเปลี่ยนทิศทาง<strong>สองครั้ง</strong> (ขึ้น-ลง-ขึ้น หรือ ลง-ขึ้น-ลง):</p>
+<figure>
+<img src="../assets/slides/as2-p22-third-order-model-diagram.png" alt="Scatterplot with an S-shaped third-order polynomial curve fit through the data, showing an initial rise, a dip in the middle, then a rise again">
+<figcaption>Slide: Third-order Model (Lecture 2, p.22)</figcaption>
+</figure>
+<p>สังเกตจุดข้อมูลในภาพ: เริ่มต่ำ ไต่ขึ้นถึงจุดสูงสุดท้องถิ่น (local peak) ราวกลางกราฟ แล้วลดลงเป็นจุดต่ำสุดท้องถิ่น (local trough) ก่อนจะไต่ขึ้นอีกครั้งช่วงปลาย — เส้นโค้งสีน้ำเงินรูปตัว S คดเคี้ยวนี้คือสิ่งที่พจน์ \(\beta_3\) ทำได้แต่ \(\beta_2\) ทำไม่ได้ (พาราโบลามีจุดเปลี่ยนทิศทางได้แค่ครั้งเดียวเท่านั้น).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Polynomial Model</span></div>
+  <div class="qtext">ทำไมโมเดล \(\beta_1<0, \beta_2>0\) ยังถือว่าเป็น "linear regression" ทั้งที่กราฟที่ได้เป็นเส้นโค้งพาราโบลาไม่ใช่เส้นตรง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะจริง ๆ แล้วโมเดลนี้ไม่ใช่ linear regression แต่สไลด์เรียกผิด</button>
+  <button class="opt" data-correct="true">เพราะคำว่า "linear" หมายถึงโมเดลเชิงเส้นในพารามิเตอร์ β ไม่ใช่เชิงเส้นในรูปร่างของกราฟ — x² เป็นแค่ตัวแปรอิสระอีกตัวที่ถูกแปลง (transform) มา</button>
+  <button class="opt" data-correct="false">เพราะ R บังคับให้ lm() วาดกราฟเป็นเส้นตรงเสมอไม่ว่าโมเดลจะเป็นอะไร</button>
+  <button class="opt" data-correct="false">เพราะ β₂x² มีค่าน้อยมากจนพอจะประมาณเป็นเส้นตรงได้เสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. ตัวอย่าง Corn Yields: Quadratic Regression จริงจาก R</h2>
+<p>ข้อมูลจริง: ผลผลิตข้าวโพด (YIELD) เทียบกับปริมาณน้ำฝน (RAINFALL) จาก 6 รัฐในสหรัฐฯ ปี 1890-1927:</p>
+<pre><code>&gt; corn&lt;-read.csv("corn.csv")
+&gt; head(corn)
+  YEAR YIELD RAINFALL
+1 1890  24.5      9.6
+2 1891  33.7     12.9
+3 1892  27.9      9.9
+4 1893  27.5      8.7
+5 1894  21.7      6.8
+6 1895  31.9     12.5
+&gt; attach(corn)
+&gt; plot(RAINFALL, YIELD)</code></pre>
+<p>ฟิตทั้งเส้นตรง (SLR) และเส้นโค้งกำลังสอง (quadratic) ทับข้อมูลชุดเดียวกันเพื่อเปรียบเทียบ:</p>
+<figure>
+<img src="../assets/slides/as2-p24-corn-yields-linear-vs-quadratic-fit.png" alt="Scatterplot of corn yield versus rainfall with a blue straight line (linear fit) and a red curved parabola (quadratic fit) overlaid, showing the quadratic line tracking the data's rise-then-plateau shape more closely than the straight line">
+<figcaption>Slide: Example — Corn Yields (Lecture 2, p.24)</figcaption>
+</figure>
+<p>อ่านภาพ: เส้นตรงสีน้ำเงิน (SLR) ไต่ขึ้นตลอดทั้งช่วงแบบไม่หยุด แต่จุดข้อมูลจริงบอกว่าที่ RAINFALL สูงมาก (เกิน ~14) YIELD กลับ<strong>ทรงตัวหรือลดลงเล็กน้อย</strong> ไม่ได้เพิ่มต่อเนื่อง — เส้นโค้งสีแดง (quadratic, \(\beta_1>0, \beta_2<0\)) ตามรูปทรงนี้ได้แม่นกว่าชัดเจน โดยขึ้นถึงจุดสูงสุดแล้วค่อยลาดลงเล็กน้อยที่ปลาย — ฝนน้อยไปก็ไม่พอ ฝนมากไปก็เริ่มท่วม/ชะล้างสารอาหาร ตรงกับสามัญสำนึกทางการเกษตร (diminishing returns ที่เห็นในหัวข้อ 7).</p>
+<p>ฟิตโมเดลกำลังสองด้วย \(x^2\) (สังเกต <code>I(RAINFALL^2)</code> ที่บังคับให้ R ตีความ <code>^2</code> เป็นการยกกำลังทางคณิตศาสตร์จริง ไม่ใช่ formula operator ที่จะอธิบายในหัวข้อ 10):</p>
+<pre><code>&gt; model&lt;-lm(YIELD~RAINFALL+I(RAINFALL^2), data=corn)
+&gt; summary(model)
+
+Call:
+lm(formula = YIELD ~ RAINFALL + I(RAINFALL^2), data = corn)
+
+Residuals:
+    Min      1Q  Median      3Q     Max
+-8.4642 -2.3236 -0.1265  3.5151  7.1597
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   -5.01467   11.44158  -0.438  0.66387
+RAINFALL       6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2) -0.22936    0.08864  -2.588  0.01397 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 3.763 on 35 degrees of freedom
+Multiple R-squared: 0.2967,     Adjusted R-squared: 0.2565
+F-statistic: 7.382 on 2 and 35 DF,  p-value: 0.002115</code></pre>
+<p>อ่านตัวเลข: สมการที่ได้คือ \(\widehat{YIELD} = -5.01467 + 6.00428 \times RAINFALL - 0.22936 \times RAINFALL^2\) — เครื่องหมาย \(\hat{\beta}_1>0, \hat{\beta}_2<0\) ตรงกับรูปแบบ "diminishing returns" (กราฟขวาสุด) ในหัวข้อ 7 เป๊ะ. สังเกตว่า \(\hat{\beta}_0\) มี p-value = 0.66387 (ไม่มีนัยสำคัญ) แต่ <code>RAINFALL</code> และ <code>I(RAINFALL^2)</code> มีนัยสำคัญทั้งคู่ (p=0.00571 และ 0.01397) — <strong>ข้อควรระวัง: ในโมเดล polynomial ห้ามตัด intercept ทิ้งแม้จะไม่มีนัยสำคัญ</strong> เพราะ RAINFALL กับ RAINFALL² เป็นตัวแปรเดียวกัน (ไม่ใช่ตัวแปรอิสระสองตัวที่ไม่เกี่ยวกัน) การตัดพจน์ใดพจน์หนึ่งทิ้งจะบิดรูปทรงของเส้นโค้งทั้งเส้น ไม่ใช่แค่เลื่อนระดับเหมือนตัดตัวแปรอิสระธรรมดา.</p>
+
+<h2>9. ตัวแปรเชิงกลุ่ม (Categorical) และ Dummy Variable: ตัวอย่าง Pie Sales</h2>
+<p>สำหรับตัวแปรอิสระที่เป็นเชิงกลุ่ม (nominal/categorical) เช่น <code>Insul</code> ในหัวข้อ 4-6 ต้องสร้าง<strong>ตัวแปรบ่งชี้ (indicator/dummy variable)</strong> ก่อน — ตัวแปรที่รับค่าได้แค่ 0 หรือ 1 เท่านั้น ตัวแปรเชิงกลุ่มที่มี 2 ระดับใช้ dummy 1 ตัวพอ ส่วนตัวแปรที่มี k ระดับต้องใช้ dummy <code>(k−1)</code> ตัว (กัน multicollinearity สมบูรณ์แบบระหว่าง dummy กับ intercept — จะเจอรายละเอียดเพิ่มใน Lecture ถัดไป).</p>
+<p>ตัวอย่าง: ยอดขายพาย (Y) ทำนายจากราคา (X₁) และมีวันหยุดหรือไม่ (X₂):</p>
+<div class="box">
+\(X_2=1\) ถ้ามีวันหยุดในสัปดาห์นั้น, \(X_2=0\) ถ้าไม่มี<br>
+\(\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_1 + \hat{\beta}_2 X_2\)
+</div>
+<p>สมการนี้ดูเหมือนโมเดลปกติ แต่พลังของมันอยู่ที่การแทนค่า \(X_2\) เข้าไปแล้วดูว่าเกิดอะไรขึ้น:</p>
+<figure>
+<img src="../assets/slides/as2-p27-pie-sales-dummy-variable-lines.png" alt="Diagram showing two parallel lines for pie sales versus price: one for holiday weeks (higher, intercept beta0+beta2) and one for non-holiday weeks (lower, intercept beta0), both with the same slope beta1, illustrating that the dummy variable shifts intercept only">
+<figcaption>Slide: Example — Pie Sales (Lecture 2, p.27)</figcaption>
+</figure>
+<p>แทน \(X_2=1\) (Holiday): \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2(1) = (\hat{\beta}_0+\hat{\beta}_2) + \hat{\beta}_1 X_1\) — intercept กลายเป็น \((\hat{\beta}_0+\hat{\beta}_2)\). แทน \(X_2=0\) (No Holiday): intercept เป็น \(\hat{\beta}_0\) เฉย ๆ. ทั้งสองสมการมี<strong>สัมประสิทธิ์ของ X₁ (คือ β̂₁) เท่ากันเป๊ะ</strong> — นี่คือเหตุผลที่ภาพวาดเป็นเส้นขนานสองเส้น (slope เท่ากัน) แต่สูงต่ำต่างกัน (intercept ต่างกันด้วยระยะ \(\beta_2\) พอดี) — <strong>dummy variable แบบไม่มี interaction จึงให้แค่ "เส้นขนานที่อยู่คนละความสูง" เท่านั้น ไม่ใช่เส้นที่มีความชันต่างกัน</strong>. ถ้าทดสอบ \(H_0: \beta_2=0\) แล้วปฏิเสธได้ แปลว่า Holiday มีผลต่อยอดขายพายอย่างมีนัยสำคัญ (เลื่อนระดับยอดขายขึ้น/ลง).</p>
+<p>ตรวจสอบแนวคิดนี้กับตัวเลขจริงจากหัวข้อ 6: ถ้าฟิต \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2(1) = (\hat{\beta}_0+\hat{\beta}_2) + \hat{\beta}_1 X_1\) (ไม่มี interaction) กับข้อมูล Whiteside — \((\hat{\beta}_0+\hat{\beta}_2)\) จะทำหน้าที่เหมือน \(X_2=1\) ในตัวอย่างพายเป๊ะ คือเลื่อน<strong>เฉพาะ intercept</strong> ระหว่างกลุ่ม Before/After โดยบังคับให้ทั้งสองกลุ่มมี slope ของ Temp เท่ากัน — จะเห็นตัวเลขจริงในหัวข้อ 12 ว่าผลลัพธ์ต่างจากการแยกฟิต \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2(0) = \hat{\beta}_0 + \hat{\beta}_1 X_1\)/\(\hat{\beta}_0\) ในหัวข้อ 6 อย่างไร (เพราะการแยกฟิตยอมให้ slope ต่างกันได้ด้วย ในขณะที่โมเดลไม่มี interaction บังคับ slope เท่ากัน).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>Dummy Variable</span></div>
+  <div class="qtext">โมเดล \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_1+\hat{\beta}_2 X_2\) โดย X₂ เป็น dummy variable (0/1) และไม่มีพจน์ interaction จะให้เส้นถดถอยของสองกลุ่ม (X₂=0 กับ X₂=1) มีลักษณะอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เส้นตัดกัน (มี intercept และ slope ต่างกันทั้งคู่)</button>
+  <button class="opt" data-correct="false">เส้นทั้งสองมี slope เท่ากับ β̂₂ ทั้งคู่</button>
+  <button class="opt" data-correct="false">เส้นซ้อนทับกันเป็นเส้นเดียว (X₂ ไม่มีผลอะไรเลย)</button>
+  <button class="opt" data-correct="true">เส้นขนานกัน (intercept ต่างกันด้วยระยะ β̂₂ แต่ slope เท่ากันคือ β̂₁ ทั้งคู่)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>10. Interaction Term — แนวคิดและ Notation</h2>
+<p>คำถามที่ dummy variable แบบไม่มี interaction ตอบไม่ได้: "ผลของ Temp ต่อ Gas เปลี่ยนไปหรือไม่ ขึ้นอยู่กับว่าติดฉนวนแล้วหรือยัง" — สไลด์นิยาม <em class="term">interaction</em> ไว้ตรง ๆ: ตัวแปรอิสระสองตัวจะเรียกว่า interact กัน ถ้าผลของตัวหนึ่งที่มีต่อค่าเฉลี่ยของ Y ขึ้นอยู่กับค่าของอีกตัวหนึ่ง — และมีกฎสำคัญ: <strong>โมเดลที่มีพจน์ interaction ต้องมีพจน์ของแต่ละตัวแปรเดี่ยว ๆ อยู่ด้วยเสมอ</strong> แม้สัมประสิทธิ์ของพจน์เดี่ยวนั้นจะไม่มีนัยสำคัญทางสถิติก็ตาม (เรียกกฎ "marginality/hierarchy principle" — ห้ามใส่ A:B โดยไม่มี A และ B แยกกัน).</p>
+<p>ใน R, formula ของ <code>lm()</code> มี notation เฉพาะที่ต้องจำให้ขึ้นใจ:</p>
+<table>
+<tr><th>Formula</th><th>ความหมาย</th></tr>
+<tr><td><code>y ~ x</code></td><td>regress y บน x ตัวเดียว</td></tr>
+<tr><td><code>y ~ .</code></td><td>regress y บนตัวแปรทุกตัวใน data frame (ไม่มี interaction)</td></tr>
+<tr><td><code>y ~ x1+x2</code></td><td>ใส่ x1 และ x2 (additive, ไม่มี interaction)</td></tr>
+<tr><td><code>y ~ x1-x2</code></td><td>ใส่ x1 แต่ตัด x2 ออก</td></tr>
+<tr><td><code>y ~ x1:x2</code></td><td>เท่ากับใส่ interaction ของ x1 กับ x2 <strong>อย่างเดียว</strong> (ไม่มีพจน์เดี่ยว — ปกติไม่ใช้แบบนี้เพราะผิดกฎ marginality)</td></tr>
+<tr><td><code>y ~ x1*x2</code></td><td>เท่ากับ <code>x1+x2+x1:x2</code> — ใส่ครบทั้งพจน์เดี่ยวและ interaction (แบบที่ถูกต้องตามกฎ)</td></tr>
+<tr><td><code>y ~ x^n</code></td><td>ใส่ทุกพจน์ของ x พร้อม interaction จนถึงลำดับ n</td></tr>
+<tr><td><code>y ~ I(Arg)</code></td><td><code>Arg</code> คือนิพจน์คณิตศาสตร์จริง เช่น <code>I(Age^2)</code> = พจน์กำลังสองของ Age (ตามหัวข้อ 8)</td></tr>
+</table>
+<p>เจาะจงกลับไปที่ Whiteside data: <code>Gas ~ Insul*Temp</code> เท่ากับ <code>Gas ~ Insul + Temp + Insul:Temp</code> — พจน์ <code>Insul:Temp</code> คือ interaction ที่จะทำให้<strong>ทั้ง intercept และ slope</strong> ต่างกันได้ระหว่างกลุ่ม Before/After พร้อมกัน (ต่างจากหัวข้อ 9 ที่ต่างได้แค่ intercept) — นี่คือสิ่งที่จะพิสูจน์ด้วยตัวเลขจริงในหัวข้อถัดไป.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Formula Notation และ Interaction</span></div>
+  <div class="qtext">ทำไมโมเดลที่มีพจน์ interaction <code>x1:x2</code> จึงต้องมีพจน์เดี่ยว <code>x1</code> และ <code>x2</code> อยู่ในโมเดลด้วยเสมอ (เขียนเป็น <code>x1*x2</code> ไม่ใช่ <code>x1:x2</code> เฉย ๆ)?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะพจน์ interaction คำนวณไม่ได้เลยถ้าไม่มีพจน์เดี่ยวมาก่อน</button>
+  <button class="opt" data-correct="true">เพราะเป็นกฎ marginality/hierarchy ของการสร้างโมเดล — ใส่ interaction โดยไม่มีพจน์เดี่ยวจะตีความผลลัพธ์ไม่ได้อย่างมีความหมายในทางสถิติ แม้พจน์เดี่ยวจะไม่มีนัยสำคัญก็ตาม</button>
+  <button class="opt" data-correct="false">เพราะ R จะรันโค้ด error ทันทีถ้าไม่มีพจน์เดี่ยว</button>
+  <button class="opt" data-correct="false">เพราะพจน์เดี่ยวช่วยเพิ่ม R² เสมอไม่ว่ากรณีใด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>11. โมเดล Interaction เต็มรูป: Whiteside model1 — อ่านผลและแปลความ (ทักษะที่ออกสอบหนักที่สุด)</h2>
+<p>ฟิตโมเดลเดียวที่รวมทั้ง Insul, Temp, และ interaction ของสองตัวนี้:</p>
+<pre><code>&gt; model1&lt;-lm(Gas~Insul*Temp, data=whiteside)
+&gt; summary(model1)
+
+Call:
+lm(formula = Gas ~ Insul * Temp, data = whiteside)
+
+Residuals:
+     Min       1Q    Median        3Q       Max
+-0.97802 -0.18011   0.03757   0.20930   0.63803
+
+Coefficients:
+               Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)     6.85383    0.13596  50.409  &lt; 2e-16 ***
+InsulAfter     -2.12998    0.18009 -11.827 2.32e-16 ***
+Temp           -0.39324    0.02249 -17.487  &lt; 2e-16 ***
+InsulAfter:Temp 0.11530    0.03211   3.591 0.000731 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.323 on 52 degrees of freedom
+Multiple R-squared: 0.9277,     Adjusted R-squared: 0.9235
+F-statistic: 222.3 on 3 and 52 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>สังเกตว่า R ตั้งชื่อแถวเป็น <code>InsulAfter</code> ไม่ใช่ <code>Insul</code> เฉย ๆ — เพราะ R เลือกกลุ่ม "Before" เป็น <em>baseline/reference level</em> โดยอัตโนมัติ (เรียงตามตัวอักษร) แล้วสร้าง dummy <code>InsulAfter=1</code> เมื่อเป็นกลุ่ม After, <code>=0</code> เมื่อเป็น Before — สมการเต็มคือ:</p>
+<div class="box">
+\(\widehat{Gas} = 6.85383 - 2.12998 \times InsulAfter - 0.39324 \times Temp + 0.11530 \times (InsulAfter \times Temp)\)
+</div>
+<p><strong>ตรวจคำตอบด้วยตัวเลขจริงจากหัวข้อ 6</strong> — แทน <code>InsulAfter=0</code> (กลุ่ม Before): \(\widehat{Gas} = 6.85383 - 0.39324 \times Temp\) ตรงกับ <code>modelBefore</code> (\(\widehat{Gas} = 6.8538 - 0.3932 \times Temp\)) <strong>เป๊ะ</strong> (ต่างแค่ทศนิยมจากการปัดเศษ). แทน <code>InsulAfter=1</code>: intercept รวม = \(\hat{\beta}_0+\hat{\beta}_2 = 6.85383-2.12998 = 4.72385\) และ slope รวม = \(\hat{\beta}_1+\hat{\beta}_3 = -0.39324+0.11530 = -0.27794\) ตรงกับ <code>modelAfter</code> (\(\widehat{Gas} = 4.72385 - 0.27793 \times Temp\)) <strong>เป๊ะเช่นกัน</strong> — นี่คือบทพิสูจน์สำคัญที่สุดของบทเรียนนี้: <strong>โมเดล interaction ตัวเดียว (model1) ให้ผลลัพธ์เหมือนกับการแยกฟิต SLR สองโมเดล (modelBefore, modelAfter) ทุกประการ</strong> เพียงแต่รวบมาเขียนในสมการเดียวและทดสอบเปรียบเทียบสองกลุ่มได้ในตัว.</p>
+
+<div class="box win">
+<div class="label">การแปลผลสัมประสิทธิ์ MLR: "Holding Other Variables Constant"</div>
+<p><strong>Temp (β̂ = −0.39324):</strong> "สำหรับกลุ่ม Before (InsulAfter=0), เมื่อ Temp เพิ่มขึ้น 1 หน่วย Gas คาดว่าจะลดลงโดยเฉลี่ย 0.39324 หน่วย" — สังเกตว่าต้องระบุ "สำหรับกลุ่ม Before" กำกับไว้เสมอ เพราะมี interaction term ทำให้ slope ของ Temp <strong>ไม่คงที่</strong>ข้ามกลุ่ม (ต่างจาก Lesson 1 ที่ slope เดียวใช้ได้กับทั้งชุดข้อมูล)</p>
+<p><strong>InsulAfter (β̂ = −2.12998):</strong> "ที่ Temp=0 (จุดตัดแกน) กลุ่ม After มี Gas ต่ำกว่ากลุ่ม Before โดยเฉลี่ย 2.12998 หน่วย" — นี่คือความต่าง intercept ที่ Temp=0 เท่านั้น <strong>ไม่ใช่ความต่างเฉลี่ยตลอดทั้งช่วง Temp</strong> เพราะมี interaction ทำให้ช่องว่างระหว่างสองกลุ่มเปลี่ยนไปตาม Temp ด้วย</p>
+<p><strong>InsulAfter:Temp (β̂ = 0.11530):</strong> "ความชัน (slope) ของ Temp ต่อ Gas ในกลุ่ม After มากกว่ากลุ่ม Before อยู่ 0.11530 หน่วย (คือชันน้อยกว่า/ลาดน้อยกว่า เพราะทั้งคู่เป็นค่าลบ)" — พูดอีกแบบ: การติดฉนวนไม่ได้แค่ลดระดับการใช้แก๊สลง แต่ยังทำให้การใช้แก๊ส "ไวต่อการเปลี่ยนแปลงอุณหภูมิน้อยลง" ด้วย (ฉนวนกันความร้อนรั่วไหลออกได้ดีขึ้น จึงอุณหภูมิภายนอกมีผลน้อยลง) — ค่า p=0.000731 ยืนยันว่าความแตกต่างของ slope นี้มีนัยสำคัญทางสถิติ ไม่ใช่ความบังเอิญ</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล Interaction Term</span></div>
+  <div class="qtext">จาก output ของ model1 (\(\widehat{Gas} = 6.85383 - 0.39324 \times Temp\)) จงเขียนประโยคแปลผล (interpretation) ของ \(\hat{\beta}_{\text{InsulAfter:Temp}} = 0.11530\) ให้ถูกต้อง โดยต้องอธิบายว่าเหตุใดการแปลผลสัมประสิทธิ์ตัวนี้จึงไม่ใช่แบบเดียวกับการแปลผล slope ปกติใน SLR</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"ความชัน (ผลของ Temp ต่อ Gas) ในกลุ่ม After ต่างจากความชันในกลุ่ม Before อยู่ 0.11530 หน่วย (ชันน้อยกว่า เพราะสัมประสิทธิ์ Temp หลักเป็นลบ) — พูดง่าย ๆ คือฉนวนกันความร้อนทำให้ Gas ไวต่อ Temp น้อยลง" สาเหตุที่แปลผลต่างจาก slope ปกติ: สัมประสิทธิ์ของ interaction term<strong>ไม่ได้บอก effect ของตัวแปรใดตัวหนึ่งโดยตรง</strong> แต่บอกว่า "effect ของ Temp เปลี่ยนไปเท่าไรเมื่อ Insul เปลี่ยนจาก Before เป็น After" — เป็นการวัด "ความแตกต่างของความชัน" ระหว่างสองกลุ่ม ไม่ใช่ความชันตรง ๆ แบบที่ Lesson 1 สอน ซึ่ง SLR ทำแบบนี้ไม่ได้เพราะมีตัวแปรอิสระตัวเดียว ไม่มีกลุ่มให้เปรียบเทียบ</div>
+</div>
+
+<h2>12. โมเดล Additive (ไม่มี Interaction): model2 และ model3</h2>
+<p>เปรียบเทียบกับโมเดลที่<strong>ไม่มี</strong> interaction (บังคับ slope ของ Temp ให้เท่ากันทั้งสองกลุ่ม ตามกฎในหัวข้อ 9):</p>
+<pre><code>&gt; model2&lt;-lm(Gas~., data=whiteside)
+&gt; summary(model2)
+
+Call:
+lm(formula = Gas ~ ., data = whiteside)
+
+Residuals:
+     Min       1Q    Median        3Q       Max
+-0.74236 -0.22291   0.04338   0.24377   0.74314
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)  6.55133    0.11809   55.48   &lt;2e-16 ***
+InsulAfter  -1.56520    0.09705  -16.13   &lt;2e-16 ***
+Temp        -0.33670    0.01776  -18.95   &lt;2e-16 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.3574 on 53 degrees of freedom
+Multiple R-squared: 0.9097,     Adjusted R-squared: 0.9063
+F-statistic: 267.1 on 2 and 53 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>(<code>Gas~.</code> คือ "regress Gas บนทุกตัวแปรที่เหลือใน data frame" — เท่ากับ <code>Gas~Insul+Temp</code> พอดี เพราะ whiteside มีแค่ 2 ตัวแปรอิสระ)</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 9 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล Coefficient ในโมเดล Additive</span></div>
+  <div class="qtext">จาก output ของ model2 (ไม่มี interaction) จงเขียนประโยคแปลผลของ \(\hat{\beta}_{\text{Temp}} = -0.33670\) และ \(\hat{\beta}_{\text{InsulAfter}} = -1.56520\) ให้ครบทั้งสองตัว โดยใช้หลัก "holding other variable constant" ให้ถูกต้อง</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>Temp:</strong> "เมื่อ Temp เพิ่มขึ้น 1 หน่วย โดยคุมสถานะ Insul ให้คงที่ (เปรียบเทียบภายในกลุ่ม Before หรือ After กลุ่มเดียวกัน) Gas คาดว่าจะลดลงโดยเฉลี่ย 0.33670 หน่วย — และเพราะโมเดลนี้ไม่มี interaction ตัวเลขนี้ใช้ได้เหมือนกันทั้งสองกลุ่ม"</p>
+  <p><strong>InsulAfter:</strong> "ที่ระดับ Temp เดียวกัน (คุม Temp ให้คงที่) กลุ่ม After มี Gas ต่ำกว่ากลุ่ม Before โดยเฉลี่ย 1.56520 หน่วย — และเพราะไม่มี interaction ความต่างนี้เท่ากันทุกระดับของ Temp (ไม่ใช่แค่ที่ Temp=0 เหมือนตอนมี interaction)"</p>
+  </div>
+</div>
+
+<p>สังเกตค่า \(\hat{\beta}_{\text{Temp}}\) ของ model2 (−0.33670) อยู่ "ตรงกลาง" ระหว่าง slope ของ modelBefore (−0.3932) กับ modelAfter (−0.27793) — สมเหตุสมผล เพราะ model2 ถูกบังคับให้ใช้ slope เดียวกันสำหรับทั้งสองกลุ่ม จึงเป็นค่าประนีประนอมที่ fit ทั้งสองกลุ่มพร้อมกันได้ดีที่สุดโดยรวม แต่ fit แต่ละกลุ่มได้ไม่แม่นเท่า model1 ที่ยอมให้ slope ต่างกัน (ดู R² เปรียบเทียบในหัวข้อ 15).</p>
+<p>ท้ายสุด <code>model3</code> คือโมเดล "intercept-only" (ไม่มีตัวแปรอิสระเลย) ซึ่งเป็นโมเดล<strong>baseline ที่เรียบง่ายที่สุด</strong> — ทำนายค่าเดียวกันสำหรับทุกการสังเกต คือค่าเฉลี่ยของ Y เอง:</p>
+<pre><code>&gt; model3&lt;-lm(Gas~1, data=whiteside)
+&gt; summary(model3)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   4.0714     0.1561   26.09   &lt;2e-16 ***
+
+Residual standard error: 1.168 on 55 degrees of freedom</code></pre>
+<p>\(\hat{\beta}_0 = 4.0714\) คือ \(\bar{Y}\) (ค่าเฉลี่ยของ Gas ทั้งชุดข้อมูล) พอดี และ Residual standard error = 1.168 (สูงกว่า model1's 0.323 และ model2's 0.3574 มาก) — นี่คือ "โมเดลที่แย่ที่สุดที่เป็นไปได้" ที่ใช้เป็นตัวเทียบวัด SST ในการคำนวณ R² ของโมเดลอื่น (โมเดลไหนก็ตามที่ใส่ตัวแปรอิสระเข้าไป ต้องเอาชนะ model3 นี้ให้ได้อย่างมีนัยสำคัญ ไม่งั้นตัวแปรที่ใส่เข้าไปก็ไม่มีประโยชน์).</p>
+
+<h2>13. การทดสอบสัมประสิทธิ์รายตัว (t-test) และ Confidence Interval</h2>
+<p>ทดสอบ \(H_0: \beta_j=0\) vs \(H_1: \beta_j \neq 0\) สำหรับสัมประสิทธิ์แต่ละตัว j=1,2,…,p ทีละตัว ด้วย test statistic รูปแบบเดียวกับ SLR เป๊ะ เปลี่ยนแค่ degrees of freedom:</p>
+<div class="box">
+\(t = \dfrac{\hat{\beta}_j - \beta_j}{SE[\hat{\beta}_j]} \sim t(n-p-1)\)<br>
+\((1-\alpha)\% \text{ CI}: \hat{\beta}_j \pm t(1-\alpha/2, n-p-1) \times SE[\hat{\beta}_j]\)
+</div>
+<p>สังเกต df เปลี่ยนจาก \(n-2\) (SLR, เสีย 2 df ให้ β₀,β₁) เป็น \(n-p-1\) (MLR, เสีย df ให้พารามิเตอร์ทั้งหมด p+1 ตัว รวม intercept) — สำหรับ model1 ที่มี p=3 (InsulAfter, Temp, InsulAfter:Temp) และ n=56: df = 56−3−1 = 52 ตรงกับ "52 degrees of freedom" ที่ปรากฏใน output ของหัวข้อ 11 เป๊ะ.</p>
+<p>แถวในตาราง Coefficients ของ model1 แต่ละแถวคือผลการทดสอบ \(\hat{\beta}_j\) ของตัวมันเอง — ทุกแถวมี <code>Pr(&gt;|t|) &lt; 0.001</code> (ดอกจัน ***) แปลว่าปฏิเสธ H₀ ได้หมดทั้ง 4 ตัว รวมถึง interaction term ด้วย — ยืนยันว่าทั้ง Insul, Temp, และปฏิสัมพันธ์ระหว่างสองตัวนี้ล้วนมีผลต่อ Gas อย่างมีนัยสำคัญทางสถิติ.</p>
+<p>ช่วงความเชื่อมั่นของแต่ละ β_j ใน R ใช้ <code>confint()</code> เหมือน SLR ทุกประการ:</p>
+<pre><code>&gt; confint(model1, level=0.95)
+                     2.5 %     97.5 %
+(Intercept)      6.5809960  7.1266594
+InsulAfter      -2.4913585 -1.7685976
+Temp            -0.4383624 -0.3481153
+InsulAfter:Temp  0.0508662  0.1797416</code></pre>
+<p>สังเกตทุกแถว: <strong>ไม่มีแถวไหนที่ช่วง CI ครอบคลุมค่า 0 เลย</strong> — ตรงกับกฎจาก Lesson 1 (CI ไม่ครอบคลุม 0 ⟺ ปฏิเสธ H₀:β=0) และให้ข้อสรุปตรงกับ p-value ทุกแถว รวมถึงแถว \(\hat{\beta}_{\text{InsulAfter:Temp}}=0.11530\) ที่ช่วง (0.0509, 0.1797) เป็นบวกล้วน ยืนยันว่า slope ของสองกลุ่มต่างกันจริงอย่างมีนัยสำคัญ.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>Degrees of Freedom ใน MLR</span></div>
+  <div class="qtext">โมเดล MLR ที่มี n=100 การสังเกต และ p=5 ตัวแปรอิสระ (ไม่รวม intercept) จะมี degrees of freedom สำหรับการทดสอบสัมประสิทธิ์รายตัวเท่าใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">100 − 5 − 1 = 94 (เสีย df ให้พารามิเตอร์ทั้งหมด p+1 ตัว รวม intercept)</button>
+  <button class="opt" data-correct="false">100 − 1 = 99</button>
+  <button class="opt" data-correct="false">5 − 1 = 4</button>
+  <button class="opt" data-correct="false">100 − 5 = 95</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>14. Extra-Sum-of-Squares F-test: เปรียบเทียบ Full vs Reduced Model</h2>
+<p>t-test ในหัวข้อ 13 ทดสอบสัมประสิทธิ์<strong>ทีละตัว</strong> — แต่บางครั้งอยากทดสอบว่า "กลุ่มของตัวแปร" (เช่น Insul กับ interaction term รวมกัน 2 ตัว) มีผลอย่างมีนัยสำคัญร่วมกันหรือไม่ ใช้วิธีเปรียบเทียบ<strong>โมเดลเต็ม (full)</strong> กับ<strong>โมเดลตัดบางตัวออก (reduced)</strong>:</p>
+<div class="box">
+\(H_0: \beta_{j_1}=\beta_{j_2}=\cdots=\beta_{j_q}=0\)<br>
+\(H_1\): อย่างน้อยหนึ่งใน q ตัวสัมประสิทธิ์นี้ไม่เท่ากับ 0, โดย q = จำนวนสัมประสิทธิ์ที่ถูกทดสอบพร้อมกัน
+</div>
+<p>ตัวอย่างจริง: เทียบ full model (\(Y = \beta_0+\beta_1 \text{Insul}+\beta_2 \text{Temp}+\beta_3(\text{Insul}\times\text{Temp})+\varepsilon\)) กับ reduced model (\(Y = \beta_0+\beta_2 \text{Temp}+\varepsilon\) เฉย ๆ ตัด Insul ออกทั้ง main effect และ interaction):</p>
+<pre><code>&gt; model1&lt;-lm(Gas~Insul*Temp, data=whiteside)
+&gt; model2&lt;-lm(Gas~Temp, data=whiteside)
+&gt; anova(model2,model1)
+Analysis of Variance Table
+
+Model 1: Gas ~ Temp
+Model 2: Gas ~ Insul * Temp
+  Res.Df    RSS Df Sum of Sq      F    Pr(&gt;F)
+1     54 39.995
+2     52  5.425  2     34.57 165.67 &lt; 2.2e-16 ***</code></pre>
+<p><strong>ข้อควรระวังเรื่องชื่อตัวแปร:</strong> โค้ดบล็อกนี้ตั้งชื่อ <code>model2</code> ว่าเป็น <code>lm(Gas~Temp, data=whiteside)</code> ซึ่ง<strong>ไม่ใช่</strong> <code>model2</code> ตัวเดิมจากหัวข้อ 12 ที่เป็น <code>lm(Gas~., data=whiteside)</code> — สไลด์ใช้ชื่อตัวแปรซ้ำกันในคนละตัวอย่าง (คนละ R session กัน) เขียนโค้ดจริงเองต้องระวังไม่ให้ชื่อชนกันแบบนี้. และในตาราง output เอง คำว่า "Model 1"/"Model 2" ก็เป็นแค่ป้ายเรียงตามลำดับ argument ที่ใส่ให้ <code>anova()</code> (<code>anova(model2, model1)</code> → argument แรกกลายเป็น "Model 1" ในตาราง = reduced, argument ที่สองกลายเป็น "Model 2" ในตาราง = full) <strong>ไม่ใช่</strong>ชื่อตัวแปร R ตัวเดียวกัน — ต้องอ่านสูตร <code>Gas~...</code> ที่พิมพ์กำกับไว้เพื่อยืนยันว่าโมเดลไหนเป็นโมเดลไหนจริง ๆ เสมอ อย่าเดาจากชื่อ.</p>
+<p>ตรวจตัวเลข: <code>ESS = 39.995 − 5.425 = 34.57</code> ตรงกับคอลัมน์ "Sum of Sq" เป๊ะ, \[ESS = SSE_{reduced} - SSE_{full}\] (ตัด InsulAfter และ InsulAfter:Temp ออกพร้อมกัน 2 ตัว) ตรงกับ df=2, และ \(F = \dfrac{ESS/q}{SSE_{full}/(n-p_{full}-1)} \sim F(q, n-p_{full}-1)\) ใกล้เคียง 165.67 ที่ R รายงาน (คลาดเคลื่อนจากปัดเศษ) — p-value &lt; 2.2e-16 ปฏิเสธ H₀ ได้ขาด สรุปว่า<strong>การเพิ่ม Insul (ทั้ง main effect และ interaction) เข้าไปในโมเดลที่มี Temp อยู่แล้ว ช่วยอธิบาย Gas ได้ดีขึ้นอย่างมีนัยสำคัญทางสถิติ</strong> ไม่ใช่แค่ noise.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 11 (Free response)</span><span>Extra-Sum-of-Squares F-test</span></div>
+  <div class="qtext">จากผล <code>anova(model2,model1)</code> ข้างบน (F=165.67, p&lt;2.2e-16) จงเขียนข้อสรุปทางสถิติที่ถูกต้อง พร้อมระบุว่า H₀ ของการทดสอบนี้คืออะไร</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">\(H_0: \beta_{\text{InsulAfter}} = \beta_{\text{InsulAfter:Temp}} = 0\) (ตัวแปร Insul ทั้งในรูป main effect และ interaction ไม่มีผลต่อ Gas เลย เมื่อ Temp อยู่ในโมเดลแล้ว) เทียบกับ \(H_1\): อย่างน้อยหนึ่งในสองสัมประสิทธิ์นี้ไม่เท่ากับ 0 — เพราะ p-value &lt; 2.2e-16 (น้อยกว่า 0.05 มาก) จึงปฏิเสธ H₀ และสรุปว่า Insul (ทั้งผลหลักและผลปฏิสัมพันธ์กับ Temp) ช่วยอธิบายความแปรปรวนของ Gas ได้อย่างมีนัยสำคัญทางสถิติ เมื่อเทียบกับโมเดลที่มีแค่ Temp ตัวเดียว</div>
+</div>
+
+<h2>15. Coefficient of Determination (R²) และ Adjusted R²</h2>
+<p>นิยาม R² เหมือน SLR ทุกประการ — สัดส่วนความแปรปรวนของ Y ที่โมเดลอธิบายได้:</p>
+<div class="box">
+\(\sum (Y_i-\bar{Y})^2 = \sum (Y_i-\hat{Y}_i)^2 + \sum (\hat{Y}_i-\bar{Y})^2\)<br>
+<code>Total SS (SST) = Unexplained SS (SSE) + Explained SS (SSR)</code>, &nbsp; \(R^2 = SSR/SST\)
+</div>
+<p>แต่ MLR มีข้อควรระวังที่ SLR ไม่มี: <strong>R² เพิ่มขึ้นได้เสมอ (หรือเท่าเดิม) เมื่อใส่ตัวแปรอิสระเพิ่ม ไม่ว่าตัวแปรนั้นจะมีความหมายทางสถิติจริงหรือไม่</strong> — เป็นข้อเสียสำคัญที่ต้องแก้ด้วย Adjusted R²:</p>
+<div class="box win">
+\[\text{Adjusted } R^2 = 1 - \dfrac{SSE/(n-(p+1))}{SST/(n-1)}\]
+</div>
+<p>ตัว Adjusted R² ลงโทษการเพิ่มตัวแปร (หาร df ที่ลดลง) ทำให้เปรียบเทียบโมเดลที่มีจำนวนตัวแปรต่างกันได้แฟร์กว่า R² เฉย ๆ — แต่<strong>ไม่มีการตีความง่าย ๆ เหมือน R²</strong> (R² ตีความตรง ๆ ว่า "อธิบายได้กี่ % " แต่ Adjusted R² ใช้เปรียบเทียบเท่านั้น).</p>
+<p>เปรียบเทียบตัวเลขจริงจากหัวข้อ 11-12: model1 (มี interaction) ได้ \(R^2=0.9277, \text{Adj } R^2=0.9235\) ส่วน model2 (ไม่มี interaction) ได้ \(R^2=0.9097, \text{Adj } R^2=0.9063\) — R² ของ model1 สูงกว่าจริง (0.9277 &gt; 0.9097) แต่<strong>สูงกว่าเพราะ interaction มีความหมายจริงหรือแค่เพราะมีตัวแปรมากกว่า</strong>? Adjusted R² ที่สูงกว่าด้วย (0.9235 &gt; 0.9063) เป็นสัญญาณเบื้องต้นว่าน่าจะมีความหมายจริง แต่วิธีที่แม่นยำกว่าคือ extra-sum-of-squares F-test ในหัวข้อ 14 ซึ่งยืนยันแล้วว่า Insul (รวม interaction) มีนัยสำคัญทางสถิติจริง ไม่ใช่แค่ R² เพิ่มขึ้นโดยบังเอิญจากการมีพารามิเตอร์มากกว่า.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>Adjusted R²</span></div>
+  <div class="qtext">นักวิเคราะห์คนหนึ่งเพิ่มตัวแปรอิสระที่เป็น "เลขสุ่มล้วน ๆ ไม่เกี่ยวข้องกับ Y เลย" เข้าไปในโมเดล MLR ที่มีอยู่แล้ว ข้อใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">R² จะลดลงแน่นอน เพราะตัวแปรนี้ไม่มีความสัมพันธ์กับ Y เลย</button>
+  <button class="opt" data-correct="false">ทั้ง R² และ Adjusted R² จะเท่าเดิมเป๊ะ เพราะตัวแปรสุ่มไม่มีผลอะไรเลย</button>
+  <button class="opt" data-correct="true">R² จะเพิ่มขึ้นหรือเท่าเดิมเสมอ (ไม่มีทางลดลง) แต่ Adjusted R² อาจลดลงได้ เพราะลงโทษการเพิ่มตัวแปรที่ไม่ช่วยอธิบายอะไรเพิ่ม</button>
+  <button class="opt" data-correct="false">ทั้ง R² และ Adjusted R² จะเพิ่มขึ้นเสมอไม่ว่าตัวแปรจะสุ่มแค่ไหน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>16. F-test ภาพรวมโมเดล (Overall F-test) และ ANOVA Table</h2>
+<p>เหมือน SLR: อีกวิธีทดสอบว่าโมเดล "ใช้ได้" โดยรวมหรือไม่ (ไม่ใช่ทีละสัมประสิทธิ์แบบหัวข้อ 13) คือทดสอบสัมประสิทธิ์ทุกตัวพร้อมกัน:</p>
+<div class="box">
+\(H_0: \beta_1=\beta_2=\cdots=\beta_p=0\) (ไม่มีตัวแปรไหนสัมพันธ์กับ Y เลย โมเดลใช้ไม่ได้) vs \(H_1\): อย่างน้อยหนึ่ง β_j ≠ 0
+</div>
+<table>
+<tr><th>Source</th><th>df</th><th>Sum Sq</th><th>Mean Sq</th><th>F</th></tr>
+<tr><td>Regression</td><td>p</td><td>SSR</td><td>MSR=SSR/p</td><td>F=MSR/MSE</td></tr>
+<tr><td>Error</td><td>n−p−1</td><td>SSE</td><td>MSE=SSE/(n−p−1)</td><td></td></tr>
+<tr><td>Total</td><td>n−1</td><td colspan="3"></td></tr>
+</table>
+<p>จาก output ของ model1 ในหัวข้อ 11: \(F = \dfrac{69.589/3}{5.425/52} = \dfrac{23.196}{0.10433} \approx 222.3\) — df แรก (3) คือ p (จำนวนสัมประสิทธิ์ที่ไม่ใช่ intercept: InsulAfter, Temp, InsulAfter:Temp) และ df ที่สอง (52) ตรงกับ n−p−1 = 56−3−1 = 52 เป๊ะ. F สูงมาก (222.3) และ p-value ต่ำมาก บอกว่าโมเดลนี้ใช้ได้จริง อย่างน้อยหนึ่งตัวแปรมีผลต่อ Gas อย่างแน่นอน.</p>
+<p>ตาราง ANOVA แบบเต็มของ <code>anova(model1)</code> ให้รายละเอียดมากกว่า summary() เพราะแตก SSR ออกเป็นส่วนย่อยตามแต่ละตัวแปร (เรียกว่า <em class="term">sequential/Type I sum of squares</em>):</p>
+<pre><code>&gt; anova(model1)
+Analysis of Variance Table
+
+Response: Gas
+           Df Sum Sq Mean Sq F value   Pr(&gt;F)
+Insul       1 22.348  22.348 214.198 &lt; 2.2e-16 ***
+Temp        1 45.896  45.896 439.908 &lt; 2.2e-16 ***
+Insul:Temp  1  1.345   1.345  12.893 0.0007307 ***
+Residuals  52  5.425   0.104</code></pre>
+<p><strong>ข้อควรระวังสำคัญ:</strong> ตัวเลข Sum Sq ในตารางนี้ <em>ขึ้นกับลำดับ</em> ที่ตัวแปรถูกใส่เข้าไปใน formula (ในตัวอย่างข้างล่าง ใส่ Insul ก่อน Temp) — ถ้าเขียน <code>Gas~Temp*Insul</code> แทน ตัวเลข Sum Sq ของแต่ละแถวจะเปลี่ยน (เพราะแต่ละแถววัด "ส่วนเพิ่มที่ตัวแปรนั้นอธิบายได้ หลังจากตัวแปรก่อนหน้าอธิบายไปแล้ว") แม้ผลรวม SSR ทั้งหมดและ F-statistic ภาพรวมจะไม่เปลี่ยน — สาเหตุนี้ทำให้ตาราง ANOVA แบบ sequential (Type I sum of squares) นี้ ต่างจาก extra-sum-of-squares F-test ในหัวข้อ 14 ตรงที่ไม่ได้ให้ p-value ของ "กลุ่มตัวแปร Insul ทั้งหมด" ตรง ๆ ในบรรทัดเดียว ถ้าอยากได้ต้องรวมแถว Insul กับ Insul:Temp เข้าด้วยกันเอง ซึ่งสไลด์สาธิตด้วยฟังก์ชันเสริมที่เขียนเอง:</p>
+<pre><code>&gt; simpleAnova&lt;-function(object){
++   anovatable&lt;-anova(object)
++   p&lt;-nrow(anovatable)-1
++   n&lt;-anovatable$Df[p+1]+(p+1)
++   SS&lt;-c(sum(anovatable$"Sum Sq"[1:p]), anovatable$"Sum Sq"[p+1])
++   df&lt;-c(sum(anovatable$Df[1:p]), anovatable$Df[p+1])
++   MS&lt;-SS/df
++   F&lt;-MS[1]/MS[2]
++   pvalue&lt;-pf(F, df[1], df[2], lower.tail=FALSE)
++   output&lt;-data.frame(SS=SS, df=df, MS=MS, F=F, pvalue=pvalue)
++   rownames(output)&lt;-c("Regression", "Residuals")
++   output
++ }
+&gt; simpleAnova(model1)
+                  SS df        MS               F               pvalue
+Regression 69.589038  3 23.1963461 222.332717083158 1.23485328863066e-29
+Residuals   5.425247 52  0.1043317</code></pre>
+<p>ฟังก์ชันนี้แค่รวมทุกแถว "Regression" (Insul+Temp+Insul:Temp) เข้าด้วยกันเป็นแถวเดียว — ผลลัพธ์ F=222.33 ตรงกับ F-statistic ใน summary(model1) เป๊ะ (222.3) เพราะเป็นการทดสอบภาพรวมแบบเดียวกัน ไม่ใช่ทักษะที่ต้องเขียนโค้ดเองในข้อสอบ แต่ควรอ่านออกว่าฟังก์ชันนี้ทำอะไร (รวม sequential SS ทุกแถวของตัวแปรกลับเป็นค่า SSR รวมค่าเดียว).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 13</span><span>ANOVA Table แบบ Sequential</span></div>
+  <div class="qtext">ถ้าเขียน <code>lm(Gas~Temp*Insul, data=whiteside)</code> แทน <code>lm(Gas~Insul*Temp, data=whiteside)</code> แล้วรัน <code>anova()</code> ข้อใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ตัวเลข Sum Sq ของแต่ละแถวอาจเปลี่ยน (เพราะเป็น sequential/Type I SS ที่ขึ้นกับลำดับ) แต่ F-statistic ภาพรวมและ R² ของโมเดลจะไม่เปลี่ยน</button>
+  <button class="opt" data-correct="false">R จะรัน error เพราะ Temp ต้องเขียนก่อน Insul เสมอ</button>
+  <button class="opt" data-correct="false">โมเดลจะ fit ข้อมูลได้แย่ลง เพราะลำดับตัวแปรใน formula มีผลต่อค่าพยากรณ์</button>
+  <button class="opt" data-correct="false">ตัวเลขในตาราง ANOVA (Sum Sq แต่ละแถว) จะเหมือนเดิมทุกประการ เพราะสลับลำดับตัวแปรไม่มีผล</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>17. Prediction และข้อควรระวัง: Hidden Extrapolation ใน MLR</h2>
+<p>การทำนายด้วย \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_1+\cdots+\hat{\beta}_p X_p\) ใช้แบบเดียวกับ SLR ทุกประการ เพียงแต่ตอนนี้ต้องระบุค่าให้ครบ<strong>ทุกตัวแปรอิสระ</strong> ที่อยู่ในโมเดล ไม่ใช่แค่ตัวเดียว:</p>
+<pre><code>&gt; newdata&lt;-data.frame(Temp=c(7,6),
++ Insul=factor(c("Before","After"),level=c("Before","After")))
+&gt; predict(model1, newdata=newdata, interval="prediction")
+       fit      lwr      upr
+1 4.101156 3.436471 4.765841
+2 3.056240 2.393590 3.718890</code></pre>
+<p>อ่านตัวเลข: แถว 1 ทำนาย Gas ที่ Temp=7, Insul=Before ได้ 4.101156 (ช่วง 95% prediction interval 3.44 ถึง 4.77) — ตรวจสอบด้วยสมการ model1: \(\widehat{Gas} = \hat{\beta}_0+\hat{\beta}_1 \text{InsulAfter}+\hat{\beta}_2 \text{Temp}+\hat{\beta}_3 (\text{InsulAfter}\times\text{Temp})\) ที่ Temp=7, InsulAfter=0 ตรงกับ fit เป๊ะ. แถว 2 ทำนายที่ Temp=6, Insul=After ได้ 3.056240 — ตรวจสอบด้วยสมการเดียวกันที่ Temp=6, InsulAfter=1 ตรงเป๊ะเช่นกัน.</p>
+<div class="box win">
+<div class="label">Hidden Extrapolation — ข้อควรระวังเฉพาะของ MLR</div>
+<p>สไลด์เตือนไว้ท้ายเรื่อง: เวลาประมาณ mean response หรือทำนายค่าใหม่ใน MLR ต้อง<strong>ระวังเป็นพิเศษ</strong>ว่าค่าที่ประมาณไม่ได้ตกอยู่นอกขอบเขตของโมเดล (scope of the model) — จุดที่อันตรายกว่า SLR คือ: ค่า \(X_0=(X_{01},X_{02},\ldots,X_{0p})\) อาจอยู่<strong>ในช่วงที่สังเกตได้ของแต่ละตัวแปรทีละตัว</strong> (เช่น X₁ อยู่ในช่วงข้อมูลจริง และ X₂ ก็อยู่ในช่วงข้อมูลจริงเช่นกัน) แต่<strong>ยังเป็นการ extrapolation อยู่ดี</strong> ถ้าไม่เคยมีข้อมูลจุดไหนเลยที่ X₁ กับ X₂ มีค่าคู่กันแบบนั้นพร้อมกัน (เช่น ข้อมูลจริงมีแต่ "อุณหภูมิสูง+ไม่ติดฉนวน" กับ "อุณหภูมิต่ำ+ติดฉนวนแล้ว" แต่ไม่เคยมี "อุณหภูมิสูงมาก+ติดฉนวนแล้ว" เลย) — extrapolation แบบนี้ตรวจจับยากกว่า SLR มาก เพราะมองแค่ช่วงของแต่ละตัวแปรทีละตัวไม่พอ ต้องดูขอบเขตร่วม (joint scope) ของทุกตัวแปรพร้อมกัน</p>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 14</span><span>Hidden Extrapolation</span></div>
+  <div class="qtext">ในโมเดล MLR ที่มี X₁ และ X₂ ทำไมการเช็คแค่ว่า X₁ อยู่ในช่วงข้อมูลจริง และ X₂ ก็อยู่ในช่วงข้อมูลจริงแยกกัน จึงยัง<strong>ไม่พอ</strong>ที่จะสรุปว่าไม่ใช่ extrapolation?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะต้องเช็คแค่ X₁ ตัวเดียวก็พอ ไม่ต้องสนใจ X₂ เลย</button>
+  <button class="opt" data-correct="false">เพราะ R จะแจ้งเตือน error ทันทีถ้าเกิด extrapolation ไม่ต้องเช็คเอง</button>
+  <button class="opt" data-correct="false">เพราะ extrapolation ใน MLR ไม่มีทางเกิดขึ้นได้เลยถ้า n มากพอ</button>
+  <button class="opt" data-correct="true">เพราะข้อมูลจริงอาจไม่เคยมีจุดที่ X₁ และ X₂ มีค่าคู่กันแบบนั้นพร้อมกันเลย (นอกขอบเขตร่วม/joint scope) แม้แต่ละตัวแปรจะอยู่ในช่วงของตัวเองก็ตาม</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ \(Y_i=\beta_0+\beta_1 X_{i1}+\cdots+\beta_p X_{ip}+\varepsilon_i\) ได้พร้อมนับพารามิเตอร์ถูกต้อง, แปลผลสัมประสิทธิ์แบบ "holding other variables constant" ได้ทั้งกรณีมีและไม่มี interaction, เข้าใจว่า dummy variable เปลี่ยน intercept ส่วน interaction ของ dummy กับตัวแปรต่อเนื่องเปลี่ยนทั้ง intercept และ slope, อ่าน extra-sum-of-squares F-test เพื่อเทียบ full/reduced model ได้, แยกความต่างระหว่าง R² กับ Adjusted R² และรู้ข้อจำกัดของ R² ที่เพิ่มขึ้นเสมอ, และระวัง hidden extrapolation แบบ joint scope ที่ MLR เจอแต่ SLR ไม่เจอ — ทักษะทั้งหมดนี้จะถูกใช้ต่อใน Lecture 3 (Regression Diagnostics and Remedies) เมื่อเริ่มเช็ค assumption ของโมเดลที่ซับซ้อนขึ้นแบบนี้อย่างเป็นระบบ
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (52 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture2.pdf</code> ตั้งแต่หน้า 1 ถึง 52 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่น/R syntax อ้างอิงล้วน ๆ หรือเนื้อหาซ้ำที่สรุปไว้แล้วในบทเรียนหรือ reference sheet</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 2: Multiple Linear Regression"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>อ้างอิง Ramsey &amp; Schafer, The Statistical Sleuth</td><td>✓ หัวข้อ 1 (อ้างอิงเดียวกับ Lesson 1)</td></tr>
+<tr><td>3</td><td>Multiple Linear Regression — เป้าหมาย/สัญกรณ์ X,Y</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>4</td><td>Linear Regression Model — นิยามข้อมูลและสมการ MLR</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>5</td><td>Linear Regression Model when p=1 — ภาพเส้นถดถอย</td><td>etc — ซ้ำกับภาพใน Lesson 1 หัวข้อ 3 (p.14) ทุกประการ อ้างอิงกลับแทน</td></tr>
+<tr><td>6</td><td>Linear Regression Model when p=2 — ภาพระนาบ 3 มิติ</td><td>✓ หัวข้อ 3 (มีรูป)</td></tr>
+<tr><td>7</td><td>Estimating the Coefficients — ภาพ residual บนระนาบ</td><td>✓ หัวข้อ 3 (มีรูป)</td></tr>
+<tr><td>8</td><td>Scatter Plot in R — argument type ของ plot()</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>9</td><td>Graphical Parameters — cex options</td><td>etc — R syntax อ้างอิง สรุปในตารางอ้างอิงของ Lesson 1 แล้ว</td></tr>
+<tr><td>10</td><td>Graphical Parameters — pch symbols (ภาพ)</td><td>etc — R syntax อ้างอิงล้วน ๆ สรุปในตารางอ้างอิงของ Lesson 1 แล้ว</td></tr>
+<tr><td>11</td><td>Graphical Parameters — lty/lwd</td><td>etc — R syntax อ้างอิงล้วน ๆ สรุปในตารางอ้างอิงของ Lesson 1 แล้ว</td></tr>
+<tr><td>12</td><td>Scatter Plot in R — ตัวอย่าง whiteside (head, plot)</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>13</td><td>Scatter Plot Matrix in R — plot(whiteside)</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>14</td><td>Coded Scatter Plot in R — Before/After สีต่างกัน</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>15</td><td>Coded Scatter Plot using ggplot2</td><td>etc — ข้อมูล/ข้อสรุปเดียวกับหน้า 14 แค่ syntax คนละแบบ</td></tr>
+<tr><td>16</td><td>Fitting a Regression Model in R — lm() args, subset</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>17</td><td>Example: Whiteside's data — print(modelBefore), anova()</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>18</td><td>Example: Whiteside's data (cont.) — summary(modelAfter)</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>19</td><td>Possible values of X — 4 ประเภทของตัวแปรอิสระ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>20</td><td>Polynomial Models — สมการลำดับ 1/2/3</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>21</td><td>Second-order Model — 4 รูปทรงกราฟ</td><td>✓ หัวข้อ 7 (มีรูป)</td></tr>
+<tr><td>22</td><td>Third-order Model — ภาพกราฟรูปตัว S</td><td>✓ หัวข้อ 7 (มีรูป)</td></tr>
+<tr><td>23</td><td>Example: Corn Yields — ข้อมูล + โค้ด plot()</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>24</td><td>Example: Corn Yields — ภาพเทียบเส้นตรง vs เส้นโค้ง</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>25</td><td>Nominal Independent Variable — นิยาม dummy variable</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>26</td><td>Example: Pie Sales — นิยาม Y, X1, X2</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>27</td><td>Example: Pie Sales — ภาพเส้นขนาน (intercept ต่างกัน)</td><td>✓ หัวข้อ 9 (มีรูป)</td></tr>
+<tr><td>28</td><td>Coded Scatter Plot in R (พล็อตซ้ำ)</td><td>etc — โค้ด/ภาพซ้ำกับหน้า 14 เป๊ะ</td></tr>
+<tr><td>29</td><td>Lattice Package — xyplot(Gas~Temp|Insul)</td><td>etc — ทางเลือกการพล็อตแบบแยกแผง ไม่มีเนื้อหาทฤษฎีใหม่เกินหน้า 14</td></tr>
+<tr><td>30</td><td>A product term of interaction — นิยาม interaction, กฎ marginality</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>31</td><td>Formula in lm() — ตาราง notation (~, ., +, -, :, *, ^, I())</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>32</td><td>Example: Corn Yields — summary() โมเดล quadratic เต็ม</td><td>✓ หัวข้อ 8 (ต่อจาก corn yields, ผล R เต็ม)</td></tr>
+<tr><td>33</td><td>Example: Whiteside's Data — summary(model1) โมเดล interaction เต็ม</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>34</td><td>Example: Whiteside's Data (cont.) — summary(model2) แบบ additive</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>35</td><td>Example: Whiteside's Data (cont.) — summary(model3) intercept-only</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>36</td><td>Inferences in Linear Regression Models — outline หัวข้อย่อย</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>37</td><td>Testing Individual Coefficients — สูตร t, CI, df=n-p-1</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>38</td><td>Example: Whiteside's Data — summary(model1) ซ้ำ (เชื่อมกับ t-test)</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>39</td><td>Interval Estimation of βj — confint(model1) output</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>40</td><td>Extra-Sum-of-Squares F-tests — สูตร ESS, full/reduced model</td><td>✓ หัวข้อ 14</td></tr>
+<tr><td>41</td><td>Example: Whiteside's Data — anova(model2,model1) output</td><td>✓ หัวข้อ 14</td></tr>
+<tr><td>42</td><td>Coefficient of Determination — นิยาม R², การแตกตัว SST</td><td>✓ หัวข้อ 15</td></tr>
+<tr><td>43</td><td>Adjusted R² — สูตรและข้อจำกัดของ R² ธรรมดา</td><td>✓ หัวข้อ 15</td></tr>
+<tr><td>44</td><td>Example: Whiteside's Data — summary(model1) ซ้ำ (เชื่อมกับ R²)</td><td>✓ หัวข้อ 15</td></tr>
+<tr><td>45</td><td>F Test for Regression Relation — H0 ภาพรวม, การใช้ ANOVA</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>46</td><td>F Test for Regression Relation — ตาราง ANOVA สูตรทั่วไป</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>47</td><td>Example: Whiteside's Data — summary(model1) ซ้ำ (เชื่อมกับ F-test)</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>48</td><td>ANOVA Table in R — anova(model1) sequential SS output</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>49</td><td>ANOVA Table in R — โค้ดฟังก์ชัน simpleAnova (เสริม)</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>50</td><td>ANOVA Table in R — simpleAnova(model1) output</td><td>✓ หัวข้อ 16</td></tr>
+<tr><td>51</td><td>Prediction using Regression Equation — predict() + ตัวอย่าง</td><td>✓ หัวข้อ 17</td></tr>
+<tr><td>52</td><td>Caution: Hidden Extrapolation — ข้อควรระวังปิดท้าย</td><td>✓ หัวข้อ 17</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0001-simple-linear-regression.html">← Lesson 1: Simple Linear Regression</a></span>
+  <span><a href="0003-regression-diagnostics-and-remedies.html">Lesson 3: Regression Diagnostics and Remedies →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

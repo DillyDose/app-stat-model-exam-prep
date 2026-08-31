@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Ridge/LASSO Formulas + glmnet Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 7</span>
+  <span><a href="../lessons/0007-penalized-regression.html">← Lesson 7: Penalized Regression</a></span>
+</nav>
+
+<p class="kicker">Lecture 7 — Penalized Regression</p>
+<h1>Ridge/LASSO/EN Formulas + <code>glmnet</code> Cheat Sheet</h1>
+
+<p>สรุปสูตร penalty ทั้งหมด + โค้ด glmnet ที่ต้องใช้ซ้ำทุกครั้งที่ fit penalized regression — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. โจทย์ตั้งต้น (OLS ที่เขียนใหม่)</h2>
+<div class="box source">
+\(\hat{\beta} = \underset{\beta}{\arg\min} \sum_i (Y_i - X_i\beta)^2\) &nbsp;— สมมติ <strong>X standardized</strong> (mean 0, var 1) และ <strong>Y centered</strong> (mean 0) จึงไม่มีพจน์ intercept แยก
+<p>ปัญหาของ OLS: (1) prediction accuracy ต่ำ (low bias, high variance) (2) interpretability แย่เมื่อ p เยอะ (3) multicollinearity (4) ใช้ไม่ได้เมื่อ p &gt; n (X'X ไม่ invertible)</p>
+</div>
+
+<h2>2. สมการทั่วไปของ Penalized Regression</h2>
+<div class="box win">
+\[\hat{\beta} = \underset{\beta}{\arg\min} \sum_i (Y_i-X_i\beta)^2 + P_\lambda(\beta)\]
+<p>\(\lambda=0\) → เท่ากับ OLS พอดี &nbsp;|&nbsp; \(\lambda\to\infty\) → บีบทุกสัมประสิทธิ์เข้าใกล้ศูนย์</p>
+</div>
+
+<h2>3. สูตร Penalty แต่ละแบบ (เทียบข้าง ๆ กัน)</h2>
+<table>
+<tr><th>วิธี</th><th>Penalty term \(P_\lambda(\beta)\)</th><th>Norm</th><th>Exact zero ได้ไหม</th></tr>
+<tr><td>Ridge</td><td>\(\lambda\sum_j \beta_j^2\)</td><td>\(\ell_2\)</td><td>ไม่ได้ — หดเข้าใกล้ 0 เท่านั้น</td></tr>
+<tr><td>LASSO</td><td>\(\lambda\sum_j |\beta_j|\)</td><td>\(\ell_1\)</td><td>ได้ — cut variable ออกจากโมเดล</td></tr>
+<tr><td>Elastic Net</td><td>\(\lambda_1\sum_j |\beta_j| + \lambda_2\sum_j \beta_j^2\)</td><td>\(\ell_1\)+\(\ell_2\)</td><td>ได้บางส่วน (grouping effect)</td></tr>
+<tr><td>L0 (best subset)</td><td>\(\lambda\lVert \beta \rVert_0\)</td><td>\(\ell_0\) (นับจำนวน)</td><td>ได้ตรงตามนิยาม แต่คำนวณยาก (combinatorial)</td></tr>
+</table>
+<p><strong>Constrained form ↔ Penalized form:</strong> Ridge: \(\sum \beta_j^2\leq t\) ↔ \(+\lambda\sum \beta_j^2\); LASSO: \(\sum |\beta_j|\leq t\) ↔ \(+\lambda\sum |\beta_j|\) — สองรูปเทียบเท่ากันเสมอเมื่อ \(\lambda\) คู่กับ t ถูกต้อง</p>
+
+<h2>4. glmnet Reparameterization</h2>
+<div class="box">
+\[P_\lambda(\beta) = \lambda\left[ \alpha \sum_j|\beta_j| + \dfrac{(1-\alpha)}{2} \sum_j\beta_j^2 \right]\]
+<p><code>alpha=0</code> → Ridge &nbsp;|&nbsp; <code>alpha=1</code> → LASSO &nbsp;|&nbsp; <code>0&lt;alpha&lt;1</code> → Elastic Net</p>
+</div>
+
+<h2>5. เรขาคณิต: ทำไม L1 ได้ exact zero แต่ L2 ไม่ได้</h2>
+<p>คำตอบ = จุดแรกที่ contour วงรีของ RSS สัมผัส constraint region. L1-norm = diamond มีมุมแหลมบนแกน → สัมผัสที่มุมบ่อย → พิกัดหนึ่งเป็น 0 เป๊ะ ("sparsity inducing"). L2-norm = วงกลมไม่มีมุม → สัมผัสกระจายรอบขอบ → ได้แค่หด ไม่เท่ากับ 0 เป๊ะ ("weight sharing").</p>
+
+<h2>6. R Syntax อ้างอิงเร็ว (glmnet)</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>โหลด package</td><td><code>library(glmnet)</code></td></tr>
+<tr><td>Cross-validate หา \(\lambda\) (Ridge)</td><td><code>cv.glmnet(x=X, y=Y, alpha=0, type.measure="mse", nfolds=10)</code></td></tr>
+<tr><td>Cross-validate หา \(\lambda\) (LASSO)</td><td><code>cv.glmnet(x=X, y=Y, alpha=1, type.measure="mse", nfolds=10)</code></td></tr>
+<tr><td>\(\lambda\) ที่ดีที่สุดจาก CV</td><td><code>cvfit$lambda.min</code></td></tr>
+<tr><td>Fit โมเดลจริงด้วย \(\lambda\) ที่เลือก</td><td><code>glmnet(x=X, y=Y, alpha=..., lambda=cvfit$lambda.min)</code></td></tr>
+<tr><td>ดึงสัมประสิทธิ์</td><td><code>coef(model)</code> — ไม่มีคอลัมน์ p-value ให้เหมือน <code>summary(lm())</code></td></tr>
+<tr><td>Grid search \(\alpha\) (Elastic Net)</td><td>วนลูป <code>alpha&lt;-seq(0.01,0.99,0.01)</code> หา <code>(alpha,lambda)</code> ที่ mse ต่ำสุด</td></tr>
+<tr><td>L0/L0L1/L0L2 (package L0Learn)</td><td><code>L0Learn.cvfit(x=X, y=Y, nFolds=10, penalty="L0"/"L0L1"/"L0L2", maxSuppSize=...)</code></td></tr>
+</table>
+
+<h2>7. Template ประโยคที่ต้องระวัง (ใช้ตอบข้อสอบ)</h2>
+<div class="box win">
+<p><strong>ห้าม</strong>ตีความ \(\hat{\beta}\) จาก Ridge/LASSO/EN แบบเดียวกับ <code>lm()</code> ตรง ๆ เพราะ: (1) \(\hat{\beta}\) อยู่บนสเกลของ X ที่ standardize แล้ว ไม่ใช่หน่วยดั้งเดิม (2) \(\hat{\beta}\) ถูก shrink เข้าหา 0 โดยตั้งใจ (biased by design) ไม่ใช่ unbiased estimate (3) สัมประสิทธิ์ = 0 จาก LASSO ไม่ใช่บทสรุปเชิงสถิติที่ยืนยันด้วย p-value — เป็นแค่ผลของ \(\lambda\) ที่เลือกโดย cross-validation รอบนั้น</p>
+<p><strong>Bias-variance tradeoff:</strong> "Penalized regression ยอมรับ bias ที่เพิ่มขึ้นเพื่อแลกกับ variance ที่ลดลงมากกว่า ทำให้ MSE รวม (\(\text{bias}^2+\text{variance}\)) ต่ำลง โดยเฉพาะเมื่อ p ใหญ่หรือมี multicollinearity"</p>
+</div>
+
+<h2>8. เลือกวิธีให้เหมาะกับโจทย์</h2>
+<table>
+<tr><th>สถานการณ์</th><th>วิธีที่เหมาะ</th></tr>
+<tr><td>เชื่อว่าทุกตัวแปรมีผลจริงบ้าง + มี multicollinearity</td><td>Ridge</td></tr>
+<tr><td>เชื่อว่ามีแค่บางตัวแปรที่มีผลจริง (sparse) ต้องการคัดตัวแปร</td><td>LASSO</td></tr>
+<tr><td>ตัวแปรสำคัญสัมพันธ์กันเป็นกลุ่ม (correlated groups)</td><td>Elastic Net</td></tr>
+<tr><td>ต้องการจำนวนตัวแปรสูงสุดที่แน่นอน (best subset)</td><td>L0 / L0L1 / L0L2 (คำนวณหนักกว่า)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

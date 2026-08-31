@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 11: Count Regression — Poisson, Rate Ratio, และ Negative Binomial</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0010-binomial-counts.html">← Lesson 10: Binomial Counts</a></span>
+  <span><a href="../reference/0011-count-regression-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output →</a></span>
+</nav>
+
+<p class="kicker">Lecture 11 — Count Regression</p>
+<h1>Count Regression: Poisson, Rate Ratio Interpretation, และ Negative Binomial</h1>
+
+<p>บทเรียนนี้ต่อยอดจากกรอบ GLM ใน Lecture 8: ตัวแปรตอบสนอง (response) เปลี่ยนจาก binary/proportion (Lecture 9–10) มาเป็น<strong>ค่านับ (count)</strong> — จำนวนเหตุการณ์ที่เกิดขึ้น เช่น จำนวนชนิดพืชบนเกาะ, จำนวนความผิดปกติของโครโมโซม, จำนวนสายเรียกเข้า. โครงสร้าง 4 ทักษะเดิมยังใช้ได้: <strong>เขียนสมการโมเดล</strong> (random component เป็น Poisson หรือ Negative Binomial, link function เป็น log), <strong>เช็ค assumption</strong> (ตอนนี้เพิ่มเรื่อง overdispersion ที่ไม่เคยเจอใน SLR/MLR), <strong>แปลผลสัมประสิทธิ์เป็น rate ratio</strong> (ญาติของ odds ratio ใน Lecture 9 แต่ตีความคนละแบบ — ห้ามสับสน), และ<strong>อ่าน R output</strong> จาก <code>glm(family=poisson)</code> และ <code>glm.nb()</code>.</p>
+
+<h2>1. Poisson Regression: สมการโมเดลและทำไมต้องใช้ Log Link</h2>
+<p>ข้อมูลนับพบได้ทั่วไป: จำนวนผู้ป่วยมะเร็งต่อพื้นที่, จำนวนสายเรียกเข้าศูนย์บริการต่อวัน, จำนวนอนุภาครังสีที่ Geiger counter นับได้ต่อวินาที, จำนวนอุบัติเหตุจราจรต่อสุดสัปดาห์ — โมเดลตามธรรมชาติของข้อมูลแบบนี้คือสมมติว่าเกิดจาก Poisson process:</p>
+<div class="box">
+\(y \sim \text{Poisson}(\lambda)\)&nbsp;&nbsp; \(P(y) = \dfrac{e^{-\lambda}\lambda^y}{y!}\), &nbsp;y = 0,1,2,…<br>
+\(E[y] = \lambda\) &nbsp;และ&nbsp; \(\text{Var}(y) = \lambda\)
+</div>
+<p>สังเกตจุดสำคัญที่สุดของ Poisson: <strong>mean กับ variance เท่ากันเป๊ะ</strong> (ทั้งคู่เท่ากับ \(\lambda\)) — นี่ไม่ใช่แค่คุณสมบัติทางคณิตศาสตร์เฉย ๆ แต่เป็น<em>assumption</em>ที่โมเดล Poisson ตั้งไว้กับข้อมูลจริง ถ้าข้อมูลจริงมี variance มากกว่า mean (เรียกว่า <em class="term">overdispersion</em>) โมเดล Poisson จะเชื่อ SE ผิด — เป็นประเด็นที่บทเรียนนี้จะกลับมาย้ำหลายรอบ.</p>
+
+<p>ให้ \(\mu = E[y] = \lambda\) — Poisson(\(\mu\)) เป็นสมาชิกของ exponential family เขียนได้เป็น \(P(y) = \exp\{y \log \mu - \mu - \log(y)\}\) ซึ่งจัดรูปตามกรอบ Lecture 8 ได้:</p>
+<div class="box">
+\(\theta = \log(\mu)\) (canonical parameter), &nbsp;\(\phi = 1\), &nbsp;\(a(\phi) = \phi\)<br>
+\(b(\theta) = \mu = e^{\theta}\), &nbsp;\(V(\mu) = \mu\) (variance function — ยืนยันอีกครั้งว่า variance = \(\mu\))
+</div>
+<p>เพราะ canonical link ของ Poisson คือ \(\theta = \log(\mu)\) พอดี การใช้ canonical link (\(\theta_i = x_i\beta\)) จึงให้ <strong>log-linear model</strong> โดยตรง:</p>
+<div class="box win">
+\[\log(\mu_i) = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip}\]
+</div>
+<p>นี่คือสมการที่ต้องเขียนให้ได้ทันทีเมื่อโจทย์บอกว่า response เป็นค่านับ: <strong>random component คือ \(y \sim \text{Poisson}(\mu_i)\), link function คือ log, linear predictor คือ \(\beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\)</strong> — สามพจน์นี้ครบเมื่อไรคือเขียนสมการ Poisson regression ถูกแล้ว.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>สมการ Poisson Regression</span></div>
+  <div class="qtext">ข้อใดอธิบาย assumption หลักของ Poisson distribution ที่ทำให้ต้องระวังเรื่อง "overdispersion" เมื่อใช้ Poisson regression กับข้อมูลจริง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Poisson distribution สมมติว่า X ทุกตัวต้องเป็นตัวแปรต่อเนื่อง (continuous) เท่านั้น</button>
+  <button class="opt" data-correct="true">Poisson distribution สมมติว่าค่าเฉลี่ย (mean) เท่ากับความแปรปรวน (variance) พอดี ซึ่งข้อมูลจริงมักมี variance มากกว่า mean</button>
+  <button class="opt" data-correct="false">Poisson distribution สมมติว่า link function ต้องเป็น identity link เท่านั้น</button>
+  <button class="opt" data-correct="false">Poisson distribution สมมติว่า error term แจกแจงแบบปกติ (normal)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. ตัวอย่างจริง: Species Diversity on the Galapagos Islands</h2>
+<p>สไลด์ใช้ข้อมูล <code>gala</code> จาก package <code>faraway</code>: จำนวนชนิดพืช (Species) และตัวแปรภูมิศาสตร์ 5 ตัวของเกาะกาลาปาโกส 30 เกาะ เป้าหมายคือเช็คว่าจำนวนชนิดพืชสัมพันธ์กับตัวแปรภูมิศาสตร์เหล่านี้หรือไม่: <code>Area</code> (พื้นที่เกาะ, km²), <code>Elevation</code> (ความสูงสุดของเกาะ, m), <code>Nearest</code> (ระยะห่างจากเกาะที่ใกล้ที่สุด, km), <code>Scruz</code> (ระยะห่างจากเกาะ Santa Cruz, km), <code>Adjacent</code> (พื้นที่เกาะข้างเคียง, km²):</p>
+<figure>
+<img src="../assets/slides/as11-p07-galapagos-islands-map.png" alt="Map of the Galapagos Islands showing Fernandina, Isabela, Santiago, Santa Cruz, San Cristobal, and other named islands used in the gala dataset">
+<figcaption>Slide: แผนที่หมู่เกาะกาลาปาโกส (Lecture 11, p.7)</figcaption>
+</figure>
+<p>เกาะที่ปรากฏชื่อในแผนที่นี้คือแถวจริงของข้อมูล <code>gala</code> — เช่น Isabela (เกาะใหญ่สุดในแผนที่ ทางซ้ายล่าง) มี Species=347, Area=4669.32 km², Elevation=1707 m ซึ่งเป็นค่ามากที่สุดในทุกตัวแปรของทั้งชุดข้อมูล ในขณะที่ Onslow (จุดเล็กที่ไม่ได้ติดชื่อในแผนที่แต่ปรากฏในตาราง) มี Species=2, Area=0.01 km² เท่านั้น — ความแตกต่างสุดขั้วของขนาดเกาะแบบนี้ (0.01 ถึง 4669.32 km²) เป็นเหตุผลที่ทำให้ค่าสัมประสิทธิ์ของ <code>Area</code> ที่จะเห็นต่อไปมีขนาดเล็กมากต่อหน่วย km² เดียว (ต้องคูณเป็นช่วงใหญ่ถึงจะเห็นผลชัด):</p>
+<pre><code>> library(faraway)
+> data(gala)
+> gala
+             Species Endemics    Area Elevation Nearest Scruz Adjacent
+Baltra            58       23   25.09       346     0.6   0.6     1.84
+Bartolome         31       21    1.24       109     0.6  26.3   572.33
+Caldwell           3        3    0.21       114     2.8  58.7     0.78
+Champion          25        9    0.10        46     1.9  47.4     0.18
+Coamano            2        1    0.05        77     1.9   1.9   903.82
+Daphne.Major      18       11    0.34       119     8.0   8.0     1.84
+Daphne.Minor      24        0    0.08        93     6.0  12.0     0.34
+Darwin            10        7    2.33       168    34.1 290.2     2.85
+Eden               8        4    0.03        71     0.4   0.4    17.95
+Isabela          347       89 4669.32      1707     0.7  28.1   634.49
+Onslow             2        2    0.01        25     3.3  45.9     0.10
+...</code></pre>
+<p>สังเกต <code>Endemics</code> (จำนวนชนิดเฉพาะถิ่น) ในตาราง — สไลด์<strong>ตัดตัวแปรนี้ออกจากโมเดล</strong> (<code>Species~.-Endemics</code>) เพราะ Endemics เป็นส่วนย่อยของ Species เอง (นับซ้อนกัน ไม่ใช่ตัวแปรอิสระที่อธิบาย Species) — ถ้าใส่ Endemics เข้าไปด้วยจะเป็นการ leak คำตอบเข้าไปในตัวทำนาย.</p>
+
+<p>ฟิตโมเดล Poisson regression กับตัวแปรภูมิศาสตร์ทั้ง 5 ตัวแบบเชิงเส้น:</p>
+<pre><code>> model<-glm(Species~.-Endemics, data=gala, family=poisson)
+> summary(model)
+
+Call:
+glm(formula = Species ~ . - Endemics, family = poisson, data = gala)
+
+Deviance Residuals:
+    Min      1Q   Median      3Q     Max
+-8.2752 -4.4966  -0.9443  1.9168  10.1849
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.155e+00  5.175e-02  60.963  < 2e-16 ***
+Area        -5.799e-04  2.627e-05 -22.074  < 2e-16 ***
+Elevation    3.541e-03  8.741e-05  40.507  < 2e-16 ***
+Nearest      8.826e-03  1.821e-03   4.846 1.26e-06 ***
+Scruz       -5.709e-03  6.256e-04  -9.126  < 2e-16 ***
+Adjacent    -6.630e-04  2.933e-05 -22.608  < 2e-16 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 3510.73  on 29  degrees of freedom
+Residual deviance:  716.85  on 24  degrees of freedom
+AIC: 889.68
+
+Number of Fisher Scoring iterations: 5</code></pre>
+<p>อ่านทีละส่วนเหมือน <code>lm()</code> แต่คอลัมน์ต่างออกไปนิดหน่อย: <strong>Estimate</strong> คือ β̂ บนสเกล log(μ) ไม่ใช่สเกลของ Y ตรง ๆ (ต้อง exponentiate ก่อนถึงจะตีความเป็นค่านับได้ — หัวข้อ 3), <strong>z value</strong> (ไม่ใช่ t value เหมือน <code>lm()</code> เพราะ Poisson ไม่มีพารามิเตอร์ variance แยกต่างหากให้ประมาณ — \(\phi=1\) ตายตัว), <strong>Dispersion parameter ... taken to be 1</strong> คือสมมติฐานที่ตั้งไว้ (ยังไม่ใช่ค่าที่ตรวจสอบแล้ว — หัวข้อ 4 จะเช็คว่าสมมติฐานนี้เป็นจริงไหม), และ <strong>Null/Residual deviance</strong> ที่จะใช้ทำ goodness-of-fit test ต่อไป.</p>
+
+<h2>2.1 Rate Ratio Interpretation — ทักษะที่ออกสอบหนักที่สุดของบทนี้</h2>
+<div class="box win">
+<div class="label">Template: การแปลผลสัมประสิทธิ์ Poisson/NB Regression</div>
+<p>เพราะ link function เป็น log ไม่ใช่ identity เหมือน <code>lm()</code> การแปลผล β̂ ตรง ๆ จึงไม่มีความหมายเป็น "หน่วยของ Y ที่เปลี่ยนไป" — ต้อง <strong>exponentiate</strong> ก่อนเสมอ: \(\exp(\hat{\beta})\) คือ<strong>อัตราส่วนอัตรา (rate ratio)</strong> ไม่ใช่ผลต่าง (difference)</p>
+<p>Template ประโยค: "จากข้อมูลนี้ เมื่อ [ตัวแปร X] เพิ่มขึ้น 1 [หน่วยของ X] ค่าคาดหวังของจำนวนนับ (expected count/rate) ของ [Y] เปลี่ยนเป็น <strong>exp(β̂) เท่า</strong> ของเดิม (คูณด้วย exp(β̂)) โดยตัวแปรอื่นคงที่ (holding other variables constant)"</p>
+<p><strong>ข้อควรระวังที่ต่างจาก odds ratio (Lecture 9):</strong> rate ratio คือตัวคูณของ<em>ค่านับที่คาดหวัง</em>โดยตรง (multiplicative effect บน μ) ไม่ใช่ตัวคูณของ odds — อย่าเผลอพูดว่า "odds ของการนับเพิ่มขึ้น" เพราะ Poisson ไม่มีแนวคิด odds เลย มีแต่ expected count/rate</p>
+</div>
+
+<p>ลองใช้จริงกับสัมประสิทธิ์ของ <code>Elevation = 3.541e-03</code>: \(\exp(0.003541) \approx 1.00355\) — แปลว่า <strong>เมื่อ Elevation เพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวังจะเพิ่มขึ้นเป็น 1.00355 เท่าของเดิม (เพิ่มขึ้นประมาณ 0.355%) โดยตัวแปรภูมิศาสตร์อื่นคงที่</strong> — ค่านัยสำคัญทางสถิติชัดเจน (p < 2e-16) แม้ตัวคูณต่อ 1 เมตรจะดูเล็ก เพราะ Elevation ในข้อมูลมีช่วงกว้างถึง 1707 เมตร (Isabela) การเปลี่ยน 1 เมตรจึงเป็นสัดส่วนน้อยมากของช่วงทั้งหมด.</p>
+<p>ตัวอย่างที่ต้องระวังเรื่องสเกล: <code>Area = -5.799e-04</code> ให้ \(\exp(-0.0005799) \approx 0.99942\) ต่อ 1 km² — ตัวเลขนี้ใกล้ 1 มากจนดูเหมือน "ไม่มีผล" แต่ถ้าคิดเป็นช่วง <strong>100 km²</strong> (สเกลที่ Area ในข้อมูลจริงแปรผัน เช่น Espanola=58.27 ถึง Isabela=4669.32): \(\exp(-0.0005799\times100) = \exp(-0.05799) \approx 0.9437\) — พื้นที่เกาะเพิ่มขึ้นทุก 100 km² สัมพันธ์กับจำนวนชนิดพืชที่คาดหวังลดลงเหลือ 94.37% ของเดิม (ลดลง ~5.6%) <strong>กฎที่ต้องจำ: ถ้า β̂ มีขนาดเล็กมาก ให้ลองคูณด้วยขนาดช่วงที่สมเหตุสมผลของ X ก่อนสรุปว่าตัวแปรนั้น "ไม่มีผล" — สัมประสิทธิ์เล็กไม่ได้แปลว่าผลกระทบทางปฏิบัติเล็กเสมอไป</strong> ถ้าหน่วยของ X มีสเกลใหญ่.</p>
+<p>สังเกตอีกจุดที่น่าสนใจ: <code>Nearest = 8.826e-03</code> เป็น<strong>บวก</strong> (p=1.26e-06) — \(\exp(0.008826) \approx 1.00887\) แปลว่ายิ่งเกาะอยู่<strong>ไกล</strong>จากเกาะที่ใกล้ที่สุด จำนวนชนิดพืชที่คาดหวังกลับ<strong>เพิ่มขึ้น</strong> เล็กน้อยต่อ 1 กม. — ทิศทางนี้ขัดสามัญสำนึกเบื้องต้น (island biogeography theory คาดว่ายิ่งใกล้แหล่งพันธุ์ยิ่งมีชนิดพืชมาก) แต่เป็นสิ่งที่โมเดลนี้บอกเมื่อควบคุมตัวแปรอื่นแล้ว — ข้อสอบมักถามแบบนี้เพื่อเช็คว่าอ่านทิศทางเครื่องหมาย (+/−) ถูกไหม ไม่ใช่แค่ท่องสูตร.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>Rate Ratio Interpretation</span></div>
+  <div class="qtext">จาก output ของโมเดล Poisson เชิงเส้นด้านบน จงเขียนประโยคแปลผล (rate ratio interpretation) ของสัมประสิทธิ์ <code>Scruz = -5.709e-03</code> ให้ครบองค์ประกอบ (ทิศทาง, exp(β̂), หน่วยของ X, "holding other variables constant")</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(\exp(-5.709 \times 10^{-3}) \approx 0.99431\)</p>
+  <p>"จากข้อมูลนี้ เมื่อ Scruz (ระยะห่างจากเกาะ Santa Cruz) เพิ่มขึ้น 1 กิโลเมตร จำนวนชนิดพืชที่คาดหวัง (expected Species count) ของเกาะนั้นเปลี่ยนเป็น 0.99431 เท่าของเดิม หรือลดลงประมาณ 0.57% โดยตัวแปรภูมิศาสตร์อื่น (Area, Elevation, Nearest, Adjacent) คงที่ — อย่างมีนัยสำคัญทางสถิติ (p &lt; 2e-16)"</p>
+  </div>
+</div>
+
+<h2>3. เรากำลังใช้โมเดลที่ถูกต้องหรือยัง? Goodness-of-Fit Test</h2>
+<p>เหมือนกับ Lecture 9–10 ใช้ deviance เทียบกับ χ² distribution เพื่อเช็คว่าโมเดลฟิตข้อมูลดีพอไหม:</p>
+<pre><code>> pchisq(deviance(model), model$df.residual, lower=FALSE)
+[1] 7.073157e-136</code></pre>
+<p>H₀ ของการทดสอบนี้คือ "โมเดลฟิตข้อมูลได้ดี (residual deviance ควรใกล้เคียงกับ df ถ้าโมเดลถูก)" — p-value ที่ได้คือ <strong>7.073157×10⁻¹³⁶</strong> น้อยกว่า 0.05 อย่างท่วมท้น จึง<strong>ปฏิเสธ H₀</strong>: โมเดลนี้ fit ข้อมูลได้แย่มาก. ทำไมถึงแย่ขนาดนี้? ลองเทียบ residual deviance กับ df โดยตรง: \(716.85 / 24 \approx 29.9\) — ถ้าโมเดล Poisson ถูกต้องจริง อัตราส่วนนี้ควรใกล้เคียง <strong>1</strong> (เพราะ deviance ~ χ²(df) โดยประมาณ ซึ่งมี mean = df) แต่ที่นี่ได้ 29.9 ซึ่งมากกว่า 1 เกือบ 30 เท่า — สัญญาณชัดเจนของ <em class="term">overdispersion</em>: variance ของข้อมูลจริงมากกว่าที่ Poisson (ที่ตั้ง variance=mean) คาดไว้มาก สไลด์สรุปเหตุผลตรงไปตรงมา: <strong>"This might due to the strong assumption of Poisson distribution which assumes that the mean equals variance"</strong>.</p>
+
+<div class="box win">
+<div class="label">กฎวินิจฉัย Overdispersion</div>
+<p>เช็ค <strong>residual deviance / df</strong> (หรือ Pearson χ²/df) — ถ้าอัตราส่วนนี้<strong>ใกล้ 1</strong> แปลว่า assumption mean=variance ของ Poisson สมเหตุสมผล; ถ้า<strong>มากกว่า 1 อย่างชัดเจน</strong> (โดยเฉพาะ >>1.5–2) แปลว่ามี overdispersion ต้องแก้ด้วย quasi-Poisson หรือ Negative Binomial (หัวข้อ 6–8) ไม่ใช่เชื่อ SE จาก Poisson ตรง ๆ</p>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Goodness-of-Fit</span></div>
+  <div class="qtext">โมเดล Poisson หนึ่งได้ residual deviance = 40 บน df = 38 จากการทดสอบ <code>pchisq(deviance, df, lower=FALSE)</code> ควรสรุปอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">อัตราส่วนนี้บอกได้แค่เรื่อง multicollinearity ไม่เกี่ยวกับ overdispersion</button>
+  <button class="opt" data-correct="false">deviance = 40 มีค่ามากกว่า df = 38 จึงต้องปฏิเสธโมเดลนี้ทันทีไม่ว่ากรณีใด</button>
+  <button class="opt" data-correct="true">อัตราส่วน deviance/df ≈ 1.05 ใกล้เคียง 1 มาก แปลว่าโมเดลนี้ไม่มีสัญญาณ overdispersion ชัดเจน — assumption mean=variance ของ Poisson ดูสมเหตุสมผล</button>
+  <button class="opt" data-correct="false">ต้องดูแค่ p-value จาก AIC เท่านั้น deviance/df ไม่เกี่ยวกับการวินิจฉัย overdispersion</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. สำรวจรูปแบบฟังก์ชันของ log(μ) ก่อนเพิ่มพจน์</h2>
+<p>ก่อนจะรีบสรุปว่าโมเดลผิดเพราะ overdispersion ล้วน ๆ สไลด์ให้ลองเช็คก่อนว่า relationship ระหว่างแต่ละ X กับ log(μ) เป็นเชิงเส้นจริงไหม (เหมือนหลักการ "plot ก่อนเสมอ" จาก SLR) ด้วยการ plot <code>X</code> กับ <code>log(Species)</code> ตรง ๆ:</p>
+<figure>
+<img src="../assets/slides/as11-p12-explore-functional-form-scatterplots.png" alt="Five scatterplots of log(Species) against Area, Elevation, Nearest, Scruz, and Adjacent showing scattered raw relationships">
+<figcaption>Slide: Explore the Functional Form of log[μ(xᵢ)] — raw scatter (Lecture 11, p.12)</figcaption>
+</figure>
+<p>กราฟ Area (บนซ้าย) แสดงจุดส่วนใหญ่กระจุกตัวอยู่ใกล้ Area=0 (เพราะเกาะส่วนใหญ่เล็ก มีแค่ Isabela/Fernandina ที่ใหญ่จนหลุดไปทางขวาสุด) ทำให้มองแนวโน้มยากมาก — นี่คือปัญหาของการ plot ข้อมูลดิบตรง ๆ เมื่อ X มีการกระจายแบบเบ้ขวารุนแรง (right-skewed) สไลด์จึงเสนอวิธีที่สองคือ<strong>รวมกลุ่มข้อมูล (collapse)</strong> ที่มีค่า X ใกล้เคียงกันเข้าด้วยกันก่อน แล้วค่อยดูค่าเฉลี่ยของ log(μ) ต่อกลุ่ม ด้วยฟังก์ชันที่เขียนเอง:</p>
+<pre><code>> logplot<-function(x,y,ncat=10,...)
++ {
++   brksx<-unique(quantile(x,probs=0:ncat/ncat))
++   nbrksx<-length(brksx)
++   cutx<-cut(x,breaks=brksx,include.lowest=TRUE)
++   mx<-tapply(x,cutx,FUN=mean)
++   logmu<-log(tapply(y,cutx,FUN=mean))
++   plot(mx,logmu,...)
++ }
+> logplot(gala$Area,gala$Species,ncat=10,xlab="Area",ylab="log(mu)")
+> logplot(gala$Elevation,gala$Species,ncat=10,xlab="Elevation",ylab="log(mu)")
+> logplot(gala$Nearest,gala$Species,ncat=10,xlab="Nearest",ylab="log(mu)")
+> logplot(gala$Scruz,gala$Species,ncat=10,xlab="Scruz",ylab="log(mu)")
+> logplot(gala$Adjacent,gala$Species,ncat=10,xlab="Adjacent",ylab="log(mu)")</code></pre>
+<p>ฟังก์ชันนี้ตัด X ออกเป็น <code>ncat=10</code> กลุ่มตามควอนไทล์ (quantile) แล้วคำนวณค่าเฉลี่ยของ x และ log(ค่าเฉลี่ยของ y) ในแต่ละกลุ่ม — ผลคือกราฟที่มีจุดน้อยลง (10 จุดแทนที่จะเป็น 30) แต่เห็นแนวโน้มชัดขึ้นมาก:</p>
+<figure>
+<img src="../assets/slides/as11-p15-logplot-collapsed-functional-form.png" alt="Five collapsed logplot outputs showing log(mu) against binned mean values of Area, Elevation, Nearest, Scruz, and Adjacent, most showing a curved rather than linear trend">
+<figcaption>Slide: Explore the Functional Form of log[μ(xᵢ)] — collapsed logplot (Lecture 11, p.15)</figcaption>
+</figure>
+<p>อ่านกราฟ Elevation (บนกลาง): log(mu) ไต่จากประมาณ 2.0 ที่ Elevation≈0 ขึ้นไปถึงเกือบ 5.7 ที่ Elevation≈800 แล้ว<strong>แบนราบ</strong>ช่วง 800–1300 — ไม่ใช่เส้นตรงตลอดช่วง แต่โค้งแบบอิ่มตัว (saturating) ที่ค่า Elevation สูง ๆ ส่วนกราฟ Area (บนซ้าย) ยิ่งชัดกว่า: log(mu) พุ่งขึ้นเร็วมากช่วง Area น้อย ๆ แล้วเกือบราบเรียบหลังจากนั้น — รูปแบบโค้งแบบนี้คือเหตุผลที่สไลด์เสนอให้<strong>เพิ่มพจน์กำลังสอง (quadratic term)</strong> ของแต่ละตัวแปรเข้าไปในโมเดล แทนที่จะใช้แค่พจน์เชิงเส้นอย่างเดียว.</p>
+
+<h2>5. ฟิตใหม่ด้วยพจน์กำลังสอง และเช็ค Fit อีกครั้ง</h2>
+<pre><code>> model<-glm(Species~Area+Elevation+Nearest+Scruz+Adjacent+I(Area^2)
++ +I(Elevation^2)+I(Nearest^2)+I(Scruz^2)+I(Adjacent^2), data=gala,
++ family=poisson)
+> summary(model)
+...
+Coefficients:
+                 Estimate Std. Error z value  Pr(>|z|)
+(Intercept)     2.174e+00  1.001e-01  21.718   < 2e-16 ***
+Area            1.439e-03  1.948e-04   7.388  1.49e-13 ***
+Elevation       8.925e-03  4.549e-04  19.620   < 2e-16 ***
+Nearest        -6.196e-02  9.019e-03  -6.870  6.44e-12 ***
+Scruz           9.106e-03  1.494e-03   6.094  1.10e-09 ***
+Adjacent       -4.876e-04  1.988e-04  -2.453    0.0142 *
+I(Area^2)       8.944e-08  3.976e-08   2.250    0.0245 *
+I(Elevation^2) -6.934e-06  4.785e-07 -14.491   < 2e-16 ***
+I(Nearest^2)    1.090e-03  1.970e-04   5.531  3.18e-08 ***
+I(Scruz^2)     -3.514e-05  5.590e-06  -6.286  3.26e-10 ***
+I(Adjacent^2)   2.534e-07  4.820e-08   5.258  1.45e-07 ***
+---
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 3510.73  on 29  degrees of freedom
+Residual deviance:  354.63  on 19  degrees of freedom
+AIC: 537.46</code></pre>
+<p>ทุกพจน์ (รวมพจน์กำลังสอง) มีนัยสำคัญทางสถิติ และ AIC ลดลงจาก 889.68 เหลือ 537.46 — โมเดลดีขึ้นชัดเจน แต่ residual deviance/df = 354.63/19 ≈ <strong>18.7</strong> ยังคงมากกว่า 1 อยู่มาก:</p>
+<pre><code>> pchisq(deviance(model), model$df.residual, lower=FALSE)
+[1] 1.128763e-63
+> sum(residuals(model, type="pearson")^2)/model$df.residual
+[1] 16.80629</code></pre>
+<p>ค่า <strong>16.80629</strong> นี้คือค่าประมาณของ dispersion parameter φ จาก Pearson residuals — เทียบกับที่ Poisson ตั้งไว้ว่า \(\phi=1\) ตายตัว ข้อมูลจริงมี variance มากกว่าที่ Poisson คาดไว้ถึง<strong>ประมาณ 16.8 เท่า</strong> นี่คือ overdispersion ที่ชัดเจนมาก แม้จะเพิ่มพจน์กำลังสองแก้ปัญหา functional form ไปแล้วก็ตาม — สรุปได้ว่าปัญหาไม่ได้อยู่ที่รูปแบบฟังก์ชัน (functional form) แต่อยู่ที่ตัว distribution assumption ของ Poisson เอง สไลด์จึงเสนอ <strong>quasipoisson</strong> เป็นทางแก้ต่อไป.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Dispersion Parameter</span></div>
+  <div class="qtext">คำนวณ dispersion parameter ได้ <code>sum(residuals(model,type="pearson")^2)/df.residual = 16.8</code> ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ค่านี้มากกว่า 1 อย่างชัดเจน (16.8 เท่า) แปลว่าข้อมูลมี overdispersion รุนแรง ควรใช้ quasi-Poisson หรือ Negative Binomial แทน Poisson ธรรมดา</button>
+  <button class="opt" data-correct="false">ค่านี้บอกจำนวนตัวแปรอิสระที่ควรตัดออกจากโมเดล</button>
+  <button class="opt" data-correct="false">ค่านี้ใกล้ 1 มาก แปลว่าโมเดล Poisson ใช้ได้ดี ไม่ต้องแก้ไขอะไร</button>
+  <button class="opt" data-correct="false">ค่านี้คือค่า R² ของโมเดล บอกว่าโมเดลอธิบายความแปรปรวนได้ 16.8%</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>6. Quasi-Poisson: ทางแก้เร็ว ๆ สำหรับ Overdispersion</h2>
+<p>Quasi-Poisson ยังใช้ point estimate (β̂) แบบเดียวกับ Poisson แต่ปรับ SE ให้ใหญ่ขึ้นตามค่า dispersion parameter ที่ประมาณได้จริง แทนที่จะตรึงไว้ที่ 1:</p>
+<pre><code>> model2<-glm(Species~Area+Elevation+Nearest+Scruz+Adjacent+I(Area^2)
++ +I(Elevation^2)+I(Nearest^2)+I(Scruz^2)+I(Adjacent^2), data=gala,
++ family=quasipoisson)
+> summary(model2)
+...
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)    2.174e+00  4.103e-01   5.298 4.11e-05 ***
+Area           1.439e-03  7.985e-04   1.802 0.087418 .
+Elevation      8.925e-03  1.865e-03   4.786 0.000128 ***
+Nearest       -6.196e-02  3.697e-02  -1.676 0.110176
+Scruz          9.106e-03  6.125e-03   1.487 0.153532
+Adjacent      -4.876e-04  8.150e-04  -0.598 0.556674
+I(Area^2)      8.944e-08  1.630e-07   0.549 0.589568
+I(Elevation^2)-6.934e-06  1.962e-06  -3.535 0.002213 **
+I(Nearest^2)   1.090e-03  8.076e-04   1.349 0.193141
+I(Scruz^2)    -3.514e-05  2.292e-05  -1.533 0.141694
+I(Adjacent^2)  2.534e-07  1.976e-07   1.283 0.215033
+---
+(Dispersion parameter for quasipoisson family taken to be 16.80632)
+
+    Null deviance: 3510.73  on 29  degrees of freedom
+Residual deviance:  354.63  on 19  degrees of freedom
+AIC: NA</code></pre>
+<p>เทียบ <code>Area</code> ระหว่างสองโมเดล: Poisson ให้ SE=1.948e-04 (p=1.49e-13, ***), quasipoisson ให้ SE=7.985e-04 (p=0.087, ไม่ถึง 0.05) — <strong>Estimate เท่ากันเป๊ะ (1.439e-03) แต่ SE ของ quasipoisson ใหญ่กว่าประมาณ 4.1 เท่า</strong> ตรวจสอบได้: \(\sqrt{16.80629} \approx 4.0995\) ตรงกับอัตราส่วน SE พอดี (0.0007985/0.0001948 ≈ 4.10) — นี่คือกลไกของ quasi-likelihood: <strong>SE(quasi) = SE(Poisson) × √dispersion</strong> ผลลัพธ์คือหลายตัวแปรที่ "significant" ภายใต้ Poisson (Area, Nearest, Scruz, I(Area²), I(Nearest²), I(Scruz²), I(Adjacent²)) กลับ<strong>ไม่ significant</strong>ภายใต้ quasipoisson ที่คำนึงถึง overdispersion แล้ว — สะท้อนว่า Poisson ธรรมดาให้ความมั่นใจสูงเกินจริงกับสัมประสิทธิ์เมื่อมี overdispersion.</p>
+<p>เมื่อเปรียบเทียบโมเดล Poisson ที่มี overdispersion ควรใช้ <strong>F-test แทน χ² test</strong> เพราะต้องประมาณ dispersion parameter เพิ่ม (เสีย 1 df ให้กับมัน) — <code>drop1(model2, test="F")</code> ทดสอบตัดแต่ละตัวแปรออกทีละตัว:</p>
+<pre><code>> drop1(model2, test="F")
+Single term deletions
+               Df Deviance F value    Pr(>F)
+<none>              354.63
+Area            1   408.67  2.8957 0.1051214
+Elevation       1   744.12 20.8681 0.0002101 ***
+Nearest         1   404.21  2.6567 0.1195831
+Scruz           1   391.83  1.9930 0.1741906
+Adjacent        1   360.99  0.3407 0.5663154
+I(Area^2)       1   359.62  0.2678 0.6108082
+I(Elevation^2)  1   574.16 11.7622 0.0028098 **
+I(Nearest^2)    1   386.30  1.6968 0.2082768
+I(Scruz^2)      1   397.18  2.2801 0.1474941
+I(Adjacent^2)   1   384.29  1.5894 0.2226675</code></pre>
+<p>หลัง controlled สำหรับ overdispersion แล้ว มีแค่ <code>Elevation</code> และ <code>I(Elevation^2)</code> เท่านั้นที่ยัง significant ชัดเจน (p<0.01) ส่วนตัวแปรอื่นแทบทั้งหมดไม่ significant — บทเรียนสำคัญ: <strong>เมื่อมี overdispersion การอ่านผลจาก Poisson ธรรมดาตรง ๆ (ไม่ปรับ dispersion) จะได้ข้อสรุปที่ significant เกินจริงเกือบทุกตัวแปร</strong>.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Quasi-Poisson SE</span></div>
+  <div class="qtext">ตัวแปร X ตัวหนึ่งมี Estimate=0.02 เท่ากันทั้งใน Poisson และ quasi-Poisson แต่ SE ใน quasi-Poisson ใหญ่กว่า SE ใน Poisson มาก เหตุผลที่ถูกต้องที่สุดคืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">quasi-Poisson ปรับ SE ด้วย √dispersion parameter ที่ประมาณจากข้อมูลจริง แทนที่จะตรึง dispersion ไว้ที่ 1 เหมือน Poisson ธรรมดา ซึ่งสะท้อนความไม่แน่นอนที่แท้จริงเมื่อมี overdispersion</button>
+  <button class="opt" data-correct="false">SE ที่ต่างกันเป็นความคลาดเคลื่อนจากการปัดเศษเท่านั้น ไม่มีนัยสำคัญเชิงทฤษฎี</button>
+  <button class="opt" data-correct="false">quasi-Poisson คำนวณ Estimate ผิดเพราะใช้ maximum likelihood คนละแบบ</button>
+  <button class="opt" data-correct="false">quasi-Poisson ใช้ขนาดตัวอย่าง (n) น้อยกว่า Poisson เสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>7. การสร้างโมเดลอัตรา (Rate): พจน์ Offset</h2>
+<p>บางครั้งสิ่งที่น่าสนใจไม่ใช่ "จำนวนนับดิบ" แต่คือ<strong>อัตรา</strong> (rate) ต่อหน่วยเวลา/พื้นที่/ขนาดกลุ่ม — เพราะจำนวนนับดิบเพิ่มขึ้นตามธรรมชาติเมื่อ "ฐาน" ที่นับด้วยใหญ่ขึ้น (เมืองใหญ่มีคดีฆาตกรรมมากกว่าเมืองเล็กเป็นธรรมดา ไม่ใช่เพราะเมืองใหญ่อันตรายกว่าเสมอไป) สไลด์ยกตัวอย่างอัตราฆาตกรรมต่อประชากร (<code>#homicides/population size</code>) และอัตราการโจรกรรมต่อจำนวนครัวเรือน ให้ \(\mu\) เป็นจำนวนฆาตกรรมเฉลี่ยและ <code>N</code> เป็นขนาดประชากร โมเดลอัตราเขียนเป็น:</p>
+<div class="box">
+\(\log E[\text{\#homicides/population size}] = \beta_0+\beta_1 x_1+\cdots+\beta_p x_p\)<br>
+จัดรูปใหม่: \(\log \mu = \log N + \beta_0+\beta_1 x_1+\cdots+\beta_p x_p\)
+</div>
+<p>จุดสำคัญที่สุดของสมการนี้: พจน์ <code>log N</code> ที่เติมเข้ามาไม่มีสัมประสิทธิ์ (ไม่ใช่ \(\beta \cdot \log N\) แต่เป็น \(1 \cdot \log N\) ตายตัว) — พจน์แบบนี้เรียกว่า <em class="term">offset</em>: เป็นตัวแปรที่ใส่เข้าไปในสมการเพื่อ "หักลบ" ผลของขนาดฐานออกไปก่อน โดยไม่ให้ข้อมูลมาประมาณสัมประสิทธิ์ของมันเอง (บังคับสัมประสิทธิ์ = 1 เสมอ) ผลคือโมเดลกำลังทำนาย<strong>อัตรา</strong> (\(\mu/N\)) จาก x จริง ๆ แม้จะยังฟิตด้วย <code>glm(family=poisson)</code> กับ y ที่เป็นจำนวนนับดิบก็ตาม</p>
+
+<h3>ตัวอย่าง: ผลของรังสีต่อความผิดปกติของโครโมโซม</h3>
+<p>Purott &amp; Reeder (1976) ทำการทดลองวัดผลของรังสีแกมมาต่อจำนวนความผิดปกติของโครโมโซม (chromosomal abnormality) ข้อมูล <code>dicentric</code> มี 27 แถว 4 ตัวแปร: <code>cells</code> (จำนวนเซลล์ที่นับ หน่วยร้อย), <code>ca</code> (จำนวนความผิดปกติที่พบ), <code>doseamt</code> (ปริมาณรังสี หน่วย Grays), <code>doserate</code> (อัตราการให้รังสี Grays/ชั่วโมง) — สไลด์ระบุชัดว่าสนใจ<strong>อัตรา</strong> <code>ca/cells</code> มากกว่าจำนวนดิบ เพราะคาดว่าจำนวนความผิดปกติแปรผันตรงกับจำนวนเซลล์ที่นับ (นับเซลล์เยอะก็ย่อมเจอความผิดปกติเยอะตามสัดส่วน ไม่ใช่เพราะรังสีแรงขึ้น):</p>
+<pre><code>> library(faraway)
+> data(dicentric)
+> dicentric
+    cells ca doseamt doserate
+1     478 25      1.0    0.10
+2    1907 102     1.0    0.25
+3    2258 149     1.0    0.50
+4    2329 160     1.0    1.00
+5    1238 75      1.0    1.50
+...
+> xtabs(ca/cells~doseamt+doserate,dicentric)
+doserate
+doseamt 0.1 0.25 0.5    1  1.5    2  2.5    3    4
+    1   0.05 0.05 0.07 0.07 0.06 0.07 0.07 0.07 0.07
+    2.5 0.16 0.28 0.29 0.32 0.38 0.41 0.41 0.37 0.44
+    5   0.48 0.82 0.90 0.88 1.23 1.32 1.34 1.24 1.43</code></pre>
+<p>อ่านตาราง <code>xtabs</code>: ที่ <code>doseamt=1</code> อัตรา <code>ca/cells</code> แทบไม่ขยับเลยตลอดทุกค่า <code>doserate</code> (0.05–0.07) แต่ที่ <code>doseamt=5</code> อัตราไต่จาก 0.48 ขึ้นไปถึง 1.43 เมื่อ <code>doserate</code> เพิ่มจาก 0.1 เป็น 4 — ชัดเจนว่าอัตราความผิดปกติเพิ่มขึ้นตามทั้ง <code>doseamt</code> และ <code>doserate</code> และผลของ <code>doserate</code> ดูจะ "แรงกว่า" เมื่อ <code>doseamt</code> สูง (สัญญาณของ interaction) ดูภาพประกอบ interaction plot ยืนยันแนวโน้มนี้:</p>
+<figure>
+<img src="../assets/slides/as11-p25-radiation-interaction-plot.png" alt="Interaction plot of mean ca/cells against doserate, with three lines for doseamt=1 (nearly flat near 0.05-0.07), doseamt=2.5 (rising moderately to about 0.44), and doseamt=5 (rising steeply from 0.48 to 1.43)">
+<figcaption>Slide: Example — Radiation Dose Effects, interaction plot (Lecture 11, p.25)</figcaption>
+</figure>
+<p>เส้น <code>doseamt=1</code> (เส้นล่างสุด) เกือบราบตลอดช่วง <code>doserate</code> ขณะที่เส้น <code>doseamt=5</code> (เส้นบนสุด) ชันขึ้นชัดเจนจาก 0.48 ไปจนเกือบ 1.43 — เส้นทั้งสามไม่ขนานกัน (เส้นบนชันกว่าเส้นล่างมาก) นี่คือนิยามของ <em class="term">interaction</em> ในทางกราฟ: ผลของ <code>doserate</code> ต่ออัตรา<strong>ขึ้นอยู่กับ</strong>ระดับของ <code>doseamt</code> ไม่ใช่คงที่ ดังนั้นสไลด์จึงลองใส่ interaction term <code>doserate:doseamt</code> เป็น factor เข้าไปในโมเดลก่อน:</p>
+<pre><code>> intglm<-glm(ca~log(cells)+as.factor(doserate)*as.factor(doseamt),
++ family=poisson,data=dicentric)
+> summary(intglm)
+Coefficients: (1 not defined because of singularities)
+...
+    Null deviance: 9.1613e+02  on 26  degrees of freedom
+Residual deviance: 4.1966e-14  on 0   degrees of freedom
+AIC: 229.41</code></pre>
+<p>โมเดลนี้มีปัญหาชัดเจน: <code>(1 not defined because of singularities)</code> และ <strong>residual deviance เหลือ df=0</strong> — เพราะใส่ <code>as.factor()</code> ทั้งสองตัวคูณกันเป็น interaction เต็มรูปแบบ (saturated model) จำนวนพารามิเตอร์เท่ากับจำนวนกลุ่มข้อมูลพอดี โมเดลจึง "ฟิตเป๊ะ" ทุกจุดแต่<strong>ไม่เหลือข้อมูลให้ทดสอบอะไรได้เลย</strong> (overfitting แบบสุดขั้ว) — ต้องลดจำนวนพารามิเตอร์ลง สไลด์จึงเปลี่ยนมาใช้ <code>log(doserate)</code> แบบต่อเนื่องแทน <code>as.factor(doserate)</code>:</p>
+<pre><code>> dctglm<-glm(ca~log(cells)+log(doserate)*dosef,family=poisson,data=dicentric)
+> summary(dctglm)
+Coefficients:
+                       Estimate Std. Error z value Pr(>|z|)
+(Intercept)            -2.76534    0.38116  -7.255 4.02e-13 ***
+log(cells)              1.00252    0.05137  19.517  < 2e-16 ***
+log(doserate)           0.07200    0.03547   2.030 0.042403 *
+dosef2.5                1.62984    0.10273  15.866  < 2e-16 ***
+dosef5                  2.76673    0.12287  22.517  < 2e-16 ***
+log(doserate):dosef2.5  0.16111    0.04837   3.331 0.000866 ***
+log(doserate):dosef5    0.19316    0.04299   4.493 7.03e-06 ***
+---
+(Dispersion parameter for poisson family taken to be 1)
+    Null deviance: 916.127 on 26 degrees of freedom
+Residual deviance: 21.748 on 20 degrees of freedom
+AIC: 211.15</code></pre>
+<p>สังเกตค่าสัมประสิทธิ์ <code>log(cells) = 1.00252</code> — <strong>ใกล้เคียง 1 มาก</strong> พอดีตามที่ทฤษฎีคาดไว้ (เพราะจำนวนความผิดปกติควรแปรผันตรงกับจำนวนเซลล์แบบ 1 ต่อ 1 — นับเซลล์เพิ่มเป็น 2 เท่า ก็ควรเจอความผิดปกติเพิ่มเป็น 2 เท่าโดยธรรมชาติ ไม่ใช่ผลของรังสี) สไลด์ชี้ตรง ๆ ว่า <strong>"the coefficient of log(cells) should be one"</strong> — แทนที่จะปล่อยให้ข้อมูลประมาณค่านี้ (ซึ่งมีความไม่แน่นอนของตัวมันเอง) เราควร<strong>บังคับให้เท่ากับ 1 เลย</strong> ด้วย <code>offset()</code>:</p>
+<pre><code>> dctglm2<-glm(ca~offset(log(cells))+log(doserate)*dosef,family=poisson,
++ data=dicentric)
+> summary(dctglm2)
+Coefficients:
+                       Estimate Std. Error z value Pr(>|z|)
+(Intercept)            -2.74671    0.03426 -80.165  < 2e-16 ***
+log(doserate)           0.07178    0.03518   2.041 0.041299 *
+dosef2.5                1.62542    0.04946  32.863  < 2e-16 ***
+dosef5                  2.76109    0.04349  63.491  < 2e-16 ***
+log(doserate):dosef2.5  0.16122    0.04830   3.338 0.000844 ***
+log(doserate):dosef5    0.19350    0.04243   4.561 5.1e-06 ***
+---
+(Dispersion parameter for poisson family taken to be 1)
+    Null deviance: 4753.00  on 26  degrees of freedom
+Residual deviance:   21.75  on 21  degrees of freedom
+AIC: 209.16</code></pre>
+<p>เทียบสองโมเดล: <code>log(doserate)</code>, <code>dosef2.5</code>, <code>dosef5</code> และพจน์ interaction ได้ค่าประมาณ (estimate) ใกล้เคียงเดิมแทบทุกตัว แต่ <strong>SE เล็กลงมาก</strong> ทุกตัว (เช่น <code>dosef2.5</code>: SE จาก 0.10273 เหลือ 0.04946 — เล็กลงกว่าครึ่ง) และ AIC ดีขึ้นเล็กน้อย (211.15 → 209.16) — เพราะโมเดล offset ไม่ต้อง "เสีย 1 df" ไปกับการประมาณสัมประสิทธิ์ของ <code>log(cells)</code> อีกต่อไป (รู้ค่าแน่นอนแล้วว่า=1) ความไม่แน่นอนที่เหลือทั้งหมดจึงไปตกอยู่กับพารามิเตอร์ที่เหลือได้แม่นยำขึ้น — <strong>กฎการใช้ offset: ถ้ามีเหตุผลทางทฤษฎีที่บอกว่าสัมประสิทธิ์ของตัวแปรหนึ่งต้องเท่ากับ 1 พอดี (เช่น "ฐาน" ของอัตรา) ให้ใช้ offset() แทนการปล่อยให้โมเดลประมาณเอง</strong></p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>Offset</span></div>
+  <div class="qtext">อธิบายว่าทำไมโมเดล <code>glm(ca~offset(log(cells))+...)</code> ถึงเหมาะกับข้อมูล dicentric มากกว่าการใส่ <code>log(cells)</code> เป็นตัวแปรธรรมดาที่ให้โมเดลประมาณสัมประสิทธิ์เอง</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">เพราะทฤษฎีบอกไว้ล่วงหน้าแล้วว่าจำนวนความผิดปกติ (ca) ควรแปรผันตรงกับจำนวนเซลล์ (cells) แบบ 1 ต่อ 1 พอดี — สัมประสิทธิ์ของ log(cells) "ควรจะ" เท่ากับ 1 เสมอไม่ว่าข้อมูลจะเป็นอย่างไร เมื่อฟิตแบบธรรมดาได้ค่าประมาณ 1.00252 ซึ่งใกล้ 1 มากอยู่แล้ว (ยืนยันทฤษฎี) การใช้ offset() บังคับให้เท่ากับ 1 ตรง ๆ ทำให้ไม่ต้องเสีย degree of freedom ไปกับการประมาณค่าที่รู้คำตอบอยู่แล้ว ส่งผลให้ SE ของสัมประสิทธิ์ตัวอื่นแม่นยำขึ้น (เล็กลง) และโมเดลกลายเป็นการทำนาย "อัตรา" ca/cells โดยตรงตามที่ต้องการจริง ๆ</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Interaction</span></div>
+  <div class="qtext">จาก interaction plot ของข้อมูล dicentric (เส้น doseamt=5 ชันกว่าเส้น doseamt=1 มาก) ข้อสรุปใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">doserate และ doseamt ไม่มีความสัมพันธ์กับอัตราความผิดปกติเลย</button>
+  <button class="opt" data-correct="false">ต้องใช้ linear regression ธรรมดาแทน Poisson regression เพราะมี interaction</button>
+  <button class="opt" data-correct="true">ผลของ doserate ต่ออัตราความผิดปกติแตกต่างกันไปตามระดับของ doseamt — มี interaction ระหว่างสองตัวแปรนี้</button>
+  <button class="opt" data-correct="false">เส้นทั้งสามขนานกัน แปลว่าไม่มี interaction</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. Negative Binomial Regression — ทางแก้ Overdispersion อีกทาง</h2>
+<p>Quasi-Poisson (หัวข้อ 6) แก้ปัญหา overdispersion โดย<strong>ไม่เปลี่ยนสมมติฐานการแจกแจง</strong> แค่ปรับ SE ทีหลัง — Negative Binomial (NB) เป็นทางแก้อีกแบบที่<strong>เปลี่ยนตัวแบบการแจกแจง</strong>ของ y ไปเลย โดยมองว่า NB คือ "gamma mixture ของ Poisson": สมมติว่าแต่ละหน่วยสังเกต <code>i</code> มี unobserved heterogeneity term \(\tau_i\) ที่ทำให้ \((y_i|x_i,\tau_i) \sim \text{Poisson}(\mu_i \tau_i)\) — ค่าเฉลี่ยแท้จริงของแต่ละหน่วยไม่เท่ากันเป๊ะแม้จะมี \(x_i\) เหมือนกัน (มีปัจจัยแฝงที่วัดไม่ได้เข้ามาแทรก) เมื่อกำหนดให้ \(\tau_i \sim \text{Gamma}(\theta,\theta)\) (mean=1, variance=1/θ) แล้วอินทิเกรต \(\tau_i\) ออกไป จะได้การแจกแจงของ \(y_i\) ที่ไม่มีเงื่อนไขบน \(\tau_i\) อีกต่อไป ซึ่งก็คือ Negative Binomial distribution พอดี:</p>
+<div class="box">
+\(f(y_i|x_i) = \dfrac{\Gamma(y_i+\theta)}{y_i!\,\Gamma(\theta)} \left(\dfrac{\theta}{\theta+\mu_i}\right)^{\theta} \left(\dfrac{\mu_i}{\theta+\mu_i}\right)^{y_i}\)<br>
+\(E[y_i|x_i] = \mu_i\), &nbsp;\(\text{Var}[y_i|x_i] = \mu_i\left(1+\dfrac{\mu_i}{\theta}\right) > E[y_i|x_i]\)
+</div>
+<p>สังเกตสูตร variance: \(\mu_i(1+\mu_i/\theta)\) จะ<strong>มากกว่า</strong> \(\mu_i\) เสมอ (เพราะพจน์ \(\mu_i/\theta\) เป็นบวกเสมอเมื่อ θ>0) — นี่คือกลไกที่ NB "รองรับ overdispersion ได้โดยธรรมชาติ" ในตัวมันเอง ต่างจาก Poisson ที่ตรึง variance=mean ตายตัว และเมื่อ \(\theta\to\infty\) พจน์ \(\mu_i/\theta\to0\) ทำให้ variance ลู่เข้าหา \(\mu_i\) พอดี — <strong>Poisson คือกรณีพิเศษของ Negative Binomial เมื่อ θ มีค่าอนันต์</strong> (ไม่มี unobserved heterogeneity เหลืออยู่เลย)</p>
+
+<h3>Fitting Negative Binomial ใน R</h3>
+<p>Canonical link ของ NB คือ log link เหมือน Poisson — สมการโมเดลจึงเขียนเหมือนกันทุกประการ: \(\log \mu = \beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\) แต่ R <strong>ไม่ใช้ <code>glm()</code> ธรรมดา</strong> เพราะต้องประมาณพารามิเตอร์เพิ่มอีกตัว (θ) — ต้องใช้ <code>glm.nb()</code> จาก package <code>MASS</code> แทน:</p>
+<pre><code>> library(MASS)
+> nbmodel<-glm.nb(Species~.-Endemics, data=gala)
+> summary(nbmodel)
+
+Call:
+glm.nb(formula = Species ~ . - Endemics, data = gala, init.theta = 1.674602286,
+    link = log)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  2.9065247 0.2510344 11.578  < 2e-16 ***
+Area        -0.0006336 0.0002865 -2.211 0.027009 *
+Elevation    0.0038551 0.0006916   5.574 2.49e-08 ***
+Nearest      0.0028264 0.0136618   0.207 0.836100
+Scruz       -0.0018976 0.0028096  -0.675 0.499426
+Adjacent    -0.0007605 0.0002278  -3.338 0.000842 ***
+---
+(Dispersion parameter for Negative Binomial(1.6746) family taken to be 1)
+
+    Null deviance: 88.431 on 29 degrees of freedom
+Residual deviance: 33.196 on 24 degrees of freedom
+AIC: 304.22</code></pre>
+<p>อ่านผลต่างจาก Poisson model เดิม (หัวข้อ 2, ตัวแปรชุดเดียวกันแบบเชิงเส้น): θ̂ ที่ประมาณได้คือ <strong>1.6746</strong> (ตัวเลขนี้ปรากฏในบรรทัด <code>init.theta</code> และ <code>Dispersion parameter for Negative Binomial(1.6746)</code>) — ค่า θ ยิ่งเล็กยิ่งมี overdispersion มาก (ยิ่งไกลจาก ∞) เทียบ AIC: Poisson model ธรรมดาได้ 889.68 ในขณะที่ NB model ได้เพียง <strong>304.22</strong> — ต่างกันมหาศาล ยืนยันว่า NB ฟิตข้อมูลนี้ดีกว่า Poisson มาก และที่สำคัญ: สังเกตว่า <code>Nearest</code> และ <code>Scruz</code> ที่เคย significant มาก (p&lt;2e-16) ใน Poisson ธรรมดา กลับ<strong>ไม่ significant เลย</strong> (p=0.836, p=0.499) ภายใต้ NB — สอดคล้องกับที่เห็นใน quasi-Poisson (หัวข้อ 6): เมื่อคำนึงถึง overdispersion อย่างถูกต้อง หลายตัวแปรที่ดูมีนัยสำคัญกลับไม่มีจริง</p>
+<p>Rate ratio interpretation ของ NB ใช้<strong>template เดียวกันเป๊ะ</strong>กับ Poisson (หัวข้อ 2.1) เพราะ link function เป็น log เหมือนกัน: <code>Elevation=0.0038551</code> ให้ \(\exp(0.0038551)\approx1.00386\) — "เมื่อ Elevation เพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวังเพิ่มเป็น 1.00386 เท่าของเดิม โดยตัวแปรอื่นคงที่ (อย่างมีนัยสำคัญ p=2.49e-08)" — สิ่งที่<strong>ต่าง</strong>จาก Poisson ไม่ใช่วิธีตีความสัมประสิทธิ์ แต่คือ SE ที่สมจริงกว่าเพราะโมเดลรับรู้ overdispersion ตั้งแต่ต้น</p>
+
+<p>Goodness-of-fit และการเลือกตัวแปรทำได้แบบเดียวกับ GLM อื่น ๆ:</p>
+<pre><code>> pchisq(nbmodel$deviance, nbmodel$df.residual, lower.tail=F)
+[1] 0.100005
+> drop1(nbmodel, test="Chisq")
+Single term deletions
+          Df Deviance    AIC    LRT Pr(>Chi)
+<none>         33.196 302.22
+Area       1   36.665 303.69  3.468 0.062562 .
+Elevation  1   65.866 332.89 32.670 1.092e-08 ***
+Nearest    1   33.263 300.29  0.067 0.795920
+Scruz      1   33.569 300.60  0.372 0.541732
+Adjacent   1   41.151 308.18  7.955 0.004796 **</code></pre>
+<p>p-value ของ goodness-of-fit test คือ <strong>0.100005</strong> — มากกว่า 0.05 จึง<strong>ไม่ปฏิเสธ H₀</strong> (โมเดลฟิตข้อมูลได้ดีพอ) ต่างจาก Poisson model ที่ p-value เล็กจนแทบเป็นศูนย์ (หัวข้อ 3) — ยืนยันอีกครั้งว่า NB จับโครงสร้างของข้อมูลนี้ได้เหมาะสมกว่า Poisson ธรรมดามาก ส่วน <code>drop1</code> ด้วย likelihood-ratio test (LRT) ชี้ว่ามีแค่ <code>Elevation</code> (p&lt;0.001) และ <code>Adjacent</code> (p&lt;0.01) ที่ significant ชัดเจน — ผลลัพธ์ใกล้เคียงกับที่ quasi-Poisson ให้ (หัวข้อ 6) มากกว่าที่ Poisson ธรรมดาให้</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response)</span><span>Negative Binomial Interpretation</span></div>
+  <div class="qtext">จาก <code>nbmodel</code> ด้านบน จงเขียนประโยคแปลผลของสัมประสิทธิ์ <code>Area = -0.0006336</code> (ให้คูณด้วยช่วง 1000 km² เพื่อให้เห็นผลชัดขึ้น เนื่องจาก Area มีสเกลกว้างมากในข้อมูลนี้)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(\exp(-0.0006336 \times 1000) = \exp(-0.6336) \approx 0.5306\)</p>
+  <p>"จากข้อมูลนี้ (โมเดล Negative Binomial) เมื่อพื้นที่เกาะ (Area) เพิ่มขึ้น 1,000 ตารางกิโลเมตร จำนวนชนิดพืชที่คาดหวังเปลี่ยนเป็น 0.5306 เท่าของเดิม (ลดลงประมาณ 47%) โดยตัวแปรภูมิศาสตร์อื่นคงที่ — อย่างมีนัยสำคัญทางสถิติที่ระดับ 0.05 (p=0.027)" — สังเกตว่าต้องขยายสเกลของ X ก่อนแปลผลเพราะสัมประสิทธิ์ดิบมีขนาดเล็กมากเทียบกับหน่วย km² เดียว เหมือนหลักการในหัวข้อ 2.1</p>
+  </div>
+</div>
+
+<h2>9. Quasi-Poisson หรือ Negative Binomial — เลือกอันไหน</h2>
+<p>ทั้งสองวิธีแก้ overdispersion ได้ แต่ตั้งสมมติฐานเรื่อง<strong>รูปแบบ</strong>ของ variance ต่างกัน:</p>
+<div class="box">
+Quasi-Poisson: \(\text{Var}(Y) = \phi\mu = \mu + \alpha\mu\) (φ = α+1) — <strong>variance เป็นฟังก์ชันเชิงเส้น (linear) ของ mean</strong><br>
+Negative Binomial: \(\text{Var}(Y) = \mu + \kappa\mu^2\) — <strong>variance เป็นฟังก์ชันกำลังสอง (quadratic) ของ mean</strong>
+</div>
+<p>ความต่างนี้มีนัยเชิงปฏิบัติ: ถ้าข้อมูลมี overdispersion ที่โตขึ้น<strong>เร็วกว่า</strong>อัตราเชิงเส้นเมื่อ mean สูงขึ้น (เช่น กลุ่มที่มีค่าคาดหวังสูงมีความแปรปรวนเกินจริงมากเป็นพิเศษ) Negative Binomial จะจับรูปแบบนี้ได้แม่นยำกว่า quasi-Poisson — ในทางปฏิบัติ มักลองทั้งสองแบบแล้วเทียบ AIC (NB มี likelihood เต็มรูปแบบให้เทียบ AIC ได้ตรง ๆ ส่วน quasi-Poisson ไม่มี AIC เพราะไม่ใช่ full likelihood — สังเกตว่า output ของ quasipoisson ในหัวข้อ 6 แสดง <code>AIC: NA</code> พอดี)</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>Quasi-Poisson vs NB</span></div>
+  <div class="qtext">ทำไม <code>summary(model2)</code> ของ quasi-Poisson model ในหัวข้อ 6 จึงแสดง <code>AIC: NA</code> ในขณะที่ <code>glm.nb()</code> ให้ค่า AIC ปกติ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">AIC ใช้ได้เฉพาะกับ Negative Binomial เท่านั้น ไม่เกี่ยวกับ likelihood</button>
+  <button class="opt" data-correct="true">quasi-Poisson ไม่ได้ใช้ full likelihood ในการประมาณ (ใช้ quasi-likelihood แทน) จึงไม่มี log-likelihood ที่จะคำนวณ AIC ได้ตรง ๆ ต่างจาก Negative Binomial ที่มี full likelihood</button>
+  <button class="opt" data-correct="false">quasi-Poisson มีข้อผิดพลาดในการคำนวณเสมอ ไม่สามารถหา AIC ได้ในทางทฤษฎี</button>
+  <button class="opt" data-correct="false">quasi-Poisson และ Poisson ให้ AIC เท่ากันเสมอ จึงไม่จำเป็นต้องแสดง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>ภาพรวม Count Regression</span></div>
+  <div class="qtext">นักวิจัยพบว่า residual deviance/df ของโมเดล Poisson สูงถึง 16.8 (overdispersion รุนแรง) วิธีแก้ใดต่อไปนี้ <strong>ไม่ใช่</strong> ทางแก้ที่ถูกต้องตามที่บทเรียนนี้แนะนำ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เปลี่ยนไปใช้ Negative Binomial regression ผ่าน glm.nb()</button>
+  <button class="opt" data-correct="false">เปลี่ยนไปใช้ quasi-Poisson เพื่อปรับ SE ให้สมจริง</button>
+  <button class="opt" data-correct="false">ตรวจสอบ functional form ของตัวแปรอิสระก่อน (เช่น ลองเพิ่มพจน์กำลังสอง) เผื่อ overdispersion บางส่วนมาจาก model misspecification</button>
+  <button class="opt" data-correct="true">เพิกเฉยต่อ overdispersion แล้วเชื่อ p-value จาก Poisson model เดิมต่อไป เพราะ point estimate ยังถูกต้องอยู่</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ Poisson regression (\(\log \mu_i = \beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\)) ได้จากความจำ, วินิจฉัย overdispersion ได้จากอัตราส่วน residual deviance/df หรือ Pearson dispersion parameter, เขียนประโยคแปลผลสัมประสิทธิ์เป็น <strong>rate ratio</strong> (exp(β̂)) ได้ถูกต้อง, รู้ว่าเมื่อไรต้องใช้ <code>offset()</code> สำหรับโมเดลอัตรา, และเลือกระหว่าง quasi-Poisson กับ Negative Binomial ได้อย่างมีเหตุผลเมื่อเจอ overdispersion — ทักษะการแปลผลเหล่านี้เป็นรากฐานเดียวกับ Lecture 9 (Binary Data) เพียงเปลี่ยนจาก odds ratio เป็น rate ratio เท่านั้น
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (37 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture11.pdf</code> ตั้งแต่หน้า 1 ถึง 37 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่น/โค้ด R ที่สรุปรวมกับหน้าอื่นแล้ว</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 11: Count Regression"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Generalized Linear Models for Counts — รายการหัวข้อ (Poisson/NB)</td><td>etc — หน้าคั่นหัวข้อ</td></tr>
+<tr><td>3</td><td>Poisson Log-Linear Models — นิยาม Poisson distribution</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>4</td><td>Poisson Log-Linear Models — exponential family decomposition</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>5</td><td>Poisson Log-Linear Models — canonical link ⟹ log-linear model</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>6</td><td>Example: Galapagos — คำอธิบายตัวแปรและเป้าหมาย</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>7</td><td>แผนที่หมู่เกาะกาลาปาโกส</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>8</td><td>ตารางข้อมูล gala (R output)</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>9</td><td>glm() fit เชิงเส้น + summary() output</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>10</td><td>Goodness-of-fit test (โมเดลเชิงเส้น) — lack of fit</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>11</td><td>Explore functional form — โค้ด plot() ดิบ</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>12</td><td>Explore functional form — scatterplot ดิบ (5 ตัวแปร)</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>13</td><td>logplot() function definition</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>14</td><td>logplot() การเรียกใช้กับตัวแปรทั้ง 5</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>15</td><td>logplot() ผลลัพธ์ collapsed (5 กราฟ)</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>16</td><td>โมเดลเพิ่มพจน์กำลังสอง + summary() output</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>17</td><td>Goodness-of-fit + dispersion parameter (โมเดลกำลังสอง)</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>18</td><td>Modeling Overdispersion — quasipoisson output</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>19</td><td>Modeling Overdispersion — drop1(F-test) output</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>20</td><td>Poisson Regression for Rates — สมการ offset</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>21</td><td>Example: Radiation Dose — คำอธิบายข้อมูล dicentric</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>22</td><td>ตารางข้อมูล dicentric + xtabs() output</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>23</td><td>สมการโมเดลอัตรา ca/cells</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>24</td><td>โค้ด boxplot()/interaction.plot() ดิบ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>25</td><td>Interaction plot ผลลัพธ์</td><td>✓ หัวข้อ 7 (มีรูป)</td></tr>
+<tr><td>26</td><td>โมเดล interaction เต็มรูปแบบ (as.factor×as.factor) — singularity</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>27</td><td>โมเดล log(doserate)×dosef — สัมประสิทธิ์ log(cells)≈1</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>28</td><td>โมเดล offset(log(cells)) — ผลลัพธ์สุดท้าย</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>29</td><td>Negative Binomial Regression — บทนำ/แรงจูงใจ</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>30</td><td>Theoretical Background — unobserved heterogeneity τᵢ</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>31</td><td>Theoretical Background — gamma mixture derivation, mean/variance</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>32</td><td>Theoretical Background — variance>mean, Poisson เป็นกรณีพิเศษ (θ→∞)</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>33</td><td>Fitting NB in R — canonical link เหมือน Poisson</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>34</td><td>Fitting NB in R — glm.nb() syntax (MASS package)</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>35</td><td>Example: Galapagos — glm.nb() summary() output</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>36</td><td>Goodness-of-fit + drop1(LRT) สำหรับ nbmodel</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>37</td><td>Quasi-Poisson or NB Model — เปรียบเทียบ variance function</td><td>✓ หัวข้อ 9</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0010-binomial-counts.html">← Lesson 10: Binomial Counts</a></span>
+  <span><a href="../lessons/0012-multinomial-data.html">Lesson 12: Multinomial Data →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

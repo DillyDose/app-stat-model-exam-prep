@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 4: วินิจฉัยปัญหาโมเดลจาก plot</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 4 / 6 · วินิจฉัยจาก plot</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 4 — Are there any violated assumptions?</p>
+<h1>Drill 4: ดู plot แล้วบอกว่าโมเดลมีปัญหาอะไร</h1>
+
+<p>อาจารย์<strong>เน้นการวิเคราะห์ปัญหาของโมเดลโดยให้ภาพ plot มา</strong> — ข้อสอบจะโยน plot ใส่แล้วถามว่า assumption ไหนพัง หรือควรทำอะไรต่อ ชุดนี้ใช้ plot ของจริงจากเฉลย assignment ของอาจารย์ทั้งหมด (ไม่ใช่ภาพที่สร้างขึ้นใหม่) พร้อมคำตัดสินของอาจารย์เองเป็นเฉลย</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>15 ข้อ · 30 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~35 นาที</dd>
+  <dt>ครอบคลุม</dt><dd>L3–L4 เป็นหลัก + assumption ของ ANOVA/GLM/LMM</dd>
+  <dt>ที่มาของภาพ</dt><dd>Assignment 3, 4, 6, 7, 8, 9, 10 ที่อาจารย์เฉลยเอง</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">ตารางที่ต้องจำก่อนทำ — plot ไหนตอบ assumption ไหน</div>
+<table style="margin:0.4em 0">
+<tr><th>Plot</th><th>ตรวจอะไร</th><th>หน้าตาที่ "ผ่าน"</th></tr>
+<tr><td>Residuals vs Fitted</td><td>linearity + constant variance</td><td>กระจายสุ่มรอบ 0 ไม่มีโค้ง ไม่บานเป็นกรวย</td></tr>
+<tr><td>Normal Q-Q</td><td><strong>normality เท่านั้น</strong></td><td>จุดเรียงตามเส้นทแยง</td></tr>
+<tr><td>Scale-Location</td><td>constant variance (ชัดกว่าแผงแรก)</td><td>เส้นแดงราบ จุดกระจายสม่ำเสมอ</td></tr>
+<tr><td>Residuals vs Leverage / Cook's D</td><td>จุดที่มีอิทธิพลสูง</td><td>ไม่มีจุดโดดออกจากกลุ่มมาก</td></tr>
+<tr><td>Residual vs <strong>ลำดับเวลา/index</strong></td><td><strong>independence</strong></td><td>ไม่มีแนวโน้ม/คลื่นตามเวลา</td></tr>
+</table>
+<p style="margin-top:0.6em"><strong>กฎเหล็ก:</strong> Residuals vs Fitted <strong>ตรวจ independence ไม่ได้</strong> — ต้องพล็อตกับลำดับเวลาเท่านั้น และ Q-Q <strong>ไม่ได้</strong>ตรวจ constant variance</p>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — Residual plot พื้นฐาน</h2>
+<div class="sec-note">อ่านรูปแบบของ residual แล้วระบุ assumption ที่ถูกละเมิด</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Residual + QQ · L3</span></div>
+  <div class="exq-body">
+    <p>นักเคมีศึกษาความเข้มข้นของสารละลาย (Y) ตามเวลา (X) ฟิต <code>lm(Y ~ X)</code> แล้วได้ plot ด้านล่าง จงระบุว่า assumption ใดถูกละเมิดบ้าง พร้อมเหตุผลจากภาพ</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-solution-resid-qq-violated.png" alt="Left: Residuals vs Fitted with points forming a clear V/U shape, red trend line descending then rising. Right: Normal Q-Q with points curving away from the diagonal line">
+      <figcaption>Assignment 3 ข้อ 1(b) — solution.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Linearity assumption is violated. Constant variance assumption is violated."</strong></p>
+      <p>เหตุผลจากภาพ: residual ไม่ได้กระจายสุ่มรอบศูนย์ แต่เริ่มที่ +0.4 ตรง fitted ≈ −0.3 แล้วดิ่งลงต่ำสุดราว −0.4 ตรง fitted ≈ 1.0 ก่อนไต่กลับขึ้นเป็นบวกอีกครั้งที่ fitted ≈ 2.2 — เส้นแดงจึงเป็น<strong>รูปตัว V</strong> ชัดเจน แพทเทิร์นโค้งแบบนี้แปลว่าความสัมพันธ์จริงไม่ใช่เส้นตรง (linearity พัง) นอกจากนี้ระยะกระจายของ residual ที่ปลายขวา (fitted ≈ 1.5–2.2 มี residual ตั้งแต่ −0.55 ถึง +0.85) กว้างกว่าที่ปลายซ้ายมาก (fitted ≈ −0.3 residual เกาะกันแน่นราว +0.42) — constant variance พังด้วย</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุ linearity violated พร้อมอ้างรูปโค้ง/ตัว V ของ residual</li>
+      <li>1 คะแนน: ระบุ constant variance violated พร้อมอ้างความกว้างที่ต่างกันระหว่างสองปลาย</li></ul>
+      <p>(ตอบแค่อย่างเดียวได้ครึ่งเดียว — อาจารย์เฉลยไว้ 2 ข้อ)</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "normality พัง" เพราะเห็น Q-Q ไม่ตรงเส้น — Q-Q ที่เบี้ยวในกรณีนี้เป็น<strong>ผลพลอยได้</strong>จาก linearity ที่พัง ไม่ใช่ปัญหาต้นทาง: เมื่อโมเดลผิดรูป residual ย่อมไม่ปกติตามไปด้วย แก้ที่ต้นเหตุ (transform) แล้ว Q-Q มักหายเอง (ดูข้อ 2)</p>
+      <p>ตอบลอย ๆ ว่า "residual มีแพทเทิร์น" โดยไม่ระบุว่าแพทเทิร์นนั้นชี้ไปที่ assumption ตัวไหน — ไม่ได้คะแนน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">ก่อน/หลังแก้ · L3</span></div>
+  <div class="exq-body">
+    <p>จากปัญหาในข้อ 1 ได้แปลง Y เป็น <code>log(Y)</code> แล้วฟิตใหม่เป็น <code>lm(log(Y) ~ X)</code> ได้ plot ด้านล่าง จงตัดสินว่าการแก้ได้ผลหรือไม่ พร้อมเหตุผล</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-solution-logmodel-resid-qq-ok.png" alt="Left: Residuals vs Fitted for the log model, points scattered randomly around zero with a nearly flat red line. Right: Normal Q-Q with points lying close to the diagonal">
+      <figcaption>Assignment 3 ข้อ 1(e) — หลังแปลง log(Y)</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"No obvious pattern in the residuals plot. No assumptions are violated."</strong> — การแปลง log แก้ปัญหาได้สำเร็จ</p>
+      <p>เหตุผลจากภาพ: รูปตัว V ที่เห็นชัดในข้อ 1 <strong>หายไปหมด</strong> residual กระจายสุ่มทั้งบนและล่างเส้นศูนย์ตลอดช่วง fitted และความกว้างของการกระจายใกล้เคียงกันตั้งแต่ปลายซ้ายถึงปลายขวา ส่วน Q-Q จุดเกาะเส้นทแยงได้ดีขึ้นมากเมื่อเทียบกับข้อ 1</p>
+      <p><strong>บทเรียนสำคัญ:</strong> เมื่อแก้ที่ต้นเหตุ (รูปแบบฟังก์ชันผิด) ปัญหาปลายทาง (normality, constant variance) มักหายไปพร้อมกัน ไม่ต้องแก้ทีละอย่าง</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สรุปว่าไม่มี assumption ใดถูกละเมิดแล้ว</li>
+      <li>1 คะแนน: อ้างหลักฐานเปรียบเทียบกับก่อนแก้ (รูปโค้งหายไป / การกระจายสม่ำเสมอขึ้น)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ยังพยายามหาปัญหาให้เจอทั้งที่ plot ปกติแล้ว — <strong>over-diagnosis</strong> ก็เสียคะแนนได้ ข้อมูลจริงไม่มีทางกระจายสวยเป๊ะ ความไม่เรียบเล็กน้อยในกลุ่มตัวอย่างขนาดเล็ก (ที่นี่ n=15) ไม่ใช่การละเมิด assumption</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Funnel · L3</span></div>
+  <div class="exq-body">
+    <p>โรงงานศึกษาจำนวนของเสีย (Y) กับความเร็วเครื่องจักร (X) ฟิต OLS ได้ <code>Ŷ = −5.75 + 0.19X</code> แล้วพล็อต residual กับ X ได้ภาพนี้ จงระบุว่า residual plot นี้บอกอะไร และ<strong>ควรใช้วิธีใดแก้</strong></p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-machinespeed-resid-vs-x.png" alt="Residuals plotted against X at three discrete speed settings 200, 300, 400; spread of residuals is narrow at X=200 and becomes progressively wider at X=300 and X=400">
+      <figcaption>Assignment 3 ข้อ 2(c) — machinespeed.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"The constant variance assumption is violated."</strong> วิธีแก้ที่อาจารย์ใช้ต่อคือ <strong>weighted least squares (WLS)</strong></p>
+      <p>เหตุผลจากภาพ: ข้อมูลมีแค่ 3 ระดับความเร็ว (200, 300, 400) ทำให้เปรียบเทียบการกระจายได้ตรง ๆ — ที่ X=200 residual เกาะกันในช่วงแคบราว −10 ถึง +14; ที่ X=300 ขยายเป็นราว −14 ถึง +19; ที่ X=400 กว้างที่สุดราว −16 ถึง +27 <strong>ความกระจายโตขึ้นตาม X อย่างเป็นระบบ</strong> คือรูปกรวย (megaphone) ซึ่งเป็นลายเซ็นของ heteroscedasticity</p>
+      <p>ขั้นตอนแก้ตามที่อาจารย์ทำ: ประมาณ variance function โดย regress \(e_i^2\) กับ X แล้วใช้น้ำหนัก \(w_i = 1/\widehat{e_i^2}\) — สังเกตน้ำหนักที่ได้: กรณีที่ X=200 ได้ w ≈ 0.0146 (มากที่สุด) ส่วน X=400 ได้ w ≈ 0.00315 (น้อยที่สุด) ตรงตามหลักการ "จุดที่แปรปรวนมาก ให้น้ำหนักน้อย"</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุ constant variance violated พร้อมอ้างการกระจายที่โตขึ้นตาม X</li>
+      <li>1 คะแนน: เสนอ weighted least squares เป็นวิธีแก้</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "linearity พัง" — ภาพนี้<strong>ไม่มี</strong>แนวโน้มโค้ง ค่ากลางของ residual ที่ทั้ง 3 ระดับยังอยู่ใกล้ศูนย์ สิ่งที่เปลี่ยนคือ<strong>ความกว้าง</strong> ไม่ใช่ตำแหน่ง</p>
+      <p>เสนอให้ transform Y ด้วย log — ใช้ได้บ้างแต่ไม่ตรงกับที่อาจารย์สอนในบริบทนี้: เมื่อ<strong>รู้รูปแบบของความแปรปรวน</strong>และ linearity ยังดีอยู่ WLS ตรงประเด็นกว่า เพราะรักษาการตีความในหน่วยเดิมไว้ได้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Independence · L3</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลผลผลิตข้าวโพดกับปริมาณน้ำฝนรายปี 1890–1927 ฟิต <code>lm(YIELD ~ RAINFALL + I(RAINFALL^2))</code> แล้วพล็อต residual กับ <strong>ปี (YEAR)</strong> ได้ภาพนี้ จงตอบว่ามีแพทเทิร์นหรือไม่ และมันแปลว่าอะไร</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-corn-resid-vs-year.png" alt="Residuals plotted against YEAR from 1890 to 1927; early years cluster below zero around -5 to 0 while later years drift upward toward +5, showing a rising trend over time">
+      <figcaption>Assignment 3 ข้อ 3(c) — corn.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"From the plot, there is an increasing trend of residuals over time. This means that the independence assumption is violated and the corn yield may correlate with time."</strong></p>
+      <p>เหตุผลจากภาพ: ช่วงปี 1890–1900 residual ส่วนใหญ่<strong>อยู่ใต้ศูนย์</strong> (ราว −8 ถึง 0) แต่ช่วงปี 1915–1927 residual ส่วนใหญ่<strong>อยู่เหนือศูนย์</strong> (ราว 0 ถึง +7) — โมเดลจึงทำนาย<strong>สูงเกินจริงอย่างเป็นระบบในอดีต</strong>และ<strong>ต่ำเกินจริงในภายหลัง</strong> การที่ residual ที่อยู่ใกล้กันในเวลามีเครื่องหมายเหมือนกันแบบนี้คือ autocorrelation ซึ่งละเมิดข้อสมมติที่ว่า error เป็นอิสระต่อกัน</p>
+      <p>วิธีแก้ที่อาจารย์ทำต่อ: <strong>ใส่ YEAR เข้าไปในโมเดล</strong> — ผลคือ YEAR มีนัยสำคัญ (\(\hat{\beta}_{YEAR}=0.13634\), p=0.01229) แปลว่าผลผลิตข้าวโพดเพิ่มขึ้นราว 0.14 bu/acre ต่อปีจากปัจจัยอื่นที่ไม่ใช่น้ำฝน (เช่น เทคโนโลยีการเกษตรที่ดีขึ้น)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่ามีแนวโน้มเพิ่มขึ้นตามเวลา (ไม่ใช่แค่ "มีแพทเทิร์น" ลอย ๆ)</li>
+      <li>1 คะแนน: สรุปว่า independence assumption ถูกละเมิด</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ข้อนี้คือเหตุผลที่ต้องพล็อต residual กับลำดับเวลาเสมอเมื่อข้อมูลมีมิติเวลา</strong> — ถ้าดูแค่ residuals vs fitted จะ<strong>มองไม่เห็นปัญหานี้เลย</strong> เพราะ residuals vs fitted ไม่มีข้อมูลว่าจุดไหนมาก่อนมาหลัง</p>
+      <p>ตอบว่า constant variance พัง — ความกว้างของ residual ค่อนข้างสม่ำเสมอตลอดช่วงเวลา สิ่งที่เลื่อนคือ<strong>ค่ากลาง</strong> ไม่ใช่ความกว้าง</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — 4-panel diagnostic และ Q-Q</h2>
+<div class="sec-note">อ่าน output มาตรฐานของ <code>plot(lm(...))</code></div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">4-panel · L3/L4</span></div>
+  <div class="exq-body">
+    <p>ภาพนี้คือ output มาตรฐานของ <code>plot(model)</code> จากโมเดลผลผลิตข้าวโพดกับไนโตรเจน จงตอบ 2 ข้อ: <strong>(ก)</strong> แต่ละแผงตรวจ assumption อะไร <strong>(ข)</strong> จากภาพนี้มี assumption ใดน่ากังวลบ้าง</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a9-cornnit-4panel-diagnostic.png" alt="Four-panel diagnostic: Residuals vs Fitted with red line curving down at high fitted values and cases 21, 25, 29 labelled; Normal Q-Q with lower tail departing below the line at case 21; Scale-Location with a mildly non-flat red line; Cook's distance spikes at cases 4, 12, 21 with case 21 near 0.20">
+      <figcaption>Assignment 9 ข้อ 2(a) — cornnit.csv, โมเดลเชิงเส้นบนสเกลเดิม</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>(ก) แต่ละแผงตรวจอะไร</strong></p>
+      <ul>
+        <li>Residuals vs Fitted → linearity (และเห็น constant variance คร่าว ๆ)</li>
+        <li>Normal Q-Q → normality เท่านั้น</li>
+        <li>Scale-Location → constant variance โดยเฉพาะ (ใช้ \(\sqrt{|\text{standardized residuals}|}\) ทำให้เห็นแนวโน้มความกว้างชัดกว่าแผงแรก)</li>
+        <li>Cook's distance → จุดที่มีอิทธิพลสูงต่อสัมประสิทธิ์</li>
+      </ul>
+      <p><strong>(ข) ปัญหาที่เห็น</strong></p>
+      <p>แผง Residuals vs Fitted: เส้นแดงไม่ราบ — ไต่ขึ้นช่วง fitted 110–120 แล้ว<strong>โค้งลงชัดเจน</strong>ที่ fitted &gt; 140 บ่งชี้ว่าความสัมพันธ์อิ่มตัว (saturating) ไม่ใช่เส้นตรง → <strong>linearity น่ากังวล</strong></p>
+      <p>แผง Q-Q: ส่วนใหญ่เกาะเส้นดี แต่<strong>หางล่างหลุดลงไปมาก</strong> โดยเฉพาะเคส 21 ที่ standardized residual ต่ำกว่า −3 → หางซ้ายหนักกว่าปกติเล็กน้อย</p>
+      <p>แผง Cook's distance: เคส 21 สูงเด่นที่ราว 0.20 ตามด้วยเคส 4 และ 12 — สูงกว่าเคสอื่นชัด ควรตรวจดูว่าเป็นข้อมูลผิดพลาดหรือไม่</p>
+      <p>สรุป: ปัญหาหลักคือ<strong>รูปแบบฟังก์ชันไม่เป็นเส้นตรง</strong> ซึ่งอาจารย์แก้ด้วยการแปลงตัวแปร (ดูข้อ 9)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: จับคู่แผง↔assumption ถูกครบ 4 แผง</li>
+      <li>1 คะแนน: ระบุ linearity เป็นปัญหาหลัก โดยอ้างเส้นแดงที่โค้งลง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สลับหน้าที่ของ Q-Q กับ Scale-Location — <strong>Q-Q = normality, Scale-Location = constant variance</strong> จำสลับกันเป็นข้อผิดพลาดที่เจอบ่อยที่สุดในข้อสอบ</p>
+      <p>เห็นตัวเลขกำกับจุด (21, 25, 29) แล้วสรุปทันทีว่าเป็น outlier ที่ต้องตัดทิ้ง — R ติดป้ายให้แค่ 3 จุดที่สุดขั้วที่สุดใน<strong>ทุก</strong>โมเดลเสมอ แม้โมเดลจะสมบูรณ์แบบ การมีป้ายไม่ได้แปลว่ามีปัญหา</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Residual vs predictors · L4</span></div>
+  <div class="exq-body">
+    <p>โมเดลความดันหลอดเลือดปอด <code>lm(Y ~ X1*X2)</code> พล็อต residual กับค่า fitted และกับตัวแปรอิสระแต่ละตัว ได้ภาพนี้ จงประเมินว่ามีอะไรน่ากังวล</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-resid-4panel.png" alt="Four scatter panels of residuals against fitted values, X1, X2, and X1*X2; the fitted and X1 panels look randomly scattered, while the X2 and X1*X2 panels show points bunched at low values with wider spread, and one point near X1=13 sits high above the rest">
+      <figcaption>Assignment 4 ข้อ (b) — lungpressure.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Nothing is outstanding in the top-left and top-right plots. The plots on the bottom panel seem to be problematic regarding the constant variance assumption. In addition, it appears that there is outlier in X1."</strong></p>
+      <p>เหตุผลจากภาพ: แผงบน (residual vs fitted, residual vs X1) จุดกระจายค่อนข้างสุ่มรอบศูนย์ ไม่มีรูปทรงชัด — ยอมรับได้ ส่วนแผงล่าง (residual vs X2 และ residual vs X1·X2) จุดกระจุกอยู่ทางซ้ายที่ค่าน้อย ๆ แล้วความกว้างเปลี่ยนไปเมื่อค่าโตขึ้น — ส่อ constant variance ที่ไม่คงที่ นอกจากนี้ยังมีจุดหนึ่งที่ X1 ≈ 13 มี residual สูงราว +24 โดดจากกลุ่มอย่างชัดเจน</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: แยกได้ว่าแผงบนปกติ แผงล่างมีปัญหา constant variance</li>
+      <li>1 คะแนน: สังเกตเห็นจุด outlier ใน X1</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ดูแค่ residual vs fitted แล้วสรุปว่าโมเดลผ่าน — การพล็อต residual <strong>กับตัวแปรอิสระทีละตัว</strong> เผยปัญหาที่แผง fitted เพียงแผงเดียวกลบไว้ อาจารย์สั่งให้ทำแบบนี้ในโจทย์โดยตรง ("plot them separately against Yhat and each of the three predictor variables")</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Q-Q · L3</span></div>
+  <div class="exq-body">
+    <p>จากโมเดลเดียวกับข้อ 6 นี่คือ Q-Q plot จงตอบว่า normality assumption ยอมรับได้หรือไม่ พร้อมเหตุผล</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-qqplot.png" alt="Normal Q-Q plot with most points following the diagonal reference line closely, with a couple of points at the upper right pulling above the line">
+      <figcaption>Assignment 4 ข้อ (c) — lungpressure.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Yes, the normality assumption seems to be okay although there are some outliers."</strong></p>
+      <p>เหตุผลจากภาพ: จุดส่วนใหญ่เกาะแนวเส้นทแยงได้ดีตลอดช่วงกลาง มีเพียงจุดที่ปลายขวาบนไม่กี่จุดที่ลอยเหนือเส้น (residual เป็นบวกมากกว่าที่การแจกแจงปกติคาดไว้) — นี่คือ outlier รายจุด ไม่ใช่การเบี่ยงเบนเชิงระบบของทั้งการแจกแจง</p>
+      <p><strong>หลักการตัดสิน:</strong> ถ้าจุด<strong>ส่วนใหญ่</strong>เกาะเส้นและมีแค่ปลายหางหลุดไม่กี่จุด → ยอมรับ normality ได้; ถ้าจุด<strong>โค้งออกจากเส้นเป็นรูป S หรือกล้วย</strong>ทั้งเส้น → normality พังจริง</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สรุปว่า normality ยอมรับได้</li>
+      <li>1 คะแนน: แต่ตั้งข้อสังเกตเรื่อง outlier ที่ปลายหาง (ตอบว่า "ปกติดีทุกอย่าง" เฉย ๆ ได้ไม่เต็ม)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ปฏิเสธ normality เพราะเห็นจุดหลุดไม่กี่จุด — กลุ่มตัวอย่างเล็ก (n=19) หางย่อมไม่เรียบเป็นธรรมดา ต้องดูภาพรวมของเส้น ไม่ใช่ตัดสินจากจุดสุดขั้ว 2–3 จุด</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน C — Outlier, Leverage, Influence</h2>
+<div class="sec-note">สามคำนี้ไม่ใช่สิ่งเดียวกัน — เป็นกับดักข้อสอบคลาสสิก</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Leverage · L4</span></div>
+  <div class="exq-body">
+    <p>จากโมเดล <code>lm(Y ~ X1*X2)</code> (n=19, พารามิเตอร์ 4 ตัว) พล็อต leverage \(h_{ii}\) พร้อมเส้นตัด \(2p/n = 0.4210526\) จงระบุว่าเคสใดเป็น outlying observation ใน X</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-leverage.png" alt="Leverage values plotted as vertical spikes by case index with a blue dashed cutoff line at about 0.42; spikes at case 3 (about 0.54), case 8 (about 0.88), and case 15 (about 0.48) rise above the cutoff while all others stay below 0.3">
+      <figcaption>Assignment 4 ข้อ (f) — เส้นประน้ำเงินคือ \(2p/n = 0.4210526\)</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"From the plot, we found that Case 3, 8, and 15 are outliers in X."</strong></p>
+      <p>เหตุผลจากภาพ: มีแท่งเพียง 3 แท่งที่ทะลุเส้นตัด 0.4210526 — เคส 3 (≈0.54), เคส 8 (≈0.88 สูงที่สุดอย่างชัดเจน) และเคส 15 (≈0.48) ส่วนเคสที่เหลือทั้งหมดอยู่ต่ำกว่า 0.3</p>
+      <p><strong>กฎที่ใช้:</strong> \(h_{ii} > 2p/n\) ถือว่ามี leverage สูง โดย p = จำนวนพารามิเตอร์รวม intercept (ที่นี่ 4) และ n = 19 → \(2(4)/19 = 0.421\) ✓ ตรงกับเส้นที่วาด</p>
+      <p>ความหมาย: เคสเหล่านี้มีค่า <strong>X</strong> ผิดปกติ (ไกลจากศูนย์กลางของกลุ่ม X) จึงมีศักยภาพที่จะดึงเส้นถดถอย — แต่ยัง<strong>ไม่ได้แปลว่า</strong>มันดึงจริง (ดูข้อ 10)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุเคส 3, 8, 15 ครบ</li>
+      <li>1 คะแนน: ระบุกฎ \(2p/n\) และบอกว่านี่คือความผิดปกติในมิติ <strong>X</strong></li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เรียกเคสเหล่านี้ว่า "outlier" เฉย ๆ — ต้องระบุให้ชัดว่า <strong>outlying in X</strong> (leverage) ไม่ใช่ outlier ใน Y คนละอย่างกันและวัดด้วยคนละเครื่องมือ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Outlier ใน Y · L4</span></div>
+  <div class="exq-body">
+    <p>จากโมเดลเดียวกัน พล็อตค่าสัมบูรณ์ของ studentized deleted residuals พร้อมเส้นตัด Bonferroni ที่ <code>qt(1−0.05/(2×19), df) = 3.64871</code> จงระบุว่ามีเคสใดเป็น outlier ใน Y ที่ \(\alpha=0.05\) หรือไม่</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-studentized-deleted-resid.png" alt="Absolute studentized deleted residuals as vertical spikes by case index with a blue dashed cutoff at about 3.65; the tallest spike is case 7 at about 3.3, next is case 1 at about 2.2, and no spike reaches the cutoff line">
+      <figcaption>Assignment 4 ข้อ (e) — เส้นประน้ำเงินคือ Bonferroni cutoff = 3.64871</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ไม่มีเคสใดเป็น outlier ใน Y อย่างมีนัยสำคัญ</strong> ที่ระดับ 0.05 ด้วยเกณฑ์ Bonferroni</p>
+      <p>เหตุผลจากภาพ: แท่งที่สูงที่สุดคือเคส 7 ที่ราว 3.3 ซึ่ง<strong>ยังต่ำกว่า</strong>เส้นตัด 3.64871 — ไม่มีแท่งใดทะลุเส้นเลย</p>
+      <p><strong>decision rule ที่ต้องเขียน:</strong> ปฏิเสธว่าเคส i เป็น outlier เมื่อ \(|t_i| > t(1-\tfrac{\alpha}{2n},\, n-p-1)\) ที่นี่ \(= 3.64871\); เนื่องจาก \(\max|t_i| = 3.3 < 3.64871\) จึงสรุปว่าไม่มี outlier ใน Y</p>
+      <p>เหตุผลที่ต้องหารด้วย \(2n\): เรากำลังทดสอบพร้อมกัน n เคส ถ้าใช้ \(\alpha=0.05\) ตรง ๆ กับทุกเคส โอกาสเจอ "outlier" ปลอมอย่างน้อยหนึ่งตัวจะสูงมาก — Bonferroni ปรับให้ค่า critical เข้มขึ้นเพื่อคุม family-wise error rate</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สรุปว่าไม่มี outlier พร้อมเทียบค่าสูงสุด (≈3.3) กับเส้นตัด (3.64871)</li>
+      <li>1 คะแนน: เขียน decision rule ให้ถูก (อาจารย์สั่งไว้ในโจทย์ว่า "State the decision rule and conclusion")</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้เกณฑ์ \(|t_i| > 2\) หรือ \(> 3\) แบบคร่าว ๆ แล้วสรุปว่าเคส 7 เป็น outlier — โจทย์ระบุ Bonferroni มาชัดเจน ต้องใช้เส้นตัดที่ให้มา</p>
+      <p>ลืมตอบ decision rule ทั้งที่โจทย์สั่ง — เสียคะแนนฟรี</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">แยก 3 คำ · L4</span></div>
+  <div class="exq-body">
+    <p>รวมผลจากข้อ 8 (leverage: เคส 3, 8, 15 สูง) กับข้อ 9 (studentized deleted residual: เคส 7 สูงสุดแต่ไม่ถึงเกณฑ์) แล้วดู influence measures จริงด้านล่าง</p>
+    <div class="rout"><span class="rout-label">R output — influence.measures(model)</span>     dfb.1_    dfb.X1   dfb.X2 dfb.X1.X  dffit cov.r   cook.d    hat inf
+1  -0.74721  1.086986  0.22392 -0.59551 1.3632 0.550 0.369041 0.2757   *
+2   0.00722  0.030375 -0.00594 -0.02091 0.1203 1.374 0.003833 0.0834
+3  -0.65194  0.591913  0.43337 -0.48191 -0.6802 2.556 0.120516 0.5389   *
+7   1.45413 -1.277609 -0.74152  0.84752 1.7486 0.166 0.458917 0.2178   *
+8  -1.54691  1.186623  3.16227 -3.28579 -4.7798 4.790 4.990815 0.8783   *</div>
+    <p>จงอธิบายความต่างระหว่าง <strong>outlier</strong>, <strong>leverage point</strong>, และ <strong>influential point</strong> โดยยกเคสจากข้อมูลนี้ประกอบ</p>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>Outlier</strong> = ผิดปกติในแกน <strong>Y</strong> (โมเดลทำนายพลาดมากสำหรับเคสนั้น) วัดด้วย studentized deleted residual — ที่นี่เคส 7 เด่นที่สุด (\(|t_i|\approx 3.3\)) แม้จะไม่ถึงเกณฑ์ Bonferroni</p>
+      <p><strong>Leverage point</strong> = ผิดปกติในแกน <strong>X</strong> (ค่า X ไกลจากศูนย์กลาง) วัดด้วย hat value — ที่นี่คือเคส 3 (hat=0.5389), 8 (hat=0.8783), 15</p>
+      <p><strong>Influential point</strong> = เคสที่<strong>เปลี่ยนผลลัพธ์ของโมเดลจริง</strong>เมื่อตัดออก วัดด้วย Cook's D / DFFITS / DFBETAS — ไม่ใช่การวัดแบบใหม่ แต่เป็น<strong>ผลรวม</strong>ของ leverage กับ residual</p>
+      <p><strong>บทเรียนจากตัวเลข:</strong> เคส 3 มี leverage สูงมาก (0.5389) แต่ Cook's D เพียง 0.12 — <strong>leverage สูงแต่ไม่ influential</strong> เพราะค่า Y ของมันยังสอดคล้องกับแนวโน้มเดิม; ตรงข้ามกับเคส 8 ที่ทั้ง leverage สูง (0.8783) และ Cook's D = 4.99 (สูงกว่าเคสอื่นหลายสิบเท่า) → <strong>influential จริง</strong>; ส่วนเคส 7 มี leverage ปานกลาง (0.2178) แต่ Cook's D = 0.459 เพราะ residual ใหญ่ → influential จากทาง Y</p>
+      <p>สรุปเป็นสูตร: <strong>influence ≈ leverage × residual</strong> — ต้องสูงทั้งสองทางถึงจะอันตรายที่สุด (เคส 8 คือตัวอย่าง)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: นิยามครบทั้ง 3 คำพร้อมเครื่องมือวัดที่ถูกต้องของแต่ละคำ</li>
+      <li>1 คะแนน: ยกตัวอย่างที่แสดงว่า <strong>leverage สูง ≠ influential</strong> (เคส 3 เทียบเคส 8)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ 3 คำนี้สลับกันราวกับเป็นคำเดียวกัน — <strong>นี่คือกับดักข้อสอบที่คลาสสิกที่สุดของ L4</strong> จุดที่มี leverage สูงอาจไม่มีอิทธิพลเลยถ้าค่า Y ของมันอยู่ในแนวโน้มพอดี</p>
+      <p>เห็นดอกจัน <code>*</code> ในคอลัมน์ <code>inf</code> แล้วสรุปว่าต้องตัดทุกเคสที่มีดาวทิ้ง — ดาวคือ<strong>สัญญาณให้ไปตรวจสอบ</strong> ไม่ใช่คำสั่งให้ลบ ต้องดูก่อนว่าเป็นข้อมูลผิดพลาดจริงหรือเป็นข้อมูลถูกต้องที่แค่พิเศษ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน D — Box-Cox และการเลือกการแปลง</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Box-Cox · L3</span></div>
+  <div class="exq-body">
+    <p>จากโมเดลที่ละเมิด assumption ในข้อ 1 รัน Box-Cox ได้ภาพนี้ จงอ่านว่าควรแปลง Y ด้วยวิธีใด</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-boxcox-loglik.png" alt="Box-Cox log-likelihood curve peaking sharply just above lambda equals 0, with the 95 percent confidence interval dashed lines bracketing a narrow region around zero">
+      <figcaption>Assignment 3 ข้อ 1(c) — solution.csv</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"Box-Cox procedure suggests log transformation."</strong></p>
+      <p>เหตุผลจากภาพ: log-likelihood พุ่งสูงสุดที่ \(\lambda\) ใกล้ 0 มาก และช่วงความเชื่อมั่น 95% (เส้นประแนวตั้ง) แคบมากคร่อมรอบ 0 — ไม่ครอบคลุม \(\lambda=1\) (ไม่แปลง) เลย จึงสรุปว่าต้องแปลง และการแปลงที่ \(\lambda=0\) คือ <strong>log</strong></p>
+      <div class="box" style="margin:0.6em 0">
+        <strong>ตารางอ่านค่า λ ที่ต้องจำ:</strong><br>
+        \(\lambda = 1\) → ไม่ต้องแปลง &nbsp;·&nbsp; \(\lambda = 0.5\) → \(\sqrt{Y}\) &nbsp;·&nbsp; \(\lambda = 0\) → \(\log(Y)\) &nbsp;·&nbsp; \(\lambda = -1\) → \(1/Y\)
+      </div>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่านค่า \(\lambda\) จากยอดกราฟได้ว่าใกล้ 0</li>
+      <li>1 คะแนน: แปลงเป็นชื่อการแปลงได้ถูก = log transformation</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>เห็น \(\lambda \approx 0\) แล้วตอบว่า "ไม่ต้องแปลง"</strong> — เป็นความเข้าใจผิดที่พบบ่อยที่สุดของ Box-Cox: \(\lambda=0\) หมายถึง <strong>log</strong> ไม่ใช่ "ไม่ทำอะไร" ค่าที่แปลว่าไม่ต้องแปลงคือ \(\lambda=1\)</p>
+      <p>ตอบแค่ตัวเลข \(\lambda\) โดยไม่บอกชื่อการแปลง — โจทย์ถาม "What transformation of Y is suggested?" ต้องตอบเป็นชื่อ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Box-Cox λ ติดลบ · L3</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลเวลารอดชีวิตของหนู (time) หลังได้รับยาพิษ ฟิตโมเดลเชิงเส้นแล้วรัน Box-Cox ได้ภาพนี้ จงอ่านว่าควรแปลงอย่างไร และเปรียบเทียบกับข้อ 11</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a9-rats-boxcox-negative-lambda.png" alt="Box-Cox log-likelihood curve peaking at a negative lambda near minus 0.8, with the 95 percent confidence band spanning roughly minus 1.3 to minus 0.4, well away from zero and from one">
+      <figcaption>Assignment 9 ข้อ 3(a) — rats data</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>ยอดของ log-likelihood อยู่ที่ \(\lambda \approx -0.8\) และช่วง 95% (เส้นประ) คร่อมประมาณ \(-1.3\) ถึง \(-0.4\) ซึ่ง<strong>ไม่ครอบคลุมทั้ง 0 และ 1</strong> — จึงไม่ใช่ทั้ง log และ "ไม่แปลง"</p>
+      <p>ค่า \(\lambda\) ที่ใกล้ที่สุดและตีความง่ายในช่วงนี้คือ \(\lambda = -1\) ซึ่งคือการแปลง <strong>ส่วนกลับ \(1/Y\)</strong> (reciprocal) — ในบริบทนี้ \(1/\text{time}\) คือ "อัตราการตายต่อหน่วยเวลา" ซึ่งมีความหมายทางกายภาพชัดเจน</p>
+      <p><strong>เทียบกับข้อ 11:</strong> ข้อ 11 ยอดอยู่ที่ 0 → log; ข้อนี้ยอดติดลบ → ส่วนกลับ ตำแหน่งของยอดกราฟเป็นตัวกำหนดทั้งหมด ต้องอ่านแกน \(\lambda\) ให้แม่น</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่านได้ว่า \(\lambda\) ติดลบ (ราว −0.8 ถึง −1)</li>
+      <li>1 คะแนน: แปลงเป็นการแปลงแบบส่วนกลับ \(1/Y\) และสังเกตว่าช่วงไม่ครอบคลุม 0 หรือ 1</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เผลออ่านเป็น log เพราะเคยชินจากข้อ 11 — <strong>ต้องอ่านตำแหน่งยอดของกราฟทุกครั้ง</strong> ไม่ใช่จำว่า "Box-Cox = log เสมอ"</p>
+      <p>ข้อสังเกตเพิ่ม: เมื่อ \(\lambda\) ติดลบและข้อมูลเป็นเวลา/ค่าบวกเบ้ขวา นี่คือสัญญาณว่าควรพิจารณา <strong>GLM ตระกูล Gamma หรือ inverse Gaussian</strong> แทนการดัด OLS ไปเรื่อย ๆ (อาจารย์ให้ทำทั้งสองแบบแล้วเปรียบเทียบใน A9 ข้อ 3)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน E — Assumption ของ ANOVA / GLM / LMM</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">ANOVA assumption · L6</span></div>
+  <div class="exq-body">
+    <p>ศึกษาราคาเสนอซื้อรถมือสองตามกลุ่มอายุเจ้าของ (Elderly / Middle / Young) กลุ่มละ 12 ราย ภาพซ้ายคือ boxplot รายกลุ่ม ภาพขวาคือ residual ของ <code>aov()</code> จงประเมิน assumption ของ ANOVA</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a6-cashoffer-boxplot-bygroup.png" alt="Boxplots of cash offer by age group: Elderly centred near 21 spanning about 19 to 25, Middle centred near 27.5 spanning about 26 to 30 with a visibly shorter box, Young centred near 21.5 spanning about 19 to 25">
+      <figcaption>Assignment 6 ข้อ (a) — cashoffers.csv</figcaption>
+    </figure>
+    <figure>
+      <img src="../assets/exam-plots/ex-a6-anova-resid-check.png" alt="Left: residuals plotted against numeric age group showing similar vertical spread at all three levels. Right: Normal Q-Q of residuals with points lying close to the diagonal line">
+      <figcaption>Assignment 6 ข้อ (g) — residual check</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"All the assumptions look fine. Slightly smaller variance for the middle age group comparing to the other two age groups."</strong></p>
+      <p>เหตุผลจากภาพ: จาก boxplot ความสูงของกล่องกลุ่ม Elderly (ราว 20–22.5) และ Young (ราว 20.5–22.5) ใกล้เคียงกัน ส่วนกลุ่ม Middle (ราว 27–29) กล่อง<strong>สั้นกว่าเล็กน้อย</strong> — แต่ยังไม่ต่างกันมากพอจะถือว่าละเมิด equal variance</p>
+      <p>จาก residual plot: การกระจายแนวตั้งที่ทั้งสามระดับใกล้เคียงกัน (ราว −2.5 ถึง +3.5 ทุกกลุ่ม) ยืนยันเรื่อง equal variance; และ Q-Q จุดเกาะเส้นทแยงดี → normality ผ่าน</p>
+      <p>สังเกตด้วยว่าค่ากลางของกลุ่ม Middle (≈27.5) สูงกว่าอีกสองกลุ่ม (≈21) ชัดเจน — นี่คือสัญญาณว่า F-test จะมีนัยสำคัญ (ผลจริง: p = 4.77e-12)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สรุปว่า assumption ผ่าน (equal variance + normality)</li>
+      <li>1 คะแนน: ตั้งข้อสังเกตว่ากลุ่ม Middle แปรปรวนน้อยกว่าเล็กน้อย (อาจารย์เขียนไว้ทั้งสองครั้ง)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สับสนระหว่าง "ค่าเฉลี่ยต่างกัน" กับ "ความแปรปรวนต่างกัน" — ANOVA <strong>ต้องการ</strong>ให้ค่าเฉลี่ยต่างกัน (นั่นคือสิ่งที่ทดสอบ) แต่<strong>ต้องการให้ความแปรปรวนเท่ากัน</strong> การที่กลุ่ม Middle อยู่สูงกว่าไม่ใช่การละเมิด assumption</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Functional form GLM · L11</span></div>
+  <div class="exq-body">
+    <p>ก่อนฟิต Poisson regression กับข้อมูล salmonella (นับจำนวนโคโลนีตามระดับยา) อาจารย์ให้พล็อต \(\log(\bar{\mu})\) ของแต่ละระดับ dose เทียบกับ dose ได้ภาพนี้ จงบอกว่าภาพนี้บอกอะไรเกี่ยวกับรูปแบบของโมเดลที่ควรใช้</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a8-salmonella-logmu-vs-dose.png" alt="log of mean colony count plotted against dose for six dose levels; the points rise steeply from dose 0 to about dose 100, then flatten and turn slightly downward at the highest doses, forming a curve rather than a straight line">
+      <figcaption>Assignment 8 ข้อ 1(a) — salmonella</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (คำตัดสินของอาจารย์)</div>
+      <p><strong>"We can see the curvature in the plot above. So, we will consider the model with includes the square term of dose."</strong></p>
+      <p>เหตุผลจากภาพ: \(\log(\bar{\mu})\) ไต่ขึ้นเร็วมากในช่วง dose 0–100 แล้ว<strong>แบนราบและเริ่มโค้งลง</strong>ที่ dose สูง ๆ (333, 1000) — ถ้าความสัมพันธ์เป็นเชิงเส้นบนสเกล log จริง จุดควรเรียงเป็นเส้นตรง แต่ที่เห็นเป็นเส้นโค้ง</p>
+      <p>ดังนั้นโมเดลที่ควรฟิตคือ \(\log(\mu) = \beta_0 + \beta_1\,\text{dose} + \beta_2\,\text{dose}^2\) ไม่ใช่แค่พจน์เชิงเส้น</p>
+      <p><strong>ทำไมต้องพล็อตบนสเกล log:</strong> Poisson ใช้ log link ดังนั้น "ความเป็นเส้นตรง" ที่โมเดลต้องการคือเส้นตรงระหว่าง \(\log(\mu)\) กับตัวแปรอิสระ ไม่ใช่ระหว่าง \(\mu\) กับตัวแปรอิสระ — พล็อตผิดสเกลจะตัดสินผิด</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่ามีความโค้ง (curvature) ไม่ใช่เส้นตรง</li>
+      <li>1 คะแนน: สรุปว่าควรเพิ่มพจน์กำลังสองของ dose เข้าไปในโมเดล</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>พล็อต \(\bar{\mu}\) (ค่าเฉลี่ยดิบ) แทน \(\log(\bar{\mu})\) แล้วตัดสินความเป็นเส้นตรง — ผิดสเกล การตรวจ linearity ของ GLM ต้องทำบน<strong>สเกลของ link function</strong> เสมอ (Poisson→log, logistic→logit ดูข้อ 15)</p>
+      <p>เห็นความโค้งแล้วรีบสรุปว่า "ต้องใช้ Negative Binomial" — ความโค้งเป็นปัญหา<strong>รูปแบบฟังก์ชัน</strong> คนละเรื่องกับ overdispersion ที่เป็นปัญหา<strong>ความแปรปรวน</strong> แก้คนละวิธี (ที่จริง A8 ต้องแก้ทั้งสองอย่าง แต่คนละขั้นตอน)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 15</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Independence ใน LMM · L14</span></div>
+  <div class="exq-body">
+    <p>การทดลองให้หนู 27 ตัวดื่มน้ำผสมสารต่าง ๆ แล้ววัดน้ำหนักตัวสัปดาห์ละครั้ง 5 สัปดาห์ ภาพนี้แสดงน้ำหนักของหนูแต่ละตัวตามสัปดาห์ จงอธิบายว่าทำไมการใช้ OLS ธรรมดากับข้อมูลชุดนี้จึงมีปัญหา และควรใช้โมเดลแบบใด</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a10-ratdrink-weight-by-week.png" alt="A lattice of 27 small panels, one per rat, each showing that rat's body weight rising roughly linearly across weeks 0 to 4; the panels share a common shape but start at visibly different heights and rise at visibly different rates">
+      <figcaption>Assignment 10 ข้อ 2(a) — ratdrink data</figcaption>
+    </figure>
+  </div>
+  <textarea placeholder="เขียนคำตอบที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>เหตุผลจากภาพ: แต่ละแผงคือหนู 1 ตัวที่ถูกวัดซ้ำ 5 ครั้ง — จุดทั้ง 5 ในแผงเดียวกัน<strong>มาจากหนูตัวเดียวกัน</strong> จึงไม่เป็นอิสระต่อกัน สังเกตว่าแผงต่าง ๆ เริ่มต้นที่ความสูงต่างกันชัดเจนและมีความชันต่างกัน (บางตัวขึ้นชัน บางตัวขึ้นช้า) — หนูที่เริ่มหนักก็มักหนักตลอดทั้ง 5 สัปดาห์</p>
+      <p><strong>ปัญหาของ OLS:</strong> OLS สมมติว่าสังเกตทุกตัวเป็นอิสระต่อกัน แต่ที่นี่มี 135 แถว (27×5) ที่จริงมาจากหนูแค่ 27 ตัว — OLS จะนับข้อมูลซ้ำเกินจริง ทำให้ <strong>SE เล็กเกินไปและ p-value เล็กเกินจริง</strong> (สรุปว่ามีนัยสำคัญทั้งที่จริงอาจไม่มี)</p>
+      <p><strong>โมเดลที่ควรใช้:</strong> linear mixed model ที่มี random effect ของหนูแต่ละตัว เช่น <code>lmer(wt ~ weeks*treat + (weeks|subject))</code> — ให้ random intercept จับความต่างของน้ำหนักเริ่มต้น และ random slope จับความต่างของอัตราการโต</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่าการวัดซ้ำในหนูตัวเดียวกันทำให้ independence assumption พัง</li>
+      <li>1 คะแนน: เสนอ mixed model พร้อมระบุว่า random effect อยู่ที่ระดับ "หนูแต่ละตัว"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เสนอให้ใส่ subject เป็น <strong>fixed effect</strong> (ตัวแปร dummy 27 ตัว) — เปลืององศาอิสระมหาศาลและตอบคำถามผิด: เราไม่ได้สนใจหนูตัวที่ 7 เป็นการเฉพาะ แต่สนใจ<strong>ความแปรปรวนระหว่างหนูในประชากร</strong> ซึ่งเป็นนิยามของ random effect</p>
+      <p>มองไม่เห็นปัญหาเพราะแต่ละแผงดู "เป็นเส้นตรงสวยดี" — ความไม่เป็นอิสระไม่ได้ปรากฏเป็นความโค้งใน plot แต่อยู่ใน<strong>โครงสร้างการเก็บข้อมูล</strong> ต้องอ่านคำอธิบายการทดลองด้วยเสมอ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">ถ้าพลาดข้อที่เกี่ยวกับ "แผงไหนตรวจอะไร" ให้กลับไปท่องตารางบนสุดของหน้านี้อีกรอบ — เป็นตารางที่ใช้ได้กับทุกข้อสอบที่มี plot</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-03-hypothesis-testing.html">← Drill 3: ทดสอบสมมติฐาน</a></span>
+  <span><a href="drill-05-choose-the-tool.html">Drill 5: เลือกเครื่องมือ →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

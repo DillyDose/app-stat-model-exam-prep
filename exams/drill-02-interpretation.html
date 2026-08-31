@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 2: แปลผลสัมประสิทธิ์ / R² / CI เป็นคำพูด</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 2 / 6 · แปลผล</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 2 — Interpret the fitted result in words</p>
+<h1>Drill 2: แปลผลสัมประสิทธิ์ / R² / CI เป็นคำพูด (ครบทุกตระกูล L1–L14)</h1>
+
+<p>นี่คือ archetype ที่<strong>ออกสอบหนักที่สุด</strong>ของวิชานี้ — เพราะข้อสอบไม่ให้เขียน R เลย R output ถูกแจกมาให้อยู่แล้ว สิ่งเดียวที่วัดได้คือ "คุณอ่านตัวเลขตัวนี้ออกเป็นภาษาคนได้ไหม". อาจารย์ตรวจข้อแบบนี้แบบมีแม่แบบประโยคชัดเจนมาก (ดูกล่องด้านล่าง) ขาดคำไหนหักคำนั้น ทุกข้อในชุดนี้ใช้ output จริงจากเฉลย Assignment ของอาจารย์เอง ไม่ใช่ตัวเลขสมมติ</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>16 ข้อ · 32 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~45 นาที (ข้อละ ~3 นาที — ข้อนี้ต้องเขียนเป็นประโยค ไม่ใช่แค่ตัวเลข)</dd>
+  <dt>ครอบคลุม</dt><dd>OLS · dummy · interaction · log transform · polynomial · ANOVA · logistic · Poisson · multinomial · mixed model</dd>
+  <dt>วิธีทำ</dt><dd>เขียนเป็น<strong>ประโยคเต็ม</strong>ก่อน (อย่าตอบแค่ตัวเลข) แล้วค่อยกดเฉลย → ให้คะแนนตัวเองตามเกณฑ์</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">แม่แบบประโยคที่อาจารย์ยึด (ถอดจากเฉลยของอาจารย์เอง ทั้ง 10 ชุด)</div>
+<p><strong>1. พูดถึง "ค่าเฉลี่ย" เสมอ</strong> — "the <strong>mean</strong> total labor hours increases by 0.000787 hours" ไม่ใช่ "total labor hours increases" เฉย ๆ โมเดลถดถอยทำนายค่าเฉลี่ยของ Y ที่ค่า X นั้น ไม่ได้ทำนายหน่วยใดหน่วยหนึ่ง</p>
+<p><strong>2. MLR ต้องมี "while the other variables are held constant"</strong> — อาจารย์เขียนวลีนี้ (หรือ "assuming the other variables are held constant") ต่อท้าย<strong>ทุกครั้ง</strong>ที่มีตัวแปรมากกว่า 1 ตัว ขาดวลีนี้คือหักคะแนน ไม่ใช่แค่ "เขียนไม่สวย"</p>
+<p><strong>3. แปลงหน่วยให้จบ</strong> — เฉลย Bus ของอาจารย์ตอบว่า "The increase of <strong>£44,673</strong> in mean response" ไม่ได้ตอบว่า "0.44673" เพราะ Y มีหน่วยเป็น £100,000 และ X เป็นล้านไมล์ ต้องคูณกลับให้เป็นหน่วยที่คนอ่านเข้าใจ</p>
+<p><strong>4. ถ้า link หรือ transform ไม่ใช่ identity ต้อง back-transform ก่อนตีความ</strong> — เฉลย Assignment 3 ข้อ (f) อาจารย์คำนวณ \(e^{\hat{\beta}_1} = 0.64\) ก่อน แล้วค่อยพูดว่า "decrease ... \((1-0.64)\times100 = 36\%\)" ห้ามตีความ \(\hat{\beta}\) บนสเกล log/logit เหมือนอยู่บนสเกลเดิม</p>
+<p><strong>5. ตัวแปรกลุ่ม (dummy/factor) ต้องระบุกลุ่มอ้างอิง</strong> — "For the week that has a holiday, the mean ... is higher than that for the week <strong>without a holiday</strong> by 623.6 hours" มีการเทียบกลุ่มไหนกับกลุ่มไหนชัดเจน ห้ามพูดว่า "X3 เพิ่มขึ้น 1 หน่วย"</p>
+<p><strong>6. ใช้ภาษาความสัมพันธ์ ไม่ใช่ภาษาเหตุผล</strong> — อาจารย์ใช้ "is associated with" ในเฉลย Assignment 3 และ 9 ตลอด ข้อมูลเชิงสังเกต (observational) ห้ามเขียนว่า "ทำให้" / "causes" / "ส่งผลให้"</p>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — สัมประสิทธิ์ในโมเดลเชิงเส้น (L1–L3)</h2>
+<div class="sec-note">slope + หน่วย, holding constant, dummy, R², CI, interaction, log-transform, polynomial</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">SLR slope + หน่วย · L1</span></div>
+  <div class="exq-body">
+    <p>บริษัทรถโดยสารในอังกฤษเก็บค่าใช้จ่ายรวมที่ปรับเงินเฟ้อแล้ว (Cost, หน่วย <strong>£100,000</strong>) และระยะทางรถวิ่ง (Miles, หน่วย <strong>ล้านไมล์</strong>) จาก 33 ช่วงเวลา</p>
+    <p><strong>คำถาม:</strong> What is the point estimate of the change in the mean response when the car miles increase by one million? — ตอบเป็นประโยคพร้อมหน่วยจริง</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Cost~Miles, data=bus)
+&gt; summary(model)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 0.64963    0.06636    9.79 5.31e-11 ***
+Miles       0.44673    0.01909   23.40  &lt; 2e-16 ***
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+Multiple R-squared: 0.9464,     Adjusted R-squared: 0.9447</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>"The increase of £44,673 in mean response."</strong></p>
+      <p>เขียนเต็ม ๆ: เมื่อระยะทางรถวิ่งเพิ่มขึ้น 1 ล้านไมล์ ค่าใช้จ่ายรวม<strong>เฉลี่ย</strong>ของบริษัทเพิ่มขึ้นประมาณ £44,673</p>
+      <p>ที่มาของตัวเลข: \(\hat{\beta}_1 = 0.44673\) อยู่ในหน่วย "£100,000 ต่อ 1 ล้านไมล์" ดังนั้น \(0.44673 \times 100{,}000 = 44{,}673\) ปอนด์</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ทิศทางถูก (เพิ่ม) และใช้คำว่า <strong>mean response / ค่าเฉลี่ย</strong> พร้อมระบุว่า X เปลี่ยน 1 ล้านไมล์</li>
+      <li>1 คะแนน: <strong>แปลงหน่วยเป็น £44,673</strong> ไม่ทิ้งไว้เป็น 0.44673 เปล่า ๆ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบ "ค่าใช้จ่ายเพิ่มขึ้น 0.44673" — <strong>ไม่จบงาน</strong>: ตัวเลขนี้ไม่มีความหมายจนกว่าจะติดหน่วย โจทย์บอกมาแล้วว่า Y อยู่ในหน่วย £100,000 การคูณกลับเป็นส่วนหนึ่งของคำตอบ ไม่ใช่ของแถม</p>
+      <p>เขียนว่า "การวิ่งเพิ่มขึ้น 1 ล้านไมล์<strong>ทำให้</strong>ค่าใช้จ่ายเพิ่ม" — นี่คือข้อมูลเชิงสังเกตจากบันทึกของบริษัท ไม่ใช่การทดลองที่สุ่มกำหนดระยะทาง ต้องใช้ "สัมพันธ์กับ / is associated with"</p>
+      <p>ลืมคำว่า "เฉลี่ย" — โมเดลไม่ได้บอกว่าทุกช่วงเวลาจะเพิ่มขึ้น £44,673 เป๊ะ ๆ แต่บอกว่าค่าเฉลี่ยของกลุ่มที่วิ่งมากกว่า 1 ล้านไมล์ สูงกว่าประมาณเท่านี้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">MLR slope · L2</span></div>
+  <div class="exq-body">
+    <p>ร้านค้าปลีกระดับประเทศเก็บข้อมูลรายสัปดาห์: จำนวนกล่องที่ส่ง (X1), ต้นทุนแรงงานทางอ้อมเป็น % (X2), ตัวบอกว่าสัปดาห์นั้นมีวันหยุดหรือไม่ (X3), และชั่วโมงแรงงานรวม (Y)</p>
+    <p><strong>คำถาม:</strong> Interpret a regression coefficient of X1.</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Y~., data=grocery)
+&gt; summary(model)
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  &lt; 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***
+
+Residual standard error: 143.3 on 48 degrees of freedom
+Multiple R-squared: 0.6883,     Adjusted R-squared: 0.6689
+F-statistic: 35.34 on 3 and 48 DF, p-value: 3.316e-12</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>"When the number of cases shipped (X1) increases by 1 unit while the other variables are held constant, the mean total labor hours increases by 0.000787 hours."</strong></p>
+      <p>สังเกตว่าอาจารย์อ่าน <code>7.871e-04</code> ออกมาเป็น 0.000787 ก่อน แล้วจึงใส่ในประโยค — การแปลง e-notation เป็นส่วนหนึ่งของคำตอบ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ตัวเลข 0.000787 ถูก (แปลง <code>7.871e-04</code> เป็น) + ทิศทางเพิ่ม + ระบุ "1 unit ของ X1" + คำว่า <strong>mean</strong></li>
+      <li>1 คะแนน: มีวลี <strong>"while the other variables are held constant"</strong> (หรือ "โดยตัวแปรอื่นคงที่")</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ลืม "holding the other variables constant"</strong> — นี่คือจุดหักคะแนนอันดับหนึ่งของทั้ง drill นี้ ใน MLR สัมประสิทธิ์ \(\hat{\beta}_1\) คือผลของ X1 <strong>หลังหักผลของ X2 และ X3 ออกแล้ว</strong> (partial effect) ไม่ใช่ผลรวมแบบที่ได้จาก SLR ของ Y กับ X1 อย่างเดียว ถ้าไม่พูดวลีนี้ก็เท่ากับตีความผิดตัว</p>
+      <p>เห็น <code>7.871e-04</code> เล็กมากแล้วสรุปว่า "X1 แทบไม่มีผล" — <strong>ผิด</strong>: X1 คือจำนวนกล่อง ซึ่งในข้อมูลจริงอยู่ระดับหลักแสน (ดูข้อทำนายที่ใช้ X1=282,000) คิดต่อ 100,000 กล่องจะได้ \(0.000787 \times 100{,}000 = 78.7\) ชั่วโมง ซึ่งไม่เล็ก — สัมประสิทธิ์เล็กไม่ได้แปลว่าผลกระทบเล็ก ถ้าหน่วยของ X มีสเกลใหญ่</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Dummy coefficient · L2</span></div>
+  <div class="exq-body">
+    <p>จาก output ชุดเดียวกับข้อ 2 โดย <strong>X3 = 1 ถ้าสัปดาห์นั้นมีวันหยุด, = 0 ถ้าไม่มี</strong></p>
+    <p><strong>คำถาม:</strong> Interpret a regression coefficient of X3.</p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  &lt; 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>"For the week that has a holiday, the mean total labor hours is higher than that for the week without a holiday by 623.6 hours assuming the other variables are held constant."</strong></p>
+      <p>โครงประโยค dummy จึงเป็น: <em>[กลุ่มที่ dummy = 1]</em> มีค่าเฉลี่ยของ Y <em>[สูงกว่า/ต่ำกว่า]</em> <em>[กลุ่มที่ dummy = 0 เรียกชื่อออกมาให้ชัด]</em> อยู่ <em>[ขนาดของสัมประสิทธิ์]</em> โดยตัวแปรอื่นคงที่</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เขียนเป็น<strong>การเปรียบเทียบสองกลุ่ม</strong> โดยเรียกชื่อทั้งสองกลุ่มออกมา (สัปดาห์ที่มีวันหยุด vs สัปดาห์ที่ไม่มีวันหยุด) ไม่ใช่ "X3 เพิ่มขึ้น 1 หน่วย"</li>
+      <li>1 คะแนน: ตัวเลข 623.6 ชั่วโมง + ทิศทางสูงกว่า + "assuming the other variables are held constant"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียนว่า "เมื่อ X3 เพิ่มขึ้น 1 หน่วย ค่าเฉลี่ยชั่วโมงแรงงานเพิ่มขึ้น 623.6" — <strong>เป็นประโยคที่ไม่มีความหมายจริง</strong>: X3 รับได้แค่ 0 กับ 1 ไม่มีสัปดาห์ที่ X3 = 2 หรือ 1.5 การพูดว่า "เพิ่มขึ้น 1 หน่วย" กับตัวแปรที่มีแค่สองค่า เท่ากับไม่ได้บอกว่ากำลังเทียบอะไรกับอะไร</p>
+      <p>ไม่ระบุกลุ่มอ้างอิง — ถ้าเขียนแค่ "สัปดาห์ที่มีวันหยุดใช้แรงงานมากกว่า 623.6 ชั่วโมง" ผู้อ่านไม่รู้ว่ามากกว่าอะไร (มากกว่าค่าเฉลี่ยรวม? มากกว่าสัปดาห์ปกติ?) ต้องเรียกกลุ่ม \(X_3=0\) ออกมาตรง ๆ</p>
+      <p>ระวังการอ่าน <code>6.236e+02</code> — คือ 623.6 ไม่ใช่ 62.36 หรือ 6236</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">R² · L2</span></div>
+  <div class="exq-body">
+    <p>จากโมเดล grocery ชุดเดียวกัน <strong>คำถาม:</strong> Interpret the coefficient of determination.</p>
+    <div class="rout"><span class="rout-label">R output</span>Residual standard error: 143.3 on 48 degrees of freedom
+Multiple R-squared: 0.6883,     Adjusted R-squared: 0.6689
+F-statistic: 35.34 on 3 and 48 DF, p-value: 3.316e-12</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>"\(R^2 = 0.6883\). Therefore, about 69% of the variation in Y is accounted for the regression model explained by X1, X2, and X3."</strong></p>
+      <p>องค์ประกอบครบ 3 อย่าง: (ก) อ้างค่าตัวเลข 0.6883 (ข) พูดว่า <strong>variation in Y</strong> ไม่ใช่ Y (ค) ระบุว่าอธิบายด้วยโมเดลที่มีตัวแปรอะไรบ้าง</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: พูดว่าเป็น<strong>สัดส่วนของความแปรผัน (variation) ใน Y</strong> ที่โมเดลอธิบายได้ ≈ 69%</li>
+      <li>1 คะแนน: ระบุว่าเป็นการอธิบายโดย<strong>โมเดลที่มี X1, X2 และ X3 รวมกัน</strong> (ไม่ใช่ของตัวแปรใดตัวเดียว)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "โมเดลทำนายถูกต้อง 69%" — <strong>ผิดคนละเรื่อง</strong>: นั่นคือ accuracy ของโมเดลจำแนกกลุ่ม \(R^2\) ไม่ได้พูดถึงความถูกต้องของการทำนายรายจุด แต่พูดถึงว่าความแปรผันรวมของ Y (SSTO) ถูกอธิบายด้วยโมเดล (SSR) ไปกี่ %</p>
+      <p>ตอบว่า "X อธิบาย Y ได้ 69%" — ตกคำว่า <strong>variation</strong> ซึ่งเป็นคำที่อาจารย์ให้คะแนน โมเดลไม่ได้อธิบาย "Y" แต่อธิบาย "ความแปรผันของ Y รอบ ๆ ค่าเฉลี่ย"</p>
+      <p>เอา \(R^2\) สูงมาสรุปว่าโมเดลถูกต้อง/เหมาะสม — \(R^2\) ไม่บอกอะไรเลยเรื่อง assumption (linearity, constant variance, independence) โมเดลที่ผิดรูปแบบก็มี \(R^2\) สูงได้ ต้องดู residual plots เสมอ (นี่คือประเด็นทั้งบทของ L3–L4)</p>
+      <p>ระวังอย่าหยิบ <code>Adjusted R-squared: 0.6689</code> มาตอบเมื่อโจทย์ถาม "coefficient of determination" — คำนี้หมายถึง \(R^2\) ตัวปกติ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">CI for β · L1</span></div>
+  <div class="exq-body">
+    <p>กลับไปที่ข้อมูล Bus (ข้อ 1) <strong>คำถาม:</strong> Obtain a 95 percent confidence interval for \(\beta_1\). Interpret your confidence interval.</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; confint(model)
+                2.5 %    97.5 %
+(Intercept) 0.5142912 0.7849743
+Miles       0.4078000 0.4856592</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>"The 95% CI for \(\beta_1\) is (0.41, 0.49). Interpretation: we are 95% sure that the true parameter \(\beta_1\) is between 0.41 and 0.49."</strong></p>
+      <p>ต่อยอดที่ข้อสอบชอบถามต่อ: ช่วงนี้<strong>ไม่คร่อม 0</strong> จึงสรุปได้ว่า \(\beta_1 \neq 0\) ที่ระดับนัยสำคัญ 5% — สอดคล้องกับ p-value \(&lt; 2\times10^{-16}\) ในตาราง coefficients</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่านช่วงจาก<strong>แถว Miles</strong> ถูก (0.4078, 0.4857) → ปัดเป็น (0.41, 0.49)</li>
+      <li>1 คะแนน: ประโยคตีความพูดถึง <strong>พารามิเตอร์จริง \(\beta_1\)</strong> (true parameter) พร้อมระดับความเชื่อมั่น 95%</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "ข้อมูล 95% อยู่ในช่วง 0.41 ถึง 0.49" — <strong>ผิดวัตถุ</strong>: CI พูดถึง<strong>พารามิเตอร์ \(\beta_1\) ตัวเดียว</strong> ที่เราไม่รู้ค่า ไม่ได้พูดถึงการกระจายของข้อมูลหรือของค่า \(\hat{Y}\) ถ้าอยากได้ช่วงของค่าสังเกตใหม่นั่นคือ prediction interval คนละอย่าง</p>
+      <p>อ่านแถว (Intercept) มาตอบ — <code>confint()</code> คืนทุกสัมประสิทธิ์ ต้องหยิบแถวที่ตรงกับตัวแปรที่โจทย์ถาม</p>
+      <p>เขียนว่า "\(\beta_1\) มีโอกาส 95% ที่จะอยู่ในช่วงนี้" — ในกรอบ frequentist \(\beta_1\) เป็นค่าคงที่ ไม่มีการแจกแจง สิ่งที่สุ่มคือช่วง ไม่ใช่พารามิเตอร์ อาจารย์เขียนเลี่ยงด้วยคำว่า "we are 95% sure" ให้ลอกสำนวนนี้ไปตอบ ปลอดภัยที่สุด</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Interaction · L2/L4</span></div>
+  <div class="exq-body">
+    <p>ศึกษาความดันหลอดเลือดแดงในปอด (Y) ของผู้ป่วย COPD 19 ราย กับตัวแปรจากภาพรังสี: X1 = อัตราการไหลเข้าของเลือดสู่ห้องสูบ, X2 = อัตราการสูบเลือดออกจากหัวใจสู่ปอด โมเดลใส่พจน์ปฏิสัมพันธ์ด้วย</p>
+    <p><strong>คำถาม:</strong> จงตีความสัมประสิทธิ์ของ <code>X1</code> (\(-2.133\)) และของ <code>X1:X2</code> (\(0.0333\)) — นี่คือกรณี OLS ที่ยากที่สุด</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Y~X1*X2, data=lungpressure)
+&gt; summary(model)
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 134.399866  15.981599   8.410 4.63e-07 ***
+X1           -2.133022   0.522157  -4.085 0.000975 ***
+X2           -1.699330   0.363669  -4.673 0.000300 ***
+X1:X2         0.033347   0.009283   3.592 0.002667 **
+
+Residual standard error: 10.58 on 15 degrees of freedom
+Multiple R-squared: 0.7922,     Adjusted R-squared: 0.7507
+F-statistic: 19.06 on 3 and 15 DF, p-value: 2.233e-05</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>จากสมการ \(\hat{Y} = 134.4 - 2.133X_1 - 1.699X_2 + 0.0333X_1X_2\) จัดกลุ่มพจน์ที่มี \(X_1\) ใหม่:</p>
+      <p>\[\hat{Y} = (134.4 - 1.699X_2) + (-2.133 + 0.0333X_2)\,X_1\]</p>
+      <p><strong>สัมประสิทธิ์ของ X1 (\(-2.133\)):</strong> คือความชันของ \(X_1\) <strong>เฉพาะเมื่อ \(X_2 = 0\) เท่านั้น</strong> — เมื่อมี interaction ค่านี้ไม่ใช่ "ผลของ X1 โดยทั่วไป" อีกต่อไป</p>
+      <p><strong>สัมประสิทธิ์ของ X1:X2 (\(0.0333\)):</strong> ทุก 1 หน่วยที่ \(X_2\) เพิ่มขึ้น <strong>ความชันของ \(X_1\) เพิ่มขึ้น 0.0333</strong> (คือติดลบน้อยลง) เช่น ที่ \(X_2 = 30\) ความชันของ \(X_1\) เท่ากับ \(-2.133 + 0.0333(30) = -1.13\) แต่ที่ \(X_2 = 64\) ความชันกลายเป็น \(-2.133 + 0.0333(64) \approx 0\) นั่นคือ <strong>ผลของ X1 ต่อความดันในปอด ขึ้นอยู่กับว่าอัตราการสูบออก (X2) อยู่ที่ระดับไหน</strong> — และเพราะ interaction มีนัยสำคัญ (p = 0.0027) จึงตัดพจน์นี้ทิ้งไม่ได้</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่า \(-2.133\) ใช้ได้<strong>เฉพาะที่ \(X_2 = 0\)</strong> (หรือพูดว่าความชันของ X1 ไม่คงที่ ขึ้นกับค่า X2)</li>
+      <li>1 คะแนน: ตีความ 0.0333 ว่าเป็น<strong>การเปลี่ยนแปลงของความชัน X1 ต่อ 1 หน่วยของ X2</strong> พร้อมยกตัวอย่างเป็นตัวเลขที่ค่า X2 ค่าหนึ่ง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "เมื่อ X1 เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่ ค่าเฉลี่ยความดันลดลง 2.133" — <strong>ผิดหลัก และเป็นกับดักหลักของข้อนี้</strong>: วลี "โดยตัวแปรอื่นคงที่" ใช้ไม่ได้ที่นี่ เพราะเมื่อ \(X_1\) ขยับ พจน์ \(X_1X_2\) ก็ขยับตามโดยอัตโนมัติ — คุณตรึง \(X_2\) ได้ แต่ตรึง \(X_1X_2\) ไม่ได้ ประโยคแบบ MLR มาตรฐานจึงพังทันทีที่มี interaction</p>
+      <p>ยังมีปัญหาซ้อนอีกชั้น: ค่า \(X_2 = 0\) อาจอยู่<strong>นอกช่วงข้อมูลจริง</strong> (อัตราการสูบเลือดออกเป็น 0 ไม่ใช่ผู้ป่วยที่มีชีวิต) ตัวเลข \(-2.133\) จึงเป็นแค่พารามิเตอร์ทางคณิตศาสตร์ อย่าไปตีความว่าเป็นผลทางคลินิกที่สังเกตได้จริง</p>
+      <p>สรุปว่า "X1 มีผลลบต่อความดัน" ลอย ๆ — ทิศทางของผล X1 <strong>กลับข้างได้</strong>ที่ \(X_2 &gt; 64\) จึงต้องระบุช่วงของ X2 เสมอ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Log-transformed Y · L3</span></div>
+  <div class="exq-body">
+    <p>นักเคมีศึกษาความเข้มข้นของสารละลาย (Y) ตามเวลา (X, หน่วยชั่วโมง) โมเดลเดิมละเมิด linearity และ constant variance จึงใช้ Box-Cox แล้วแปลง Y เป็น \(\ln Y\)</p>
+    <p><strong>คำถาม:</strong> Express the estimated regression function in the original units — จงตีความ slope ในหน่วยเดิมของ Y</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; logmodel&lt;-lm(log(Y)~X, data=solution)
+&gt; summary(logmodel)
+
+Call:
+lm(formula = log(Y) ~ X, data = solution)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 1.50792    0.06028   25.01 2.22e-12 ***
+X           -0.44993    0.01049  -42.88 2.19e-15 ***
+
+Residual standard error: 0.115 on 13 degrees of freedom
+Multiple R-squared: 0.993,      Adjusted R-squared: 0.9924</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p>\(e^{\hat{\beta}_1} = e^{-0.44993} = 0.64\)</p>
+      <p><strong>"Thus, one hour increase is associated with the decrease in the average concentration of a solution \((1-0.64)\times100 = 36\%\)."</strong></p>
+      <p>เหตุผลเชิงคณิตศาสตร์: \(\widehat{\ln Y} = 1.5079 - 0.4499X\) ⟹ \(\hat{Y} = e^{1.5079}e^{-0.4499X}\) ดังนั้นเมื่อ X เพิ่ม 1 ชั่วโมง \(\hat{Y}\) ถูก<strong>คูณ</strong>ด้วย \(e^{-0.4499} = 0.64\) — บนสเกลเดิม ผลเป็นการคูณ ไม่ใช่การบวก</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: <strong>exponentiate ก่อน</strong> ได้ \(e^{-0.44993} \approx 0.64\) (ไม่ตีความ \(-0.45\) บนสเกลเดิม)</li>
+      <li>1 คะแนน: แปลงเป็นเปอร์เซ็นต์ให้ถูก — <strong>ลดลง 36%</strong> จาก \((1-0.64)\times100\) และใช้ภาษา "is associated with"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "เวลาเพิ่ม 1 ชั่วโมง ความเข้มข้นเฉลี่ยลดลง 0.45 หน่วย" — <strong>ผิดสเกล</strong>: \(-0.45\) เป็นการเปลี่ยนแปลงของ \(\ln Y\) ไม่ใช่ของ Y ถ้าจะตอบบนสเกล log ต้องพูดให้ครบว่า "ค่าเฉลี่ยของ<strong>ลอการิทึม</strong>ของความเข้มข้นลดลง 0.45" ซึ่งไม่มีใครเข้าใจ จึงเป็นเหตุผลที่โจทย์สั่งให้กลับหน่วยเดิม</p>
+      <p>ตอบว่า "ลดลง 64%" — <strong>สลับตัวเลข</strong>: 0.64 คือสัดส่วน<strong>ที่เหลือ</strong> ส่วนที่หายไปคือ \(1 - 0.64 = 0.36\) จำสูตรให้แม่น: \(e^{\hat{\beta}} &lt; 1\) → "เหลือ \(e^{\hat{\beta}}\times100\%\) ของเดิม" หรือ "ลดลง \((1-e^{\hat{\beta}})\times100\%\)"</p>
+      <p>ลืมว่าผลเป็นการ<strong>คูณ</strong> ไม่ใช่การบวก — ลดลง 36% ต่อชั่วโมง หมายความว่า 2 ชั่วโมงเหลือ \(0.64^2 = 41\%\) ไม่ใช่เหลือ \(100-72 = 28\%\)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Polynomial · L2</span></div>
+  <div class="exq-body">
+    <p>ศึกษามวลกล้ามเนื้อ (Y) กับอายุ (X) ของผู้หญิง 60 คน โมเดลอันดับสองให้ผลดังนี้</p>
+    <p><strong>คำถาม:</strong> เพื่อนของคุณตอบว่า <em>"เมื่ออายุเพิ่มขึ้น 1 ปี โดยตัวแปรอื่นคงที่ มวลกล้ามเนื้อเฉลี่ยลดลง 2.96 หน่วย"</em> — คำตอบนี้ถูกหรือผิด เพราะอะไร แล้วต้องตีความอย่างไรจึงจะถูก</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model2&lt;-lm(Y~X+I(X^2), data=muscle)
+&gt; summary(model2)
+
+Call:
+lm(formula = Y ~ X + I(X^2), data = muscle)
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 207.349608  29.225118   7.095 2.21e-09 ***
+X            -2.964323   1.003031  -2.955  0.00453 **
+I(X^2)        0.014840   0.008357   1.776  0.08109 .
+
+Residual standard error: 8.026 on 57 degrees of freedom
+Multiple R-squared: 0.7632,     Adjusted R-squared: 0.7549
+F-statistic: 91.84 on 2 and 57 DF, p-value: &lt; 2.2e-16</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>ผิด</strong> — เพราะประโยค "โดยตัวแปรอื่นคงที่" บังคับให้ตรึง \(X^2\) ไว้ในขณะที่ \(X\) ขยับ ซึ่ง<strong>เป็นไปไม่ได้ทางคณิตศาสตร์</strong>: ถ้า X เปลี่ยนจาก 50 เป็น 51 แล้ว \(X^2\) ต้องเปลี่ยนจาก 2500 เป็น 2601 ไปด้วยเสมอ สองพจน์นี้ไม่ใช่ตัวแปรอิสระต่อกัน จึงแยกตีความสัมประสิทธิ์ทีละตัวไม่ได้</p>
+      <p>วิธีตีความที่ถูกคือหาความชันที่จุด X ที่สนใจ:</p>
+      <p>\[\frac{d\hat{Y}}{dX} = -2.9643 + 2(0.01484)X = -2.9643 + 0.02968X\]</p>
+      <p>ที่อายุ 50 ปี: \(-2.9643 + 0.02968(50) = -1.48\) → มวลกล้ามเนื้อเฉลี่ยลดลงประมาณ 1.5 หน่วยต่อปี<br>
+      ที่อายุ 70 ปี: \(-2.9643 + 0.02968(70) = -0.89\) → ลดลงประมาณ 0.9 หน่วยต่อปี</p>
+      <p>ดังนั้นคำตอบเชิงเนื้อหาคือ <strong>"มวลกล้ามเนื้อเฉลี่ยลดลงตามอายุ แต่อัตราการลดลงชะลอตัวลงเมื่ออายุมากขึ้น"</strong> — และควรเสริมว่าพจน์กำลังสองมี p = 0.081 &gt; 0.05 จึงตัดทิ้งได้ที่ระดับนัยสำคัญ 5% (นี่คือคำตอบข้อ f ในเฉลย Assignment 2) ถ้าตัดทิ้งแล้วกลับไปใช้โมเดลอันดับหนึ่ง \(\hat{Y} = 156.35 - 1.19X\) จะตีความ \(-1.19\) ได้ตรง ๆ ตามปกติ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่า<strong>ผิด</strong> พร้อมเหตุผลว่า X และ \(X^2\) ต้องขยับพร้อมกัน จึงตรึงตัวหนึ่งไว้แล้วขยับอีกตัวไม่ได้</li>
+      <li>1 คะแนน: ให้วิธีตีความที่ถูก — ความชันขึ้นกับค่า X (คำนวณจาก \(\hat{\beta}_1 + 2\hat{\beta}_2 X\) หรือเทียบค่าทำนายสองจุด) พร้อมบรรยายรูปโค้ง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตีความ \(\hat{\beta}_2 = 0.01484\) ว่า "เมื่อ \(X^2\) เพิ่มขึ้น 1 หน่วย มวลกล้ามเนื้อเฉลี่ยเพิ่มขึ้น 0.0148" — <strong>ไม่มีความหมาย</strong>: ไม่มีใครขยับ \(X^2\) ได้โดยไม่ขยับ X สิ่งที่ \(\hat{\beta}_2\) บอกจริง ๆ คือ<strong>ความโค้ง</strong> — เครื่องหมายบวกแปลว่าโค้งหงาย (convex) คือเส้นลดลงแต่ชันน้อยลงเรื่อย ๆ</p>
+      <p>ลืมคูณ 2 ตอนหาอนุพันธ์ — เขียนความชันเป็น \(-2.9643 + 0.01484X\) แทนที่จะเป็น \(-2.9643 + 0.02968X\) เป็นความผิดพลาดเชิงกลไกที่เจอบ่อยมาก</p>
+      <p>เห็น p = 0.081 ของพจน์กำลังสองแล้วสรุปว่า "ความสัมพันธ์ไม่โค้ง" — p &gt; 0.05 แปลว่า<strong>ไม่มีหลักฐานเพียงพอ</strong>ว่าโค้ง ไม่ใช่พิสูจน์ว่าตรง โดยเฉพาะเมื่อ scatterplot แสดง curvature ชัด (ตามที่อาจารย์เขียนไว้ในข้อ a)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — ANOVA (L6)</h2>
+<div class="sec-note">factor effect \(\tau_i\) เทียบกับ grand mean, และการอ่านผล Tukey pairwise</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Factor effect · L6</span></div>
+  <div class="exq-body">
+    <p>องค์กรผู้บริโภคศึกษาผลของอายุเจ้าของรถ (young / middle / elderly) ต่อราคาเสนอซื้อรถมือสอง (<strong>หน่วยร้อยดอลลาร์</strong>) โดยส่ง "เจ้าของ" 12 คนต่อกลุ่ม ไปขอราคาจากดีลเลอร์ 36 รายที่สุ่มมา</p>
+    <p><strong>คำถาม:</strong> จงตีความ \(\hat{\tau}_2 = 4.194\) ของกลุ่ม Middle แล้วสรุปความสัมพันธ์ระหว่างอายุเจ้าของกับราคาเสนอซื้อเฉลี่ย</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; print(model.tables(aovmodel, "means"))
+Tables of means
+Grand mean
+
+23.55556
+
+ AgeGroup
+AgeGroup
+Elderly Middle  Young
+ 21.417 27.750 21.500
+
+&gt; print(model.tables(aovmodel, "effect"))
+Tables of effects
+
+ AgeGroup
+AgeGroup
+Elderly Middle  Young
+ -2.139  4.194 -2.056</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>ราคาเสนอซื้อ<strong>เฉลี่ย</strong>ที่ดีลเลอร์ให้กับเจ้าของรถวัยกลางคน สูงกว่า<strong>ค่าเฉลี่ยรวมของทุกกลุ่ม (grand mean = 23.556 ร้อยดอลลาร์)</strong> อยู่ 4.194 ร้อยดอลลาร์ หรือประมาณ <strong>$419</strong></p>
+      <p>ตรวจสอบได้ว่า \(\hat{\mu} + \hat{\tau}_2 = 23.556 + 4.194 = 27.750\) ซึ่งตรงกับค่าเฉลี่ยของกลุ่ม Middle ในตารางแรกพอดี — นี่คือวิธีเช็คว่าอ่านตารางไม่สลับ</p>
+      <p>สรุปโดยรวม (สำนวนอาจารย์): <strong>"Owners in the middle age group tends to expect higher cash offers for their used cars."</strong> — กลุ่ม Elderly (\(-2.139\)) และ Young (\(-2.056\)) ต่ำกว่าค่าเฉลี่ยรวมพอ ๆ กัน ส่วนกลุ่ม Middle โดดขึ้นมาตัวเดียว</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่าเทียบกับ <strong>grand mean</strong> (ไม่ใช่กับกลุ่มอื่นหรือกับ reference group) + ตัวเลข 4.194 + ทิศทางสูงกว่า</li>
+      <li>1 คะแนน: ระบุ<strong>หน่วย</strong>ให้ถูก (ร้อยดอลลาร์ ≈ $419) และสรุปภาพรวมว่ากลุ่มวัยกลางคนได้ราคาสูงกว่าอีกสองกลุ่ม</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตีความ \(\hat{\tau}_i\) ว่าเป็นส่วนต่างจาก "กลุ่มอ้างอิง" แบบ dummy ใน <code>lm()</code> — <strong>ผิดโมเดล</strong>: ใน factor effects model \(\hat{Y}_{ij} = \mu + \tau_i\) จุดอ้างอิงคือ<strong>ค่าเฉลี่ยรวม</strong> และ \(\tau_i\) ทั้งหมดบวกกันได้ 0 (\(-2.139 + 4.194 - 2.056 \approx 0\)) ต่างจาก dummy coding ที่กลุ่มแรกได้ \(\tau = 0\) โดยบังคับ ถ้าสับสนสองแบบนี้ ตัวเลขจะผิดหมดทั้งข้อ</p>
+      <p>ลืมหน่วย — ตอบว่า "สูงกว่า 4.194 ดอลลาร์" ทั้งที่โจทย์บอกว่าหน่วยเป็นร้อยดอลลาร์ (คลาดเคลื่อน 100 เท่า) เป็นความผิดพลาดแบบเดียวกับข้อ 1</p>
+      <p>อ่านคอลัมน์สลับ — R เรียงกลุ่มตาม<strong>ลำดับตัวอักษร</strong> (Elderly, Middle, Young) ไม่ใช่ตามลำดับอายุที่โจทย์เขียน (young, middle, elderly) ถ้าอ่านเรียงตามโจทย์จะได้ \(\tau\) ของ Young เป็น \(-2.139\) ซึ่งผิด</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Tukey pairwise · L6</span></div>
+  <div class="exq-body">
+    <p>จากข้อมูล cashoffers ชุดเดียวกัน อาจารย์เรียก Tukey ด้วย family confidence <strong>90%</strong></p>
+    <p><strong>คำถาม:</strong> จงตีความบรรทัด <code>Middle-Elderly</code> และ <code>Young-Elderly</code> แล้วสรุปว่ากลุ่มไหนต่างจากกลุ่มไหน</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; TukeyHSD(aovmodel, conf.level=0.90)
+  Tukey multiple comparisons of means
+    90% family-wise confidence level
+
+Fit: aov(formula = CashOffer ~ AgeGroup, data = cash)
+
+$AgeGroup
+                      diff       lwr       upr     p adj
+Middle-Elderly  6.33333333  4.963842  7.702825 0.0000000
+Young-Elderly   0.08333333 -1.286158  1.452825 0.9908192
+Young-Middle   -6.25000000 -7.619492 -4.880508 0.0000000</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>Middle-Elderly:</strong> ราคาเสนอซื้อเฉลี่ยของกลุ่มวัยกลางคน สูงกว่ากลุ่มสูงวัยอยู่ 6.333 ร้อยดอลลาร์ (≈ $633) ช่วงความเชื่อมั่นแบบ family-wise 90% คือ (4.964, 7.703) ซึ่ง<strong>ไม่คร่อม 0</strong> และ p adj \(\approx 0\) จึงสรุปว่าค่าเฉลี่ยสองกลุ่มนี้<strong>ต่างกันอย่างมีนัยสำคัญ</strong></p>
+      <p><strong>Young-Elderly:</strong> ผลต่างที่ประมาณได้เพียง 0.083 ร้อยดอลลาร์ (≈ $8) ช่วง (\(-1.286\), 1.453) <strong>คร่อม 0</strong> และ p adj = 0.991 จึง<strong>ไม่มีหลักฐาน</strong>ว่าค่าเฉลี่ยของสองกลุ่มนี้ต่างกัน</p>
+      <p>สรุปตามเฉลยอาจารย์: \(\mu_{Middle} \neq \mu_{Elderly}\), \(\mu_{Young} = \mu_{Elderly}\), \(\mu_{Young} \neq \mu_{Middle}\) — นั่นคือ<strong>กลุ่มวัยกลางคนโดดออกมากลุ่มเดียว</strong> ส่วน Young กับ Elderly แยกกันไม่ออก</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: อ่าน<strong>ทิศทาง</strong>ของผลต่างถูก (ชื่อแถว <code>A-B</code> คือ \(\bar{Y}_A - \bar{Y}_B\) ดังนั้น Middle-Elderly เป็นบวก = Middle สูงกว่า) พร้อมตัวเลขและหน่วย</li>
+      <li>1 คะแนน: ใช้เกณฑ์ <strong>"ช่วงคร่อม 0 หรือไม่"</strong> (หรือ p adj เทียบ 0.10) สรุปครบทั้งคู่ที่ต่างและคู่ที่ไม่ต่าง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สรุปว่า "กลุ่ม Young กับ Elderly มีค่าเฉลี่ยเท่ากัน" แบบยืนยัน — <strong>fail to reject ไม่ใช่ proof of equality</strong> ที่ถูกคือ "ไม่มีหลักฐานเพียงพอว่าต่างกัน" (อาจารย์เขียนย่อเป็น \(\mu_{Young}=\mu_{Elderly}\) ในเฉลย แต่ในข้อเขียนบรรยายควรเขียนเต็ม)</p>
+      <p>ไปหยิบ p-value จาก t-test รายคู่ธรรมดามาแทน <code>p adj</code> — <strong>ทั้งจุดประสงค์ของ Tukey</strong>คือควบคุม family-wise error rate เมื่อเปรียบเทียบหลายคู่พร้อมกัน ค่า <code>p adj</code> ปรับมาแล้ว การใช้ p ดิบจะทำให้พบความต่างเกินจริง</p>
+      <p>ลืมว่า confidence level ที่เรียกคือ <strong>90% ไม่ใช่ 95%</strong> — เกณฑ์ตัดสินจึงเทียบ p adj กับ 0.10 และช่วงที่พิมพ์ออกมาเป็นช่วง 90% (แคบกว่าช่วง 95%) อย่าไปเขียนว่า "95% CI"</p>
+      <p>อ่านทิศทางกลับ — <code>Young-Middle -6.25</code> ติดลบแปลว่า Young <strong>ต่ำกว่า</strong> Middle 6.25 ร้อยดอลลาร์ ไม่ใช่สูงกว่า</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน C — GLM (L9–L12)</h2>
+<div class="sec-note">log-odds → odds ratio → probability, rate ratio ของ Poisson, และ baseline ของ multinomial</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Logistic: log-odds · L9/L10</span></div>
+  <div class="exq-body">
+    <p>ใกล้เมืองลิเวอร์พูล ผีเสื้อกลางคืนมีสองสี (light / dark) นักวิจัยวางผีเสื้อไว้บนต้นไม้ที่ระยะทางต่าง ๆ จากเมือง แล้วนับจำนวนที่ถูกนกล่าไป ตัวแปรตอบสนองคือจำนวนผีเสื้อ<strong>สีอ่อน</strong>ที่ถูกล่า จากผีเสื้อ<strong>ที่ถูกล่าทั้งหมด</strong> ณ จุดนั้น</p>
+    <p><strong>คำถาม:</strong> จงตีความ \(\hat{\beta}_{distance} = -0.01872\) <strong>ในเทอม log-odds</strong> (อย่าลืมนิยาม \(\pi\) ก่อน)</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-glm(cbind(light_removed,dark_removed)~distance, data=newdata, family=binomial)
+&gt; summary(model)
+
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)
+(Intercept) 0.28048     0.23090   1.215 0.22447
+distance    -0.01872    0.00675  -2.773 0.00556 **
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 9.8997    on 6   degrees of freedom
+Residual deviance: 2.0741    on 5   degrees of freedom
+AIC: 35.105</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>Let \(\pi\) be the probability that the removed moth is a light moth.</strong></p>
+      <p>เมื่อระยะทางจากลิเวอร์พูลเพิ่มขึ้น 1 กิโลเมตร <strong>log-odds</strong> ที่ผีเสื้อซึ่งถูกล่าจะเป็นตัวสีอ่อน <strong>ลดลง 0.01872 หน่วย</strong> โดยเฉลี่ย (มีนัยสำคัญทางสถิติที่ p = 0.00556)</p>
+      <p>ในทางชีววิทยา: ยิ่งไกลเมือง เปลือกไม้ยิ่งไม่ถูกเขม่าจากโรงงานรมดำ ผีเสื้อสีอ่อนจึงพรางตัวได้ดีขึ้น สัดส่วนที่ถูกล่าจึงลดลง — ตรงกับเครื่องหมายลบของสัมประสิทธิ์</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ใช้คำว่า <strong>log-odds</strong> (ไม่ใช่ probability และไม่ใช่ odds) พร้อมทิศทางลดลง ตัวเลข 0.01872 และหน่วยของ X (1 กม.)</li>
+      <li>1 คะแนน: <strong>นิยาม \(\pi\)</strong> ให้ตรงกับตัวส่วนที่แท้จริง — "ในบรรดาผีเสื้อที่ถูกล่า สัดส่วนที่เป็นตัวสีอ่อน"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "ความน่าจะเป็นลดลง 0.01872" — <strong>ผิดสเกล</strong>: \(\hat{\beta}\) อยู่บนสเกล logit ผลของ 1 กม. ต่อ \(\pi\) <strong>ไม่คงที่</strong> ขึ้นกับว่าตอนนี้ \(\pi\) อยู่ตรงไหนของเส้นโค้ง S (ใกล้ 0.5 ผลใหญ่ ใกล้ 0 หรือ 1 ผลเล็กมาก) สิ่งเดียวที่คงที่ทุกจุดคือผลต่อ log-odds</p>
+      <p>ตอบว่า "odds ลดลง 0.01872" — <strong>ตกขั้นตอน exponentiate</strong>: odds เปลี่ยนแบบ<strong>คูณ</strong> ด้วย \(e^{-0.01872} = 0.9815\) ไม่ใช่ลบออก 0.01872 (นี่คือหัวข้อของข้อ 12)</p>
+      <p>นิยาม \(\pi\) ว่า "ความน่าจะเป็นที่ผีเสื้อจะถูกล่า" — <strong>ผิดตัวส่วน</strong>: ตัวส่วนของโมเดลนี้คือผีเสื้อ<strong>ที่ถูกล่าไปแล้ว</strong>ทั้งหมด (light + dark) ไม่ใช่ผีเสื้อที่วางไว้ทั้งหมด (คอลัมน์ PLACED ไม่ได้เข้าโมเดลเลย) นิยามผิด = ทิศทางและความหมายผิดทั้งข้อ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Logistic: odds ratio · L9</span></div>
+  <div class="exq-body">
+    <p>งานวิจัย case-control ที่กรุงเฮก เปรียบเทียบผู้ป่วยมะเร็งปอด 49 ราย กับกลุ่มควบคุม 98 ราย ตัวแปร <code>BK</code> บอกว่าเลี้ยงนกหรือไม่ (Bird / NoBird), <code>AG</code> = อายุ, <code>YR</code> = จำนวนปีที่สูบบุหรี่, <code>CD</code> = จำนวนมวนต่อวัน, <code>FM</code> = เพศ, <code>SS</code> = สถานะทางเศรษฐกิจสังคม</p>
+    <p><strong>คำถาม:</strong> จงตีความ \(\hat{\beta}_{BKNoBird} = -1.36259\) <strong>ในเทอม odds ratio</strong> — นี่คือข้อที่ออกสอบบ่อยที่สุดของทั้ง drill</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; modelbd&lt;-glm(Cancer~FM+SS+BK+AG+YR+CD, data=birds, family=binomial)
+&gt; summary(modelbd)
+Coefficients:
+            Estimate Std. Error z value Pr(&gt;|z|)
+(Intercept)  0.09196    1.75465   0.052 0.958204
+FMMale      -0.56127    0.53116  -1.057 0.290653
+SSLow       -0.10545    0.46885  -0.225 0.822050
+BKNoBird    -1.36259    0.41128  -3.313 0.000923 ***
+AG          -0.03976    0.03548  -1.120 0.262503
+YR           0.07287    0.02649   2.751 0.005940 **
+CD           0.02602    0.02552   1.019 0.308055
+---
+(Dispersion parameter for binomial family taken to be 1)
+    Null deviance: 187.14  on 146  degrees of freedom
+Residual deviance: 154.20  on 140  degrees of freedom
+AIC: 168.2</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\(\exp(-1.36259) = 0.256\)</p>
+      <p><strong>"odds ของการเป็นมะเร็งปอดของคนที่<u>ไม่เลี้ยงนก</u> เป็น 0.256 เท่าของคนที่<u>เลี้ยงนก</u> — นั่นคือลดลงเหลือ 25.6% ของเดิม — เมื่อควบคุมเพศ สถานะทางเศรษฐกิจสังคม อายุ จำนวนปีที่สูบบุหรี่ และจำนวนมวนต่อวันให้คงที่"</strong></p>
+      <p>พลิกเศษส่วนให้อ่านง่ายขึ้น: \(1/0.256 \approx 3.9\) → <strong>คนที่เลี้ยงนกมี odds เป็นมะเร็งปอดสูงกว่าคนที่ไม่เลี้ยงนกประมาณ 3.9 เท่า</strong> แม้ควบคุมประวัติการสูบบุหรี่แล้ว (p = 0.000923)</p>
+      <p>เทียบกับสัมประสิทธิ์อีกตัว: \(\hat{\beta}_{YR} = 0.07287\) ให้ \(\exp(0.07287) = 1.076\) → ทุก 1 ปีที่สูบบุหรี่เพิ่มขึ้น odds ของมะเร็งปอด<strong>เพิ่มขึ้นประมาณ 7.6%</strong> (ตัวแปรอื่นคงที่) — สังเกตว่ากรณี \(e^{\hat{\beta}} &gt; 1\) พูดเป็น "เพิ่มขึ้น \((e^{\hat{\beta}}-1)\times100\%\)" ส่วนกรณี \(e^{\hat{\beta}} &lt; 1\) พูดเป็น "เหลือ \(e^{\hat{\beta}}\times100\%\) ของเดิม"</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: คำนวณ \(\exp(\hat{\beta}) = 0.256\) ถูก และ<strong>ระบุกลุ่มอ้างอิงว่าเป็น "Bird" (คนเลี้ยงนก)</strong> โดยอ่านจากชื่อ dummy <code>BKNoBird</code></li>
+      <li>1 คะแนน: ประโยค odds ratio ครบ — "เป็น 0.256 เท่า / เหลือ 25.6% ของเดิม" (หรือพลิกเป็น 3.9 เท่า) + "โดยตัวแปรอื่นคงที่"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "odds ลดลง 1.36 เท่า" — <strong>สับสเกล log-odds กับ odds</strong>: \(-1.36259\) คือการเปลี่ยนแปลงของ <em>log</em>-odds odds ratio ต้องผ่าน \(\exp()\) ก่อนเสมอ ข้อนี้หักคะแนนทั้ง 2 คะแนน เพราะเป็นความเข้าใจผิดเชิงหลักการ ไม่ใช่ความผิดพลาดเชิงเลข</p>
+      <p>ตอบว่า "odds <strong>ลดลง 25.6%</strong>" — คนละความหมายกับ "<strong>เหลือ</strong> 25.6% ของเดิม" ค่าที่ลดลงจริงคือ \((1-0.256)\times100 = 74.4\%\) จำสองสำนวนนี้ให้แยกกันให้ขาด</p>
+      <p>เดา reference level ผิด — R ตั้งชื่อ dummy ว่า <code>BKNoBird</code> แปลว่าตัวแปรนี้ = 1 เมื่อ "NoBird" ดังนั้น<strong>ระดับที่หายไปจากชื่อ (Bird) คือกลุ่มอ้างอิง</strong> ถ้าอ่านกลับข้าง คำตอบจะพลิกจาก "เลี้ยงนกเสี่ยงกว่า" เป็น "เลี้ยงนกปลอดภัยกว่า" ซึ่งขัดกับข้อสรุปทั้งงานวิจัย</p>
+      <p>เขียนว่า "การเลี้ยงนก<strong>ทำให้</strong>เป็นมะเร็งปอด" — เป็น case-control study เชิงสังเกต ห้ามใช้ภาษาเชิงสาเหตุ และยังมี confounder ที่ไม่ได้วัดได้เสมอ</p>
+      <p>โบนัสที่ข้อสอบชอบถามต่อ: intercept 0.09196 ของ case-control <strong>ไม่มีความหมาย</strong>เป็น baseline odds ของประชากรจริง เพราะสัดส่วน case:control (49:98) นักวิจัยกำหนดเอง — แต่สัมประสิทธิ์ของตัวแปรอิสระยังตีความได้ปกติ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Logistic: predicted probability · L9</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลมะเร็งเต้านมวิสคอนซิน 681 เคส (<code>Class</code> = 1 เมื่อเนื้องอกเป็น benign) หลังเลือกโมเดลด้วย AIC แล้ว ทำนายผู้ป่วยรายใหม่ที่มีค่าตัวแปร Adhes=1, BNucl=1, Chrom=3, Epith=2, Mitos=1, NNucl=1, Thick=4, UShap=1, USize=1</p>
+    <p><strong>คำถาม:</strong> จงตีความผลลัพธ์ทั้งค่าประมาณจุดและช่วงความเชื่อมั่นที่ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; # Get Point estimate
+&gt; predict(reducedmod, newdata, type="response")
+        1
+0.9921115
+
+&gt; # Find a confidence interval
+&gt; eta&lt;-predict(reducedmod, newdata=newdata, se.fit=TRUE)
+&gt; eta
+$fit
+        1
+4.750162
+$se.fit
+[1] 0.5775932
+
+&gt; eta_CI&lt;-c(eta$fit-1.96*eta$se.fit, eta$fit+1.96*eta$se.fit)
+&gt; ilogit(eta_CI)
+        1         1
+0.9738671 0.9972192</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>"Thus, a point estimate for the predicted probability that a tumor is benign is 0.9921 and a 95% CI is (0.974, 0.997)."</strong></p>
+      <p>เขียนเต็ม: สำหรับผู้ป่วยที่มี<strong>ค่าตัวแปรครบชุดตามที่โจทย์ระบุ</strong> (Adhes=1, BNucl=1, Chrom=3, ...) โมเดลทำนายความน่าจะเป็นที่ก้อนเนื้อจะเป็น benign เท่ากับ 0.9921 และเรามั่นใจ 95% ว่าความน่าจะเป็นจริงของผู้ป่วยลักษณะนี้อยู่ระหว่าง 0.974 ถึง 0.997</p>
+      <p>เส้นทางการคำนวณที่ต้องอ่านออก: <code>se.fit=TRUE</code> คืน \(\hat{\eta} = 4.750\) ซึ่งอยู่บน<strong>สเกล logit</strong> → สร้างช่วง \(\hat{\eta} \pm 1.96\,SE\) บนสเกล logit ก่อน → แล้วค่อยแปลงกลับด้วย <code>ilogit()</code> เป็นสเกลความน่าจะเป็น ตรวจสอบได้ว่า \(\text{ilogit}(4.750) = e^{4.750}/(1+e^{4.750}) = 0.9914 \approx 0.9921\) (ต่างเล็กน้อยเพราะปัดเลข)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ระบุว่า 0.9921 คือความน่าจะเป็นที่<strong>ก้อนเนื้อเป็น benign</strong> (ตรงกับนิยาม Class=1) และผูกกับ<strong>ค่าตัวแปรชุดนั้นโดยเฉพาะ</strong></li>
+      <li>1 คะแนน: ตีความช่วง (0.974, 0.997) ด้วยประโยค 95% confidence ที่พูดถึงความน่าจะเป็นจริง ไม่ใช่พูดถึงข้อมูล</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>หยิบ <code>$fit = 4.750162</code> มาตอบเป็นความน่าจะเป็น — <strong>เป็นไปไม่ได้ในตัวเอง</strong>: ความน่าจะเป็นต้องอยู่ใน [0,1] ค่า 4.75 เป็นสัญญาณทันทีว่านี่คือ \(\hat{\eta}\) บนสเกล logit ต้องผ่าน <code>ilogit()</code> ก่อน จำหลักง่าย ๆ: <code>type="response"</code> ให้ \(\hat{\pi}\), ไม่ใส่ <code>type</code> ให้ \(\hat{\eta}\)</p>
+      <p>สร้าง CI โดยเอา \(0.9921 \pm 1.96 \times SE\) บนสเกลความน่าจะเป็นโดยตรง — <strong>ผิดวิธี</strong>: จะได้ขอบบนเกิน 1 (ไร้ความหมาย) และช่วงไม่สมมาตรตามธรรมชาติของ logit วิธีที่ถูกคือสร้างช่วงบนสเกล logit ก่อนแล้วค่อยแปลงกลับ ตามที่ output แสดง</p>
+      <p>ตอบว่า "โมเดลทำนายถูก 99.2%" — นั่นคือ <strong>accuracy</strong> ซึ่งต้องดูจาก confusion matrix คนละตัวกับ \(\hat{\pi}\) ของผู้ป่วยรายหนึ่ง</p>
+      <p>ตอบลอย ๆ ว่า "ความน่าจะเป็นเป็น benign คือ 0.9921" โดยไม่ผูกกับค่าตัวแปร — ต่างจาก log-odds ที่ผลของแต่ละตัวแปรคงที่เสมอ ค่า \(\hat{\pi}\) เปลี่ยนตามค่าของตัวแปร<strong>ทุกตัวพร้อมกัน</strong> ประโยคที่ไม่ระบุจุดอ้างอิงจึงตรวจสอบซ้ำไม่ได้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Poisson: rate ratio · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูล <code>gala</code> นับจำนวนชนิดพืช (Species) บนเกาะกาลาปากอส 30 เกาะ ตามลักษณะภูมิศาสตร์: Area (km²), Elevation (เมตร), Nearest (ระยะถึงเกาะใกล้สุด, กม.), Scruz, Adjacent</p>
+    <p><strong>คำถาม:</strong> จงตีความ <code>Elevation = 3.541e-03</code> และอธิบายว่าการตีความนี้<strong>ต่างจาก odds ratio ของ logistic (ข้อ 12) อย่างไร</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-glm(Species~.-Endemics, data=gala, family=poisson)
+&gt; summary(model)
+
+Coefficients:
+              Estimate Std. Error z value Pr(&gt;|z|)
+(Intercept)  3.155e+00  5.175e-02  60.963  &lt; 2e-16 ***
+Area        -5.799e-04  2.627e-05 -22.074  &lt; 2e-16 ***
+Elevation    3.541e-03  8.741e-05  40.507  &lt; 2e-16 ***
+Nearest      8.826e-03  1.821e-03   4.846 1.26e-06 ***
+Scruz       -5.709e-03  6.256e-04  -9.126  &lt; 2e-16 ***
+Adjacent    -6.630e-04  2.933e-05 -22.608  &lt; 2e-16 ***
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 3510.73  on 29  degrees of freedom
+Residual deviance:  716.85  on 24  degrees of freedom
+AIC: 889.68</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\(\exp(0.003541) = 1.00355\)</p>
+      <p><strong>"เมื่อความสูงของเกาะเพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวัง (expected count) เปลี่ยนเป็น 1.00355 เท่าของเดิม คือเพิ่มขึ้นประมาณ 0.355% โดยตัวแปรภูมิศาสตร์อื่นคงที่"</strong> (p &lt; 2e-16)</p>
+      <p>เพราะ 1 เมตรเป็นสเกลที่เล็กเกินไปเมื่อเทียบกับช่วงจริงของ Elevation (สูงสุด 1,707 เมตรที่ Isabela) จึงควรคิดต่อ 100 เมตร: \(\exp(0.003541 \times 100) = \exp(0.3541) = 1.425\) → <strong>ทุก 100 เมตรที่สูงขึ้น จำนวนชนิดพืชที่คาดหวังเพิ่มเป็น 1.43 เท่า (เพิ่มขึ้น ~42.5%)</strong></p>
+      <p><strong>ต่างจาก odds ratio อย่างไร:</strong> rate ratio เป็นตัวคูณของ<strong>ค่าคาดหวังของจำนวนนับ \(\mu\) โดยตรง</strong> ส่วน odds ratio เป็นตัวคูณของ \(\pi/(1-\pi)\) — โมเดล Poisson <strong>ไม่มีแนวคิด odds เลย</strong> เพราะไม่มี "เหตุการณ์ที่ไม่เกิด" ให้เอามาหาร (ชนิดพืชนับได้ 0, 1, 2, ... ไม่จำกัดเพดาน ไม่ใช่สัดส่วนจากผลรวมที่รู้ค่า) การพูดว่า "odds ของจำนวนชนิดพืช" จึงเป็นประโยคที่ไม่มีความหมายทางสถิติ</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: \(\exp(\hat{\beta}) = 1.00355\) ถูก + ประโยคเป็นแบบ<strong>ตัวคูณ</strong> ("เปลี่ยนเป็น ... เท่าของเดิม") + "โดยตัวแปรอื่นคงที่" + หน่วยของ X (1 เมตร)</li>
+      <li>1 คะแนน: ระบุว่าสิ่งที่ถูกคูณคือ <strong>expected count / rate ของ Y</strong> ไม่ใช่ odds — และอธิบายได้ว่า Poisson ไม่มี odds</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>พูดว่า "odds เพิ่มขึ้นเป็น 1.0036 เท่า" — <strong>ผิดตระกูลโมเดล</strong> และเป็นกับดักที่ตั้งใจวางไว้ในข้อนี้ ให้ท่องแยกกันไว้เลย: <strong>binomial/logistic → odds ratio, Poisson/NB → rate ratio</strong> ทั้งสองใช้ \(\exp(\hat{\beta})\) เหมือนกัน แต่สิ่งที่ถูกคูณคนละอย่างกันสิ้นเชิง</p>
+      <p>พูดว่า "จำนวนชนิดพืชเพิ่มขึ้น 0.0035 ชนิดต่อเมตร" — <strong>ลืม exponentiate</strong>: link function เป็น log ไม่ใช่ identity สัมประสิทธิ์ดิบจึงเป็นการเปลี่ยนแปลงของ \(\log \mu\) และผลบนสเกลเดิมเป็นการคูณเสมอ</p>
+      <p>เห็น 1.00355 ใกล้ 1 แล้วสรุปว่า "Elevation แทบไม่มีผล" — <strong>ต้องคูณด้วยช่วงที่สมเหตุสมผลของ X ก่อน</strong> (คิดต่อ 100 เมตรได้ 42.5% ซึ่งใหญ่มาก) กฎเดียวกับข้อ 2</p>
+      <p>ข้อสอบชอบถามต่อ: residual deviance 716.85 บน df 24 (อัตราส่วน ≈ 30 เท่า) แสดง <strong>overdispersion รุนแรง</strong> ค่า SE จาก Poisson จึงเล็กเกินจริงและ p-value เล็กเกินจริง ควรใช้ quasi-Poisson หรือ negative binomial — แต่ <strong>วิธีตีความสัมประสิทธิ์ยังเหมือนเดิมทุกประการ</strong> เพราะ link ยังเป็น log</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 15</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Multinomial · L12</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลคนงานเหมืองถ่านหิน จำแนกภาวะ pneumonoconiosis จากภาพรังสีเป็น 3 กลุ่ม (normal / mild / severe) ตามจำนวนปีที่ทำงานหน้าเหมือง (year)</p>
+    <p><strong>คำถาม:</strong> จงตีความสัมประสิทธิ์ <code>year</code> ในแถว <code>severe</code> (0.02572027)</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; nmodel&lt;-multinom(status~year, data=pneumo, weights=Freq)
+&gt; summary(nmodel)
+Call:
+multinom(formula = status ~ year, data = pneumo, weights = Freq)
+
+Coefficients:
+       (Intercept)        year
+normal   4.2916723 -0.08356506
+severe  -0.7681706  0.02572027
+
+Std. Errors:
+       (Intercept)       year
+normal   0.5214110 0.01528044
+severe   0.7377192 0.01976662
+
+Residual Deviance: 417.4496
+AIC: 425.4496</div>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>ก่อนอื่นต้องหา baseline: ตาราง Coefficients มีแค่ <code>normal</code> กับ <code>severe</code> — กลุ่มที่<strong>หายไปคือ <code>mild</code></strong> นั่นคือ baseline category สมการของแถวนี้จึงเป็น</p>
+      <p>\[\log\left(\frac{\hat{\pi}_{severe}}{\hat{\pi}_{mild}}\right) = -0.7682 + 0.02572\,\text{year}\]</p>
+      <p><strong>"เมื่อจำนวนปีที่ทำงานหน้าเหมืองเพิ่มขึ้น 1 ปี log-odds ของการอยู่กลุ่ม severe <u>เทียบกับกลุ่ม mild</u> เพิ่มขึ้น 0.02572"</strong></p>
+      <p>ในเทอม odds ratio: \(\exp(0.02572) = 1.026\) → <strong>odds ของการเป็น severe เทียบกับ mild เพิ่มเป็น 1.026 เท่าต่อปี (เพิ่มขึ้น ~2.6% ต่อปี)</strong> ถ้าคิดต่อ 10 ปี: \(\exp(0.2572) = 1.293\) หรือเพิ่มขึ้นประมาณ 29%</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: <strong>ระบุ baseline ว่าเป็น mild</strong> และใส่วลี "เทียบกับ mild" ไว้ในประโยคแปลผล — ขาดคำนี้ประโยคไม่มีความหมาย</li>
+      <li>1 คะแนน: ตัวเลขและสเกลถูก — log-odds เพิ่ม 0.02572 หรือ odds ratio \(\exp(0.02572)=1.026\) ต่อ 1 ปี</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตอบว่า "ทุก 1 ปีที่ทำงานเพิ่มขึ้น ความน่าจะเป็นที่จะเป็น severe เพิ่มขึ้น 2.6%" — <strong>ผิด 2 ชั้น</strong>: (1) ไม่ระบุ baseline (2) สัมประสิทธิ์ multinomial <strong>ไม่ได้พูดถึง \(\pi_{severe}\) เดี่ยว ๆ เลย</strong> มันพูดถึง<strong>อัตราส่วน</strong> \(\pi_{severe}/\pi_{mild}\) เท่านั้น ในทางทฤษฎี \(\pi_{severe}\) จะลดลงก็ได้ ถ้า \(\pi_{mild}\) โตเร็วกว่า (ซึ่งเป็นไปได้จริงที่นี่ เพราะแถว normal มีสัมประสิทธิ์ติดลบแรง \(-0.0836\) แปลว่าสัดส่วน normal หดตัวเร็ว ทำให้ทั้ง mild และ severe โตขึ้นพร้อมกัน)</p>
+      <p>เดา baseline เป็น <code>normal</code> เพราะเห็นชื่ออยู่บรรทัดแรก — <strong>กลับตรรกะ</strong>: category ที่<strong>ปรากฏ</strong>ในตารางคือ category ที่มีสมการเป็นของตัวเอง ส่วน baseline คือตัวที่<strong>ถูกตัดหายไป</strong> จำง่าย ๆ: J กลุ่ม → J−1 แถว → แถวที่หายคือ baseline</p>
+      <p>ตีความข้ามแถว เช่นเอา \(-0.0836\) ของแถว normal มาเทียบกับ \(0.0257\) ของแถว severe ตรง ๆ ว่า "severe โตเร็วกว่า normal" — สองแถวนี้มี<strong>ตัวส่วนร่วมกันคือ mild</strong> การเทียบกันตรง ๆ ต้องผ่านผลต่าง \(0.02572 - (-0.08357) = 0.10929\) ซึ่งคือ log-odds ของ severe เทียบ normal</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน D — Mixed models (L14)</h2>
+<div class="sec-note">fixed effect เทียบ reference + การตีความ variance components / ICC</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 16</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">LMM · L14</span></div>
+  <div class="exq-body">
+    <p>การทดลองเลี้ยงไก่: ไก่สาว 6 ตัวต่อ 1 คอก รวม 12 คอก จัดเป็น 4 บล็อกตามตำแหน่งที่ตั้ง ให้ 3 treatment (E, F, O) แล้วนับจำนวนไข่ที่ได้ โมเดลใส่ treat เป็น fixed effect และ block เป็น random effect</p>
+    <p><strong>คำถาม:</strong> (1) จงตีความ <code>treatF = -6.25</code> (2) จงตีความ variance components ทั้งสองตัว พร้อมคำนวณสัดส่วนความแปรปรวนที่มาจากบล็อก</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; lmmmodel&lt;-lmer(eggs~treat+(1|block), data=eggprod)
+&gt; summary(lmmmodel)
+Linear mixed model fit by REML ['lmerMod']
+Formula: eggs ~ treat + (1 | block)
+   Data: eggprod
+
+REML criterion at convergence: 85.4
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ block    (Intercept) 129.9    11.40
+ Residual             386.9    19.67
+Number of obs: 12, groups: block, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   349.00      11.37  30.702
+treatF         -6.25      13.91  -0.449
+treatO        -42.50      13.91  -3.056</div>
+    <p style="font-size:0.85rem;color:var(--ink-soft)">หมายเหตุ: เมื่อรัน <code>summary(lmmmodel, ddf="Kenward-Roger")</code> ได้ p-value ของ <code>treatF</code> = 0.6690 และของ <code>treatO</code> = 0.0224</p>
+  </div>
+  <textarea placeholder="เขียนประโยคแปลผลที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (ท่อนแรกเป็นสำนวนอาจารย์ คำต่อคำ)</div>
+      <p><strong>(1) Fixed effect:</strong> "The number of eggs produced from pullets receiving treatment F is less than those receiving treatment E by 6.25 on average." — treatment <strong>E เป็น reference level</strong> (หายไปจากตาราง) และ intercept 349.00 คือจำนวนไข่เฉลี่ยของ treatment E</p>
+      <p>เทียบกันอีกตัว: "The number of eggs produced from pullets receiving treatment O is less than those receiving treatment E by 42.50 on average."</p>
+      <p><strong>(2) Variance components:</strong> \(\hat{\sigma}^2_{block} = 129.9\) คือความแปรปรวน<strong>ระหว่างบล็อก</strong> (คอกที่อยู่คนละตำแหน่งให้ผลผลิตต่างกันแค่ไหน) ส่วน \(\hat{\sigma}^2 = 386.9\) คือความแปรปรวน<strong>ภายในบล็อก</strong> (คอกที่อยู่บล็อกเดียวกันยังต่างกันแค่ไหน)</p>
+      <p>สัดส่วนที่มาจากบล็อก (ICC):</p>
+      <p>\[\text{ICC} = \frac{129.9}{129.9 + 386.9} = \frac{129.9}{516.8} = 0.251\]</p>
+      <p>แปลว่า <strong>ประมาณ 25% ของความแปรปรวนทั้งหมดของจำนวนไข่ มาจากความต่างระหว่างบล็อก อีก 75% เป็นความแปรปรวนภายในบล็อก</strong> — และ ICC ยังตีความได้อีกอย่างว่า <strong>คอกสองคอกที่อยู่บล็อกเดียวกันมีสหสัมพันธ์กันประมาณ 0.25</strong> ซึ่งไม่ใช่ 0 นี่คือเหตุผลที่ใช้ <code>lm()</code> ธรรมดาไม่ได้ (ละเมิด independence assumption)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ตีความ treatF เป็น<strong>ผลต่างเทียบกับ treatment E ที่เป็น reference</strong> พร้อมตัวเลข 6.25, ทิศทาง "น้อยกว่า", และคำว่า <strong>on average</strong></li>
+      <li>1 คะแนน: แยก \(\hat{\sigma}^2_{block}=129.9\) กับ \(\hat{\sigma}^2=386.9\) ว่าเป็นความแปรปรวนระหว่าง/ภายในบล็อก และคำนวณ \(129.9/(129.9+386.9) \approx 0.25\) พร้อมตีความ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตีความ \(-6.25\) ว่า "ต่ำกว่า<strong>ค่าเฉลี่ยรวม</strong>ของทุก treatment" — <strong>สับสนกับ factor effects model ในข้อ 9</strong>: <code>lmer()</code>/<code>lm()</code> ใช้ dummy coding จุดอ้างอิงคือ <strong>reference level</strong> (treatment E) ไม่ใช่ grand mean สังเกตว่า treatment E ไม่มีแถวของตัวเองเลย นั่นคือสัญญาณว่ามันเป็น reference</p>
+      <p>เอา <code>Std.Dev. 11.40</code> ไปใช้แทน <code>Variance 129.9</code> ตอนคำนวณ ICC — R พิมพ์ทั้งสองคอลัมน์ให้ (\(11.40 = \sqrt{129.9}\)) ICC ต้องใช้<strong>ความแปรปรวน</strong> ถ้าใช้ SD จะได้ \(11.40/(11.40+19.67) = 0.367\) ซึ่งผิด</p>
+      <p>สรุปว่า "treatment F ให้ไข่น้อยกว่า E อย่างมีนัยสำคัญ" — <strong>t = \(-0.449\), p = 0.6690</strong> ไม่มีนัยสำคัญเลย ที่มีนัยสำคัญคือ treatO (p = 0.0224) การมีตัวเลข \(-6.25\) ไม่ได้แปลว่าผลต่างนั้นแยกออกจากความบังเอิญได้</p>
+      <p>เขียนโมเดลนี้เหมือน MLR แล้วไม่พูดถึง random effect เลย — ทั้งประเด็นของการออกแบบ block คือคอกในบล็อกเดียวกัน<strong>ไม่เป็นอิสระต่อกัน</strong> ถ้าไม่รายงาน variance components ก็ตอบไม่ได้ว่าการจัดบล็อกช่วยอะไร (ที่นี่ช่วยดูดซับ 25% ของความแปรปรวนออกไป)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">เช็กลิสต์สุดท้ายก่อนเข้าห้องสอบ — ทุกประโยคแปลผลต้องผ่าน 5 คำถามนี้: (1) พูดถึง<strong>ค่าเฉลี่ย</strong>ของ Y แล้วหรือยัง (2) ถ้ามีหลายตัวแปร ใส่ <strong>"holding the other variables constant"</strong> แล้วหรือยัง (3) หน่วยถูกและแปลงกลับแล้วหรือยัง (4) ถ้า link ไม่ใช่ identity <strong>exponentiate</strong> แล้วหรือยัง (5) ถ้าเป็นตัวแปรกลุ่ม <strong>เรียกชื่อกลุ่มอ้างอิง</strong> ออกมาแล้วหรือยัง</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-01-write-the-equation.html">← Drill 1: เขียนสมการ</a></span>
+  <span><a href="drill-03-hypothesis-testing.html">Drill 3: ทดสอบสมมติฐาน →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

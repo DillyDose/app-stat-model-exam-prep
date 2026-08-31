@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Regression Diagnostics Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 3</span>
+  <span><a href="../lessons/0003-regression-diagnostics-and-remedies.html">← Lesson 3: Regression Diagnostics and Remedies</a></span>
+</nav>
+
+<p class="kicker">Lecture 3 — Regression Diagnostics and Remedies</p>
+<h1>Diagnostics Cheat Sheet: Assumption → Plot/Test → Pass/Fail → Remedy</h1>
+
+<p>ตารางหลักของบทเรียนที่สอบหนักที่สุดรองจากการแปลผล — ใช้ตารางข้อ 1 เป็นแผนที่หลัก แล้วไล่ดูสูตร/threshold/remedy รายละเอียดในหัวข้อถัดไป</p>
+
+<h2>1. ตารางหลัก: 4 Assumption ↔ Diagnostic ↔ Pass/Fail ↔ Remedy</h2>
+<table>
+<tr><th>Assumption</th><th>Graphical check</th><th>Formal test (H₀=assumption จริง)</th><th>ลักษณะ "ผ่าน"</th><th>ลักษณะ "พัง"</th><th>Remedy</th></tr>
+<tr><td><strong>1. Linearity</strong></td><td>Residuals vs Fitted</td><td>—</td><td>เส้น smoother ราบใกล้ 0 ตลอดช่วง ไม่มีรูปทรง</td><td>เส้นโค้งเป็นระบบ (U/parabola)</td><td>Transform X, เพิ่ม X², Box-Cox</td></tr>
+<tr><td><strong>2. Normality</strong></td><td>Normal QQ plot ของ residual</td><td>Shapiro-Wilk (<code>shapiro.test</code>)</td><td>จุดเกาะเส้น 45° ตลอด, p&gt;α</td><td>โค้งหักที่หาง (S-curve/skew/outlier), p&lt;α</td><td>Box-Cox, ตรวจ outlier (Lecture 4)</td></tr>
+<tr><td><strong>3. Constant variance</strong></td><td>Residuals vs Fitted (มองความกว้างแถบ)</td><td>Breusch-Pagan (<code>bptest</code>)</td><td>แถบกว้างคงที่ตลอดช่วง, p&gt;α</td><td>แถบบานเป็นกรวย (megaphone), p&lt;α</td><td>Weighted regression (ถ้าเส้นค่าเฉลี่ยตรงอยู่แล้ว), Transform Y</td></tr>
+<tr><td><strong>4. Independence</strong></td><td>Residuals vs time/order</td><td>Run Test (cross-sectional) / Durbin-Watson (time series)</td><td>กระจายสุ่มไม่มี pattern, runs p&gt;α, DW≈2 &amp; p&gt;α</td><td>trend/แกว่งเป็นคลื่น/ซิกแซกถี่, p&lt;α, DW→0 หรือ →4</td><td>เติมตัวแปร time (ถ้าเป็น trend) หรือ Cochrane-Orcutt (ถ้าเป็น serial correlation)</td></tr>
+</table>
+<p><strong>ข้อควรจำ:</strong> Residuals-vs-Fitted ใช้เช็คทั้ง linearity (มอง "แนวโน้ม/โค้ง") และ constant variance (มอง "ความกว้างแถบ") พร้อมกัน — ต้องแยกสองมิตินี้ให้ออกเวลาอ่านกราฟเดียวกัน</p>
+<p><strong>ทิศทางการอ่าน formal test ทุกตัวในบทนี้เหมือนกันหมด:</strong> H₀ = "assumption เป็นจริง" → ต้องการ <strong>p-value สูง (ไม่ปฏิเสธ H₀)</strong> ถึงจะ "ผ่าน" — ตรงข้ามกับการทดสอบ \(H_0:\beta=0\) ที่อยากปฏิเสธ</p>
+<p><strong>Mean-zero ไม่มี diagnostic แยก</strong> เพราะ \(\bar{e}=\sum e_i/n=0\) เสมอโดยพีชคณิตของ OLS — การพังของ mean-zero ที่แท้จริงออกอาการเป็น pattern ในกราฟ residuals-vs-fitted (คือ linearity check)</p>
+
+<h2>2. Robustness — ผลกระทบถ้าไม่เช็คแล้วปล่อยผ่าน</h2>
+<table>
+<tr><th>Assumption ที่พัง</th><th>ผลกระทบ</th></tr>
+<tr><td>Linearity</td><td>Point estimate ของค่าเฉลี่ย/ค่าทำนาย <strong>เอนเอียง (biased)</strong> — ข้อเดียวที่กระทบ point estimate เอง</td></tr>
+<tr><td>Constant variance</td><td>SE ไม่แม่นยำ — test/CI ทั้งหมดเชื่อถือไม่ได้</td></tr>
+<tr><td>Normality</td><td>Estimate/SE ค่อนข้าง robust — ผลกระทบมักเล็กน้อย ยกเว้น n เล็ก+มี outlier/หางยาว</td></tr>
+<tr><td>Independence</td><td>SE ไม่แม่นยำ — test/CI เชื่อถือไม่ได้ (เหมือน constant variance)</td></tr>
+</table>
+
+<h2>3. QQ Plot 4 รูปแบบ (Ramsey &amp; Schafer)</h2>
+<table>
+<tr><th>แบบ</th><th>รูปทรง</th><th>ความหมาย</th></tr>
+<tr><td>A. Normal</td><td>เส้นตรงสม่ำเสมอ</td><td>ผ่าน — มาตรฐานเทียบ</td></tr>
+<tr><td>B. Long-tailed</td><td>รูปตัว S: กลางแบน หางทั้งสองชันแรง</td><td>Kurtosis สูง หางหนาสองด้าน (สมมาตร)</td></tr>
+<tr><td>C. Skewed (+)</td><td>ส่วนโค้งเว้าด้านเดียวตลอดเส้น</td><td>Skewness — เบ้ต่อเนื่องทางเดียว</td></tr>
+<tr><td>D. Outlier</td><td>ส่วนใหญ่เกาะเส้นดี มีจุดเดียวหลุดไกล</td><td>Observation ผิดปกติจุดเดียว ไม่ใช่ปัญหารูปร่างการแจกแจง</td></tr>
+</table>
+
+<h2>4. Residuals-vs-time 4 รูปแบบ (Independence)</h2>
+<table>
+<tr><th>แบบ</th><th>รูปทรง</th><th>Remedy</th></tr>
+<tr><td>A. Normal noise</td><td>กระจายสุ่มรอบ 0 ไม่มี pattern</td><td>ผ่าน — ไม่ต้องแก้</td></tr>
+<tr><td>B. Time trend</td><td>ไต่ระดับขึ้น/ลงตามเวลาต่อเนื่อง</td><td>เติม time เป็นตัวแปรอิสระ (deterministic trend)</td></tr>
+<tr><td>C. Positive serial correlation</td><td>แกว่งขึ้นลงเป็นช่วงยาวราบเรียบ</td><td>Cochrane-Orcutt / time series techniques</td></tr>
+<tr><td>D. Negative serial correlation</td><td>สลับบวก-ลบถี่ ๆ เป็นซิกแซก</td><td>Cochrane-Orcutt / time series techniques</td></tr>
+</table>
+<p>Durbin-Watson มีสเกล 0–4: <strong>DW≈2 = ไม่มี autocorrelation</strong>, DW→0 = positive serial correlation แรง, DW→4 = negative serial correlation แรง</p>
+
+<h2>5. Decision Guide: Y vs X Scatter → วิธีแก้ (Ramsey &amp; Schafer)</h2>
+<table>
+<tr><th>แผง</th><th>ลักษณะ scatter</th><th>Remedy</th></tr>
+<tr><td>A</td><td>เส้นค่าเฉลี่ยตรง, SD เท่ากันทุกช่วง</td><td>Ideal — ไม่ต้องแก้</td></tr>
+<tr><td>B</td><td>เส้นค่าเฉลี่ยโค้ง, SD เท่ากันทุกช่วง</td><td>Transform X</td></tr>
+<tr><td>C</td><td>เส้นค่าเฉลี่ยโค้งขึ้นแล้วลง (parabola), SD เท่ากัน</td><td>เพิ่มพจน์ X²</td></tr>
+<tr><td>D</td><td>เส้นค่าเฉลี่ยโค้ง + SD เพิ่มตาม X พร้อมกัน</td><td>Transform Y (มักใช้ Box-Cox)</td></tr>
+<tr><td>E</td><td>ข้อมูลเบ้ (skewed) ในแต่ละแถบ</td><td>รายงานความเบ้ตรง ๆ (แปลงตัวแปรอาจไม่ช่วย)</td></tr>
+<tr><td>F</td><td>เส้นค่าเฉลี่ยตรง, SD เพิ่มตาม X (megaphone)</td><td>Weighted Regression</td></tr>
+</table>
+
+<h2>6. Variable Transformation — สูตรและ Box-Cox</h2>
+<table>
+<tr><th>แปลงตัวไหน</th><th>โมเดล</th><th>สมการกลับ</th></tr>
+<tr><td>Y = ln(Y)</td><td>\(Y'=\beta_0+\beta_1 X\)</td><td>\(\hat{Y}=e^{\beta_0} e^{\beta_1 X}\)</td></tr>
+<tr><td>X = ln(X)</td><td>\(Y=\beta_0+\beta_1\ln(X)\)</td><td>—</td></tr>
+<tr><td>ทั้งคู่ log</td><td>\(\ln(Y)=\beta_0+\beta_1\ln(X)\)</td><td>\(\hat{Y}=e^{\beta_0} X^{\beta_1}\)</td></tr>
+<tr><td>Reciprocal ทั้งคู่</td><td>—</td><td>\(\hat{Y}=X/(\beta_0 X+\beta_1)\)</td></tr>
+</table>
+<div class="box win">
+Box-Cox: \(Y' = Y^\lambda\) — กรณีพิเศษ: \(\lambda=2 \to Y^2\), \(\lambda=0.5 \to \sqrt{Y}\), \(\lambda=0 \to \log(Y)\), \(\lambda=-0.5 \to 1/\sqrt{Y}\), \(\lambda=-1 \to 1/Y\)<br>
+เลือก λ จากจุดสูงสุดของ log-likelihood plot (<code>boxcox()</code>) — แก้ nonlinearity, non-normality, non-constant variance พร้อมกันได้ด้วยการแปลง Y ตัวเดียว
+</div>
+
+<h2>7. Weighted Regression (สำหรับ non-constant variance ที่เส้นค่าเฉลี่ยตรง — แผง F)</h2>
+<div class="box">
+\(w_i = 1/\hat{s}_i^2\) (จาก SD function, ทนต่อ outlier กว่า) หรือ \(w_i = 1/\hat{v}_i\) (จาก variance function)
+</div>
+<pre><code>sdmodel &lt;- lm(abs(resid(model))~X, data=d)
+w &lt;- 1/(fitted(sdmodel)^2)
+wtmodel &lt;- lm(Y~X, data=d, weight=w)</code></pre>
+<p>Observation ที่ variance สูง (residual กระจายมาก) ได้ weight น้อย → ดึงเส้นถดถอยน้อยลง</p>
+
+<h2>8. Cochrane-Orcutt Transformation (independence/autocorrelation)</h2>
+<div class="box">
+โมเดล: \(Y_t=\beta_0+\beta_1 X_{1t}+\cdots+\varepsilon_t\), \(\varepsilon_t=\rho\varepsilon_{t-1}+u_t\)<br>
+ขั้นตอน: (1) fit ธรรมดา ได้ e_t (2) \(r=\dfrac{\sum e_t e_{t-1}}{\sum e_t^2}\) (3) \(Y^*_t=Y_t-rY_{t-1}\), \(X^*_t=X_t-rX_{t-1}\) (4) regress Y* on X* (5) ทำซ้ำจนกว่า DW test จะไม่พบ autocorrelation
+</div>
+<pre><code>library(orcutt)
+comodel &lt;- cochrane.orcutt(model)
+summary(comodel)   # แสดง DW ก่อน/หลัง + comodel$rho</code></pre>
+<p>SE ที่เพิ่มขึ้นหลังแก้ = สัญญาณว่า OLS เดิมประเมิน SE ต่ำเกินจริง (เพราะไม่นับ serial correlation)</p>
+
+<h2>9. Multicollinearity — สัญญาณ, VIF, Remedy</h2>
+<p>สัญญาณ: (1) correlation ระหว่างคู่ X สูง (2) สัมประสิทธิ์ไม่เสถียรเมื่อเปลี่ยนโมเดล (3) <strong>t-test รายตัวไม่นัยสำคัญ แต่ F-test ภาพรวมนัยสำคัญ</strong> (สัญญาณตรวจง่ายที่สุด)</p>
+<div class="box win">
+\(\text{VIF}_j = 1/(1-R^2_j)\), R²_j จาก regress X_j กับ X ตัวอื่นที่เหลือ<br>
+\(\text{VIF}=1\) ไม่มี correlation | \(\text{VIF} &gt; 4\) ปานกลาง | \(\text{VIF} &gt; 10\) รุนแรง
+</div>
+<table>
+<tr><th>Remedy</th><th>แนวคิด</th><th>Trade-off</th></tr>
+<tr><td>Centering</td><td>ลบ X ด้วยค่าเฉลี่ยก่อน fit</td><td>ช่วยเฉพาะ collinearity จาก interaction/polynomial</td></tr>
+<tr><td>ตัดตัวแปร</td><td>ตัดตัวที่สัมพันธ์กันสูงออกบางตัว</td><td>เสียข้อมูล/ตัวแปรที่อาจสำคัญทางทฤษฎี</td></tr>
+<tr><td>Ridge Regression</td><td>\(\hat{\beta}=\operatorname{argmin}[\sum (Y-X\beta)^2+\lambda\sum \beta_j^2]\), \(\hat{\beta}=(X'X+\lambda I)^{-1}X'Y\)</td><td>ยอมรับ bias เพื่อลด variance/เสถียรภาพ — ตีความ β ตรงไปตรงมายังได้</td></tr>
+<tr><td>PCA</td><td>สร้างตัวแปรใหม่ (PC) orthogonal กัน จาก eigenvalue/eigenvector ของ covariance matrix</td><td>กำจัด multicollinearity เต็มที่ + ลดมิติ แต่ตีความ PC ยาก (ต้องดู loading)</td></tr>
+</table>
+<p>Ridge: \(\lambda=0\) → OLS พอดี; เลือก λ จาก ridge trace plot (จุดที่เส้นสัมประสิทธิ์เริ่มเสถียร) — R: <code>lmridge(y~., data, K=</code>\(\lambda\)<code>)</code></p>
+<p>PCA: จำนวน PC ที่ใช้ ดูจาก scree plot หาจุด "elbow" — R: <code>prcomp(X, center=TRUE, scale=TRUE)</code>, สัดส่วนอธิบาย = \(\lambda_k/\sum\lambda\)</p>
+
+<h2>10. R Syntax อ้างอิงเร็ว — Diagnostics</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Residuals vs Fitted (+ smoother)</td><td><code>plot(model, 1)</code></td></tr>
+<tr><td>Normal QQ plot</td><td><code>plot(model, 2)</code> หรือ <code>qqnorm(resid(model)); qqline(resid(model))</code></td></tr>
+<tr><td>Shapiro-Wilk</td><td><code>shapiro.test(resid(model))</code></td></tr>
+<tr><td>Breusch-Pagan</td><td><code>library(lmtest); bptest(model)</code></td></tr>
+<tr><td>Run Test</td><td><code>library(randtests); runs.test(resid(model))</code></td></tr>
+<tr><td>Durbin-Watson</td><td><code>library(lmtest); dwtest(model)</code></td></tr>
+<tr><td>Box-Cox</td><td><code>library(MASS); boxcox(model)</code></td></tr>
+<tr><td>VIF</td><td><code>library(usdm); vif(X)</code></td></tr>
+<tr><td>Ridge</td><td><code>library(lmridge); lmridge(y~., data, K=0.25)</code></td></tr>
+<tr><td>Cochrane-Orcutt</td><td><code>library(orcutt); cochrane.orcutt(model)</code></td></tr>
+<tr><td>PCA</td><td><code>prcomp(X, center=TRUE, scale=TRUE); summary(pca); plot(pca)</code></td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

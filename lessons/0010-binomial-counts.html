@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 10: Binomial Counts — cbind(), Overdispersion, และการแปลผล Odds</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 10 / 14 · Binomial Counts</span>
+  <span><a href="../reference/0010-binomial-counts-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output →</a></span>
+</nav>
+
+<p class="kicker">Lecture 10 — Binomial Counts</p>
+<h1>Binomial Counts: จาก Binary สู่ "จำนวนสำเร็จจาก n ครั้ง"</h1>
+
+<p>Lecture 9 สอน logistic regression บนข้อมูล binary (Y=0/1 ต่อหนึ่งหน่วยสังเกต) บทนี้ขยายไปยังกรณีที่ข้อมูลถูก<strong>รวมกลุ่ม (aggregate)</strong> ไว้แล้ว — แต่ละแถวไม่ใช่คนคนเดียว แต่เป็น "จำนวนสำเร็จจาก n ครั้งลอง" เช่น จำนวน O-ring ที่เสียหายจาก 6 วง หรือจำนวนนกที่สูญพันธุ์จากทั้งหมดที่เสี่ยง — สิ่งที่เปลี่ยนคือ<strong>รูปแบบข้อมูลและ syntax ใน R</strong> (ต้องบอก R ว่า "สำเร็จกี่ครั้งจากกี่ครั้ง" ไม่ใช่แค่ Y เดียว) ส่วนสิ่งที่<strong>ไม่เปลี่ยน</strong>คือความหมายของสัมประสิทธิ์ (ยังคือ log-odds ต่อหนึ่งหน่วย X เหมือนเดิม) บทนี้ยังเพิ่มการเช็ค assumption ใหม่ที่ไม่มีในข้อมูล binary — <em class="term">overdispersion</em> — ซึ่งเป็นการเช็ค assumption ที่ออกสอบเป็นรูปธรรมที่สุดของบทนี้</p>
+
+<h2>1. Binary vs Binomial Counts — สองแบบของ Response</h2>
+<p>สไลด์แบ่ง response variable ของ logistic-regression family เป็น 2 แบบ: (1) <strong>Binary</strong> — Y coding เป็น 0/1 ต่อหนึ่งหน่วยสังเกต (Lecture 9) และ (2) <strong>Binomial counts</strong> — จำนวนความสำเร็จ (successes) จาก n ครั้งลอง (trials) ต่อหนึ่งกลุ่ม เช่น "จำนวนสำเร็จใน 10 ครั้งลอง" ทั้งสองแบบมาจากตระกูลการแจกแจงเดียวกัน:</p>
+<div class="box">
+\(Y \sim \text{Binomial}(n, \pi)\)&nbsp;&nbsp; โดย \(\text{Mean}[Y] = n\pi\), &nbsp;\(\text{Var}[Y] = n\pi(1-\pi)\)
+</div>
+<p>สังเกตว่า binary คือกรณีพิเศษเมื่อ \(n=1\) ทุกแถว (\(Y \sim \text{Bernoulli}(\pi)\) ตามที่ Lecture 9 ใช้) ส่วนบทนี้คือกรณีทั่วไปที่ \(n\) ต่างกันได้ในแต่ละแถว (แต่ละกลุ่มอาจมีจำนวนครั้งลองไม่เท่ากัน) — โครงสร้างทางทฤษฎีของ mean/variance เหมือนกันทุกประการ เพียงแต่ตอนนี้ \(n\) ไม่ได้ล็อกไว้ที่ 1 เสมอ</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Binary vs Binomial Counts</span></div>
+  <div class="qtext">ข้อมูลชุดหนึ่งบันทึกไว้ว่า "จากผู้ป่วย 30 คนในแต่ละโรงพยาบาล มีกี่คนที่หายจากโรค" (มีข้อมูลจาก 15 โรงพยาบาล) ควรใช้การแจกแจงแบบใดสำหรับ response variable นี้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Normal distribution เพราะมีตัวเลขจำนวนคนมากกว่า 1</button>
+  <button class="opt" data-correct="true">Binomial(30, π) ต่อโรงพยาบาล เพราะแต่ละแถวคือจำนวนสำเร็จ (หาย) จาก n=30 ครั้งลอง ไม่ใช่ผลลัพธ์ของคนคนเดียว</button>
+  <button class="opt" data-correct="false">Bernoulli(π) เพราะเป็นข้อมูลทางการแพทย์เหมือน Lecture 9</button>
+  <button class="opt" data-correct="false">ไม่สามารถใช้ logistic regression ได้เลยเพราะข้อมูลถูกรวมกลุ่มไว้แล้ว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. Case Study 1: Challenger O-rings — ตั้งโจทย์และข้อมูลจริง</h2>
+<p>ยานอวกาศ Challenger ระเบิดในปี 1986 สาเหตุเชื่อมโยงกับความล้มเหลวของ O-ring ในเครื่องยนต์จรวด — มีการเก็บข้อมูลจาก 23 ภารกิจก่อนหน้า แต่ละภารกิจมี booster 2 ตัว ตัวละ 3 O-ring รวม 6 O-ring ต่อภารกิจ และวัด "จำนวน O-ring ที่เสียหาย" พร้อมอุณหภูมิขณะปล่อยยาน — <strong>อุณหภูมิวันที่ยานระเบิดคือ 31°F</strong> ซึ่งเป็นตัวเลขสำคัญที่จะกลับมาใช้ตอบคำถามตั้งต้นของ case study นี้ในหัวข้อ 8: "ทำนายความล้มเหลวได้หรือไม่":</p>
+<figure>
+<img src="../assets/slides/as10-p04-orings-damage-vs-temp-scatter.png" alt="Scatterplot of number of damaged O-rings (0-5) against launch temperature for 23 shuttle missions, with most missions clustered at 0 damage between 65-80F and higher damage counts appearing at lower temperatures around 53-58F">
+<figcaption>Slide: Case Study 1 — Challenger O-rings, ข้อมูลจริง 23 ภารกิจ (Lecture 10, p.4)</figcaption>
+</figure>
+<p>อ่านจุดข้อมูลในกราฟ: ที่อุณหภูมิต่ำสุดในข้อมูล (ประมาณ 53°F) มี O-ring เสียหายถึง 5 จาก 6 วง ขณะที่ภารกิจส่วนใหญ่ที่ปล่อยตอนอากาศอุ่น (65–80°F) แทบไม่มีความเสียหายเลย (damage=0) — เห็นแนวโน้มคร่าว ๆ แล้วว่ายิ่งอุณหภูมิต่ำ ยิ่งมีโอกาสเสียหายมากขึ้น แต่ช่วงข้อมูลจริงที่ใช้ฟิตโมเดลอยู่ประมาณ <strong>53–81°F เท่านั้น</strong> — สังเกตว่า 31°F (อุณหภูมิวันเกิดเหตุ) อยู่<strong>นอกช่วงข้อมูลทั้งหมด</strong> ต่ำกว่าจุดที่หนาวที่สุดที่เคยสังเกตมาถึง 22°F ซึ่งเป็นประเด็น extrapolation ที่ต้องระวัง (เหมือนที่เตือนไว้ตั้งแต่ Lesson 1 หัวข้อ 7) แต่ก็ยังเป็นคำถามที่ต้องตอบเพราะเป็นข้อมูลจริงที่เกิดขึ้น</p>
+<p>ตั้งโมเดล: ให้ \(Y_i\) = จำนวน O-ring ที่เสียหายในภารกิจที่ i และ \(X_i\) = อุณหภูมิขณะปล่อยยานของภารกิจที่ i เพราะแต่ละภารกิจมี 6 O-ring ที่อาจเสียหายหรือไม่เสียหายอย่างเป็นอิสระ(โดยประมาณ)กัน จึงมองว่า \(Y_i\) เป็น binomial count ได้อย่างธรรมชาติ:</p>
+<div class="box">
+\(Y_i \sim \text{Binomial}(6, \pi_i)\)&nbsp;&nbsp; และ model π ด้วย logistic regression: &nbsp;\(\log(\pi_i / (1-\pi_i)) = \beta_0 + \beta_1 X_i\)<br>
+ค่าคาดหวังของจำนวน O-ring ที่เสียหาย: &nbsp;\(E[Y_i] = 6\pi_i\)
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>ตั้งโมเดล O-rings</span></div>
+  <div class="qtext">ทำไมจึงมอง \(Y_i\) = จำนวน O-ring ที่เสียหายในภารกิจที่ i เป็น \(\text{Binomial}(6, \pi_i)\) ไม่ใช่ \(\text{Binomial}(1, \pi_i)\) แบบ Lecture 9?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะแต่ละภารกิจมี O-ring ที่อาจเสียหายได้ถึง 6 วง (n=6 ครั้งลองต่อภารกิจ) ไม่ใช่แค่ผลลัพธ์เดียว 0/1 เหมือนข้อมูล binary</button>
+  <button class="opt" data-correct="false">ตัวเลข 6 เป็นค่าคงที่ทางสถิติที่ใช้กับทุกโมเดล Binomial เสมอ</button>
+  <button class="opt" data-correct="false">เพราะอุณหภูมิมีค่าได้ 6 ระดับในข้อมูลชุดนี้</button>
+  <button class="opt" data-correct="false">เพราะมี 23 ภารกิจทั้งหมด ตัวเลข 6 มาจากจำนวนภารกิจหารด้วยอะไรบางอย่าง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>3. Fit ใน R: จาก Y เดียวสู่ <code>cbind(successes, failures)</code> — ทักษะที่ 1</h2>
+<p>เหมือน Lecture 9, ฟิตด้วย <code>glm()</code>: <code>glm(formula, data, family=binomial, subset, weights, ...)</code> — <code>family=binomial</code> ใช้ link เริ่มต้นเป็น logit เหมือนเดิมทุกประการ สิ่งที่ต่างคือวิธีระบุ <strong>ตัวแปรตอบสนอง (response)</strong> ใน formula:</p>
+<div class="box win">
+<p><strong>สิ่งที่เปลี่ยนระหว่าง Binary กับ Binomial Counts:</strong></p>
+<p>Binary (n_i=1 ทุกแถว, Lecture 9): ระบุ response ตรง ๆ เป็น \(Y_i\) เช่น <code>glm(Survived ~ Age+Sex, data=donner, family=binomial)</code></p>
+<p>Binomial counts (n_i อาจมากกว่า 1): ต้องระบุ response เป็น <code>cbind(Y_i, n_i − Y_i)</code> คือคู่ (จำนวนสำเร็จ, จำนวนไม่สำเร็จ) ไม่ใช่ Y ตัวเดียว เพราะ R ต้องรู้ทั้ง "สำเร็จกี่ครั้ง" และ "n มีกี่ครั้ง" เพื่อคำนวณ likelihood ของ Binomial ให้ถูก</p>
+</div>
+<p>สำหรับ O-rings: \(Y_i\) = damage (จำนวนเสียหาย), \(n_i - Y_i\) = 6 − damage (จำนวนไม่เสียหาย):</p>
+<pre><code>model&lt;-glm(cbind(damage,6-damage)~temp,
+                   data=orings,family=binomial)</code></pre>
+<p>อีกวิธีที่ให้ผลฟิตเหมือนกันทุกประการ (โดยใช้ argument <code>weights</code> ที่ระบุไว้ในลิสต์ argument ของ <code>glm()</code> อยู่แล้ว) คือเขียน response เป็น<strong>สัดส่วน</strong> \(Y_i/n_i\) แล้วบอกน้ำหนักแต่ละแถวด้วย \(n_i\): <code>glm(damage/6 ~ temp, weights=rep(6,23), family=binomial)</code> — สไลด์นี้สาธิตแบบ <code>cbind()</code> เป็นหลักเพราะอ่านตรงไปตรงมากว่า (เห็นทั้งสำเร็จและไม่สำเร็จในสมการเดียว) แต่ทั้งสองแบบให้ β̂ และ SE เหมือนกันเป๊ะ เพราะเป็นการเขียน likelihood แบบเดียวกันคนละรูปแบบเท่านั้น</p>
+<p>ผลลัพธ์จริงจาก <code>summary(model)</code>:</p>
+<pre><code>Call:
+glm(formula = cbind(damage, 6 - damage) ~ temp, family = binomial,
+    data = orings)
+
+Deviance Residuals:
+    Min       1Q    Median        3Q        Max
+-0.9529  -0.7345  -0.4393   -0.2079    1.9565
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.66299    3.29626   3.538 0.000403 ***
+temp        -0.21623    0.05318  -4.066 4.78e-05 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 38.898  on 22  degrees of freedom
+Residual deviance: 16.912  on 21  degrees of freedom
+AIC: 33.675
+
+Number of Fisher Scoring iterations: 6</code></pre>
+<p>อ่าน output: \(\hat{\beta}_0 = 11.663\), \(\hat{\beta}_1 = -0.216\) (ทดสอบด้วย <em>z value</em> ไม่ใช่ <em>t value</em> เหมือน <code>lm()</code> — เพราะ GLM ใช้ MLE ที่มี sampling distribution เป็น normal โดยประมาณ ไม่ใช่ t-distribution แบบ exact ของ OLS) \(\Pr(>|z|)\) ของ temp คือ 4.78e-05 (มีนัยสำคัญมาก) — สมการที่ได้คือ \(\log(\hat{\pi}/(1-\hat{\pi})) = 11.663 - 0.216 \times \text{temp}\) คอลัมน์ <code>(Dispersion parameter for binomial family taken to be 1)</code> คือค่าตั้งต้นที่ยัง<strong>ไม่ได้เช็ค overdispersion</strong> — จะกลับมาเช็คจริงในหัวข้อ 9</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 3 (Free response)</span><span>เขียนสมการ + โค้ด R</span></div>
+  <div class="qtext">นักวิจัยทดสอบยาลดไข้ในผู้ป่วย 40 กลุ่ม กลุ่มละ 20 คน (จัดกลุ่มตามขนาดยา dose ที่ต่างกัน) นับจำนวนคนในแต่ละกลุ่มที่หายภายใน 24 ชั่วโมง (recovered) จงเขียนสมการโมเดล (พร้อมระบุการแจกแจงของ Y) และเขียนโค้ด <code>glm()</code> ที่ถูกต้องด้วย <code>cbind()</code></div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>โมเดล: \(Y_i \sim \text{Binomial}(20, \pi_i)\), &nbsp;\(\log(\pi_i/(1-\pi_i)) = \beta_0 + \beta_1 \, \text{dose}_i\) สำหรับ i = 1,…,40 (แต่ละกลุ่มมี n_i=20 คนคงที่)</p>
+  <p>โค้ด R: <code>model &lt;- glm(cbind(recovered, 20-recovered) ~ dose, data=data, family=binomial)</code></p>
+  <p>(หรือเทียบเท่ากันด้วย weights: <code>glm(recovered/20 ~ dose, weights=rep(20,40), family=binomial)</code>)</p>
+  </div>
+</div>
+
+<h2>4. แปลผลสัมประสิทธิ์ — อะไรเหมือน อะไรต่าง จาก Binary Logistic Regression — ทักษะที่ออกสอบหนักที่สุด</h2>
+<p>ข่าวดี: <strong>ความหมายของสัมประสิทธิ์ไม่เปลี่ยนเลย</strong> เมื่อเทียบกับ Lecture 9 — เพราะ \(\beta\) ยังคุมความสัมพันธ์ระหว่าง \(X\) กับ log-odds ของ \(\pi\) ตัวเดียวกัน ไม่ว่าจะมาจากข้อมูล binary (n=1) หรือ binomial count (n&gt;1) การแปลผล 3 ระดับที่ใช้ตลอดตระกูล logistic regression ยังใช้ได้เหมือนเดิม:</p>
+<div class="box win">
+<div class="label">Template แปลผล 3 ระดับ (Log-odds / Odds Ratio / Probability)</div>
+<p><strong>1. Log-odds scale (ตรงจากสัมประสิทธิ์):</strong> "เมื่อ X เพิ่มขึ้น 1 หน่วย log-odds ของความสำเร็จเปลี่ยนไป β̂₁ หน่วย (คุมตัวแปรอื่นให้คงที่)" — ตีความยากในทางปฏิบัติ มักใช้แค่เป็นขั้นกลาง</p>
+<p><strong>2. Odds ratio scale (ที่นิยมใช้ตอบข้อสอบที่สุด):</strong> "odds คูณด้วย \(e^{\hat{\beta}_1}\) ทุก ๆ 1 หน่วยที่ X เพิ่มขึ้น" — สำหรับ temp: \(e^{-0.21623} \approx 0.8056\) แปลว่า <strong>ทุก 1°F ที่อุณหภูมิเพิ่มขึ้น odds ของการเสียหายลดลงเหลือ 80.56% ของเดิม (ลดลงประมาณ 19.4%)</strong></p>
+<p><strong>3. Probability scale (ตอบคำถามเชิงปฏิบัติ):</strong> คำนวณ π̂ ตรง ๆ ที่ X ค่าใดค่าหนึ่งด้วย \(\hat{\pi} = e^{\hat{\eta}}/(1+e^{\hat{\eta}})\) เมื่อ \(\hat{\eta} = \hat{\beta}_0+\hat{\beta}_1 X\) — จะใช้จริงในหัวข้อ 8</p>
+</div>
+<p>ขยายผลด้วยตัวเลขจริง: เทียบอุณหภูมิ 31°F (วันเกิดเหตุ) กับ 70°F (ใกล้ค่าเฉลี่ยของข้อมูล) — สูตร odds ratio ระหว่างสองจุด \(\omega_A/\omega_B = e^{\beta_1(A-B)}\) จาก Lecture 9 หัวข้อ interpretation ยังใช้ได้เป๊ะ: \(e^{-0.21623\times(31-70)} = e^{8.433} \approx 4{,}600\) — <strong>odds ของการเสียหายที่ 31°F สูงกว่าที่ 70°F ถึงประมาณ 4,600 เท่า</strong> เป็นตัวเลขที่ชัดเจนว่าโมเดลบ่งชี้ความเสี่ยงมหาศาลที่อุณหภูมินั้น (แม้จะเป็นการ extrapolate ไกลจากช่วงข้อมูลตามที่เตือนไว้ในหัวข้อ 2 ก็ตาม — extrapolate ไกลแบบนี้ ตัวเลขจึงควรตีความเป็น "สัญญาณเตือนที่ชัดเจน" มากกว่า "ตัวเลขแม่นยำ")</p>
+
+<p><strong>สิ่งที่เปลี่ยนจริง ๆ ระหว่าง binary กับ binomial-count logistic regression มีแค่ 2 อย่าง:</strong> (1) <strong>รูปแบบข้อมูล</strong> — ต้องมีทั้งจำนวนสำเร็จและจำนวนครั้งลองต่อแถว ไม่ใช่แค่ 0/1 ต่อแถว และ (2) <strong>syntax ใน R</strong> — ต้องใช้ <code>cbind(Y, n−Y)</code> หรือ <code>y/n ~ x</code> พร้อม <code>weights=n</code> แทนที่จะระบุ Y ตรง ๆ — <strong>ไม่มีอะไรเปลี่ยนในทฤษฎีเบื้องหลังหรือวิธีตีความสัมประสิทธิ์เลย</strong></p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Binary vs Binomial Counts — อะไรเหมือน/ต่าง</span></div>
+  <div class="qtext">ข้อใดสรุปความแตกต่างระหว่าง binary logistic regression (Lecture 9) กับ binomial-count logistic regression (Lecture 10) ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Binomial counts ใช้ไม่ได้กับ link function แบบ logit ต้องเปลี่ยนไปใช้ link อื่นเท่านั้น</button>
+  <button class="opt" data-correct="false">ความหมายของสัมประสิทธิ์ต่างกันโดยสิ้นเชิง ต้องใช้สูตรแปลผลคนละชุด</button>
+  <button class="opt" data-correct="false">Binomial counts ไม่ต้องเช็ค significance ของสัมประสิทธิ์เพราะข้อมูลถูกรวมกลุ่มมาแล้ว</button>
+  <button class="opt" data-correct="true">สัมประสิทธิ์ยังหมายถึง log-odds ที่เปลี่ยนไปต่อหนึ่งหน่วย X เหมือนเดิม สิ่งที่ต่างคือรูปแบบข้อมูล (ต้องมี n ต่อแถว) และ syntax ที่ต้องใช้ cbind() หรือ weights</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล Coefficient</span></div>
+  <div class="qtext">จาก output ของโมเดล O-rings, จงเขียนประโยคแปลผล (interpretation) ของ β̂₁ = −0.21623 (สัมประสิทธิ์ของ temp) โดยใช้ทั้ง log-odds scale และ odds ratio scale</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>Log-odds scale:</strong> "เมื่ออุณหภูมิ (temp) เพิ่มขึ้น 1°F log-odds ของความน่าจะเป็นที่ O-ring จะเสียหายลดลง 0.21623 หน่วย โดยเฉลี่ย"</p>
+  <p><strong>Odds ratio scale (คำตอบที่ครบสมบูรณ์กว่า):</strong> "เมื่ออุณหภูมิเพิ่มขึ้น 1°F odds ของการเสียหายคูณด้วย e^(−0.21623) ≈ 0.8056 กล่าวคือลดลงเหลือประมาณ 80.6% ของเดิม (ลดลง ~19.4%) — และเพราะสัมประสิทธิ์เป็นลบและ p-value = 4.78e-05 น้อยกว่า 0.05 มาก จึงสรุปว่าอุณหภูมิที่สูงขึ้นสัมพันธ์กับโอกาสเสียหายที่ลดลงอย่างมีนัยสำคัญทางสถิติ"</p>
+  </div>
+</div>
+
+<h2>5. Case Study 2: Bird Extinction — log(X) เป็นตัวแปรอิสระ + Graphical Check</h2>
+<p>โจทย์ที่สอง: ในหมู่เกาะ Krunnit มีการสำรวจนกซ้ำ ๆ ตลอด 4 ทศวรรษ — ถ้าเจอสปีชีส์บนเกาะในปี 1949 นับว่า "at risk" สำหรับการสำรวจครั้งถัดไปปี 1959 ถ้าไม่เจอในปี 1959 นับว่า "extinct" คำถาม: <strong>พื้นที่อนุรักษ์ขนาดเล็กหลายที่ ดีกว่าหรือแย่กว่าพื้นที่ขนาดใหญ่ที่เดียว ในแง่การป้องกันการสูญพันธุ์</strong>:</p>
+<figure>
+<img src="../assets/slides/as10-p10-bird-extinction-data-table.png" alt="Table showing bird survey data for Krunnit Islands: Island name, Area in square km, AtRisk count, and Extinct count for the first 6 of 18 islands, e.g. Ulkokrunni 185.80 sq km with 75 at-risk species and 5 extinctions">
+<figcaption>Slide: Case Study 2 — ข้อมูล Bird Extinction, ตัวอย่าง 6 จาก 18 เกาะ (Lecture 10, p.10)</figcaption>
+</figure>
+<p>อ่านแถวแรก: เกาะ Ulkokrunni มีพื้นที่ 185.80 ตร.กม. (เกาะใหญ่ที่สุดในตัวอย่างนี้) มีสปีชีส์เสี่ยง 75 ชนิด สูญพันธุ์ไป 5 ชนิด คิดเป็นสัดส่วน 5/75 ≈ 6.7% เทียบกับเกาะ Kraasukka ที่เล็กกว่ามาก (4.50 ตร.กม.) มีสปีชีส์เสี่ยง 20 ชนิด สูญพันธุ์ไป 4 ชนิด คิดเป็นสัดส่วน 4/20 = 20% — เห็นแนวโน้มคร่าว ๆ แล้วว่าเกาะเล็กมีสัดส่วนสูญพันธุ์สูงกว่าเกาะใหญ่ ซึ่งเป็นข้อมูลดิบที่จะยืนยันด้วยโมเดลต่อไป โดยที่นี่ \(n_i = \text{AtRisk}_i\) (จำนวนครั้งลองต่อเกาะไม่เท่ากัน ต่างจาก O-rings ที่ n=6 คงที่ทุกภารกิจ)</p>
+<p>ก่อนฟิตโมเดล สไลด์ตรวจสอบความสัมพันธ์ระหว่าง <em>sample logit</em> กับตัวแปรอิสระด้วยตาก่อน (เหมือนหลักการ "plot ก่อนเสมอ" จาก Lesson 1) — แต่ปัญหาคือ sample logit \(\log(y_i/(n_i-y_i))\) ไม่นิยามเมื่อ \(y_i=0\) หรือ \(y_i=n_i\) (log(0) หรือหารด้วย 0) Haldane (1956) จึงเสนอตัวปรับแก้:</p>
+<div class="box">
+\[\hat{\eta}_i = \log\!\left[\frac{y_i + 0.5}{n_i - y_i + 0.5}\right]\]
+</div>
+<p>บวก 0.5 เข้าไปทั้งเศษและส่วนก่อนหา log แก้ปัญหา log(0)/หารศูนย์ และให้ตัวประมาณที่มี bias เล็กน้อยเท่านั้น — <strong>กราฟของ η̂_i เทียบกับ X ควรจะเป็นเส้นตรงคร่าว ๆ ถ้าโมเดล logistic เหมาะสมกับข้อมูล</strong> นี่คือหลักการเดียวกับ "ต้อง plot ก่อนฟิต" ที่ Lesson 1 เน้นย้ำ เพียงแค่เปลี่ยนจาก scatter plot ธรรมดาเป็น logit-scale plot:</p>
+<figure>
+<img src="../assets/slides/as10-p11-bird-logit-vs-area-plots.png" alt="Three scatterplots: sample logit vs raw Area showing a curved pattern concentrated near zero, sample logit vs log(Area) showing a roughly linear negative trend, and adjusted (Haldane) sample logit vs log(Area) showing the same roughly linear pattern">
+<figcaption>Slide: Bird Extinction — sample logit เทียบกับ Area และ log(Area) (Lecture 10, p.11)</figcaption>
+</figure>
+<p>เทียบ 3 กราฟ: กราฟซ้าย (logit เทียบกับ Area ดิบ) จุดข้อมูลกระจุกตัวอยู่ใกล้ 0 แล้วมีจุดเดียวที่ Area≈185 (เกาะ Ulkokrunni) ยื่นออกไปไกล — ไม่เห็นแนวโน้มเส้นตรงชัดเจน กราฟกลาง (logit เทียบกับ \(\log(\text{Area})\)) จุดข้อมูลกระจายเป็นเส้นตรงลาดลงชัดเจนกว่ามาก และกราฟขวา (adjusted logit ตามสูตร Haldane เทียบกับ \(\log(\text{Area})\)) ให้รูปแบบเดียวกับกราฟกลางแทบไม่ต่าง — สรุปได้ว่า <strong>\(\log(\text{Area})\) เป็นตัวแปรอิสระที่เหมาะสมกว่า \(\text{Area}\) ดิบ</strong> เพราะทำให้ความสัมพันธ์กับ logit เป็นเส้นตรงมากขึ้น (พื้นที่เกาะมีสเกลกว้างมาก ตั้งแต่ 4.5 ถึง 185.8 ตร.กม. การ log จึงบีบสเกลให้ใช้งานได้ดีขึ้น)</p>
+<p>ฟิตโมเดลด้วย \(\log(\text{Area})\):</p>
+<pre><code>birdmodel&lt;-glm(cbind(Extinct, AtRisk-Extinct)~log(Area), data=bird,
+family=binomial)</code></pre>
+<pre><code>Call:
+glm(formula = cbind(Extinct, AtRisk - Extinct) ~ log(Area), family = binomial,
+    data = bird)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) -1.19620    0.11845 -10.099  < 2e-16 ***
+log(Area)   -0.29710    0.05485  -5.416 6.08e-08 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 45.338  on 17  degrees of freedom
+Residual deviance: 12.062  on 16  degrees of freedom
+AIC: 75.394
+
+Number of Fisher Scoring iterations: 4</code></pre>
+<p>สมการที่ได้: \(\log(\hat{\pi}/(1-\hat{\pi})) = -1.196 - 0.297 \times \log(\text{Area})\)</p>
+
+<p>เมื่อตัวแปรอิสระเป็น \(\log(X)\) การแปลผล odds ratio เปลี่ยนรูปแบบเล็กน้อยจาก template ปกติในหัวข้อ 4 — ต้องใช้กฎ "k-fold increase":</p>
+<div class="box win">
+\(\log(\omega) = \beta_0 + \beta_1 \log(X)\) &nbsp;⟹&nbsp; ถ้า X เพิ่มขึ้น k เท่า (kX) odds จะเปลี่ยนไปด้วยตัวคูณ \(k^{\beta_1}\)
+</div>
+<p>ใช้กับ \(\hat{\beta}_1 = -0.29710\): ถ้าเกาะมีพื้นที่<strong>เพิ่มขึ้นเป็น 2 เท่า</strong> (k=2) odds ของการสูญพันธุ์จะเปลี่ยนไปด้วยตัวคูณ \(2^{-0.29710} \approx 0.8139\) — <strong>odds ของการสูญพันธุ์ลดลงเหลือประมาณ 81.4% ของเดิม (ลดลง ~18.6%) เมื่อพื้นที่เกาะเพิ่มเป็นสองเท่า</strong> — ยืนยันสมมติฐานจากข้อมูลดิบก่อนหน้านี้ว่าเกาะใหญ่กว่ามีความเสี่ยงสูญพันธุ์ต่ำกว่า ตอบคำถามตั้งต้นของ case study ได้บางส่วนแล้วว่า "พื้นที่ใหญ่ต่อเนื่อง" ดูจะช่วยลดอัตราสูญพันธุ์ต่อสปีชีส์ได้จริง</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>อ่าน summary(birdmodel)</span></div>
+  <div class="qtext">จาก output ของ birdmodel ข้อใดอ่านค่าได้ถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Dispersion parameter ที่รายงานไว้ (=1) คือค่าที่วัดได้จริงจากข้อมูล ไม่ใช่ค่าตั้งต้น</button>
+  <button class="opt" data-correct="false">Residual deviance สูงกว่า Null deviance แปลว่าโมเดลนี้แย่กว่าโมเดลว่าง (intercept-only)</button>
+  <button class="opt" data-correct="true">β̂₁ ของ log(Area) มีค่า −0.29710 และมีนัยสำคัญทางสถิติสูงมาก (p = 6.08e-08 &lt; 0.05)</button>
+  <button class="opt" data-correct="false">β̂₁ ของ log(Area) มีค่า −1.196 และไม่มีนัยสำคัญทางสถิติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response)</span><span>k-fold Interpretation</span></div>
+  <div class="qtext">ถ้าเกาะหนึ่งมีพื้นที่<strong>เพิ่มขึ้นเป็น 4 เท่า</strong> (ไม่ใช่ 2 เท่า) จาก birdmodel (β̂₁ = −0.29710) odds ของการสูญพันธุ์จะเปลี่ยนไปเท่าไร และคิดเป็นกี่เปอร์เซ็นต์ที่ลดลง?</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">k=4: \(4^{-0.29710} = (2^2)^{-0.29710} = 2^{-0.5942} \approx 0.6625\) — odds ของการสูญพันธุ์ลดลงเหลือประมาณ 66.25% ของเดิม (ลดลงประมาณ 33.75%) เมื่อพื้นที่เกาะเพิ่มเป็น 4 เท่า — สังเกตว่าตัวคูณไม่ได้เป็นสัดส่วนเชิงเส้นกับ k (ไม่ใช่แค่ 2 เท่าของผลตอน k=2) เพราะอยู่ในรูป exponential ของ log(X)</div>
+</div>
+
+<h2>6. Goodness-of-Fit Test — เช็ค Assumption ข้อแรกของ Binomial GLM</h2>
+<p>สไลด์แจงประเภทของการทดสอบใน logistic regression ไว้ 3 แบบ: (1) goodness-of-fit test (2) hypothesis test สำหรับสัมประสิทธิ์เดี่ยว และ (3) เปรียบเทียบโมเดลที่ซ้อนกัน (nested models) — เริ่มจากข้อแรก ซึ่งเป็นการเช็ค assumption ที่ตรงไปตรงมาที่สุดสำหรับ binomial GLM (คู่ขนานกับการเช็ค residual plot ใน OLS)</p>
+<p>ถ้า \(Y_i\) เป็น binomial จริง และ \(n_i\) มีค่ามากพอ (ทุก \(n_i \ge 5\)) ค่า deviance ของโมเดลจะมีการแจกแจงประมาณ \(\chi^2\) ด้วย \(df = n - (p+1)\) — ใช้ทดสอบว่าโมเดลปัจจุบัน "fit เพียงพอ" หรือไม่ (ค่า deviance สูงผิดปกติเทียบกับ df แปลว่า fit ไม่ดี):</p>
+<pre><code>> model<-glm(cbind(damage,6-damage)~temp,data=orings,family=binomial)
+> pchisq(deviance(model), df.residual(model), lower=FALSE)
+[1] 0.7164099</code></pre>
+<p>อ่านผล: p-value = 0.7164 มากกว่า 0.05 มาก จึงสรุปว่า<strong>โมเดลนี้ fit ข้อมูลได้เพียงพอ</strong> (ไม่มีหลักฐานปฏิเสธ) — แต่สไลด์เตือนไว้ชัดเจนว่า <strong>ผลนี้ไม่ได้แปลว่าโมเดลถูกต้อง หรือไม่มีโมเดลที่ง่ายกว่านี้ที่ fit ได้ดีเท่ากัน</strong> การไม่ปฏิเสธ H₀ ไม่ได้พิสูจน์ความถูกต้องของโมเดล เป็นแค่การไม่มีหลักฐานคัดค้าน — เมื่อ \(n_i\) มีค่าน้อย (การประมาณ χ² ไม่แม่นยำ) แนะนำให้ใช้ Hosmer-Lemeshow test แทน</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Goodness-of-Fit</span></div>
+  <div class="qtext">จากผล <code>pchisq(deviance(model), df.residual(model), lower=FALSE) = 0.7164</code> ของโมเดล O-rings ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ผลลัพธ์นี้ใช้ไม่ได้เพราะ n_i (=6 ทุกภารกิจ) น้อยเกินไปสำหรับการประมาณ χ²</button>
+  <button class="opt" data-correct="true">ไม่มีหลักฐานเพียงพอที่จะปฏิเสธว่าโมเดล fit ข้อมูลได้ดี (p สูงกว่า 0.05) แต่ไม่ได้พิสูจน์ว่าโมเดลถูกต้องหรือดีที่สุด</button>
+  <button class="opt" data-correct="false">โมเดลนี้พิสูจน์แล้วว่าถูกต้อง 100% ไม่มีโมเดลอื่นที่ดีกว่านี้อีกแล้ว</button>
+  <button class="opt" data-correct="false">p-value สูงแปลว่าต้องปฏิเสธโมเดลนี้และลองโมเดลอื่น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>7. ทดสอบสัมประสิทธิ์เดี่ยว: Wald's Test vs Likelihood Ratio Test (LRT)</h2>
+<p>สำหรับทดสอบ \(H_0: \beta_k = 0\) มี 2 วิธีหลัก:</p>
+<div class="box">
+<p><strong>1. Wald's Test</strong> — ใช้คุณสมบัติของ MLE ว่า β̂_k มีการแจกแจงประมาณปกติ:</p>
+\[z = (\hat{\beta}_k - \beta_k) / SE[\hat{\beta}_k] \sim N(0,1)\]
+<p style="margin-top:0.6em"><strong>2. Likelihood Ratio Test (LRT)</strong> หรือ "drop-in-deviance test" — เปรียบเทียบ deviance ของโมเดล reduced (H₀) กับ full (H₁):</p>
+\(LRT = D(\hat{\beta}_0) - D(\hat{\beta}) \sim \chi^2_{df}\) &nbsp;โดย \(df\) = จำนวนพารามิเตอร์ที่ต่างกันระหว่างสองโมเดล
+</div>
+<p>ในทางปฏิบัติซอฟต์แวร์มักไม่รายงาน log-likelihood ตรง ๆ แต่รายงาน deviance แทน (deviance คือ −2×log-likelihood บวกค่าคงที่) จึงคำนวณ LRT จากผลต่างของ deviance ได้เลย ไม่ต้องดึง log-likelihood ออกมาเอง</p>
+<p>ตัวอย่าง O-rings: โมเดลเต็ม (มี temp) เทียบกับโมเดลลดรูป (มีแค่ intercept):</p>
+<pre><code>> reducedmodel<-glm(cbind(damage,6-damage)~1, data=orings,family=binomial)
+> summary(reducedmodel)
+...
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) -2.4463     0.3143  -7.783  7.06e-15 ***
+...
+    Null deviance: 38.898  on 22  degrees of freedom
+Residual deviance: 38.898  on 22  degrees of freedom
+AIC: 53.66</code></pre>
+<p>สังเกต: โมเดลลดรูป (intercept-only) มี \(\text{Null deviance} = \text{Residual deviance} = 38.898\) พอดี — สมเหตุสมผลเพราะไม่มี predictor ให้อธิบายอะไรเพิ่ม deviance ของมันจึงเท่ากับ deviance ตอนไม่มีโมเดลเลย เทียบกับโมเดลเต็มที่มี Residual deviance = 16.912:</p>
+<pre><code>> anova(reducedmodel, model, test="LRT")
+Analysis of Deviance Table
+
+Model 1: cbind(damage, 6 - damage) ~ 1
+Model 2: cbind(damage, 6 - damage) ~ temp
+  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)
+1        22     38.898
+2        21     16.912  1   21.985 2.747e-06 ***</code></pre>
+<p>คำนวณตรวจสอบ: \(LRT = 38.898 - 16.912 = 21.985\) ตรงกับคอลัมน์ Deviance เป๊ะ, \(df = 22-21 = 1\) (ต่างกัน 1 พารามิเตอร์คือ temp), p-value = 2.747e-06 <strong>เล็กกว่า Wald's test p-value (4.78e-05) จากหัวข้อ 3 ด้วยซ้ำ</strong> — ทั้งสองวิธีให้ข้อสรุปเดียวกัน (ปฏิเสธ H₀: β_temp=0 อย่างชัดเจน) แต่ตัวเลข p-value ไม่เท่ากันเป๊ะเหมือนกรณี t²=F ใน SLR เพราะ Wald's test กับ LRT เป็นการประมาณ asymptotic คนละแบบ — สไลด์ระบุว่า <strong>ถ้าโจทย์ต้องการทดสอบหลายสัมประสิทธิ์พร้อมกัน LRT เป็นทางเลือกเดียวที่ใช้ได้จริง ส่วนถ้าทดสอบสัมประสิทธิ์เดี่ยว ใช้ได้ทั้งคู่ แต่ LRT ให้ p-value ที่แม่นยำกว่าโดยทั่วไป ขณะที่ Wald's test คำนวณง่ายกว่าและมักเพียงพอเมื่อ p-value ชัดเจนมากหรือน้อยมากอยู่แล้ว</strong></p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>Wald's Test หรือ LRT</span></div>
+  <div class="qtext">ถ้าต้องการทดสอบว่า "สัมประสิทธิ์ของตัวแปร A และ B พร้อมกันเป็นศูนย์ทั้งคู่หรือไม่" (H₀: β_A=β_B=0) ควรใช้วิธีใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไม่มีวิธีทดสอบหลายสัมประสิทธิ์พร้อมกันใน logistic regression ต้องทดสอบทีละตัว</button>
+  <button class="opt" data-correct="false">ใช้ t-test แบบ Lecture 1 ได้เลยเพราะ logistic regression ก็เป็น linear model แบบหนึ่ง</button>
+  <button class="opt" data-correct="true">Likelihood Ratio Test (LRT) เพราะเป็นวิธีเดียวที่ใช้ได้จริงเมื่อทดสอบหลายสัมประสิทธิ์พร้อมกัน</button>
+  <button class="opt" data-correct="false">Wald's Test เพราะคำนวณง่ายกว่าเสมอ ใช้ได้กับทุกกรณี</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. Prediction ที่ X ใหม่ พร้อม Confidence Interval — ตอบคำถามตั้งต้นของ Case Study 1</h2>
+<p>สร้าง CI ของ \(\eta(x) = x\beta\) บน link scale ก่อน (เพราะบน scale นี้ β̂ มีการแจกแจงปกติโดยประมาณ) แล้วค่อยแปลงกลับเป็น π ด้วย inverse-logit — <strong>ห้ามสร้าง CI ของ π ตรง ๆ</strong> เพราะ π ถูกบีบอยู่ในช่วง (0,1) การแจกแจงจึงไม่สมมาตรแบบปกติ:</p>
+<div class="box">
+\(\hat{\eta}(x) \pm z_{(1-\alpha/2)} \times \sqrt{x V(\hat{\beta}) x^T} = (\hat{\eta}_l, \hat{\eta}_u)\) &nbsp;→&nbsp; แปลงกลับ: &nbsp;\(\hat{\pi}(x) = e^{\hat{\eta}}/(1+e^{\hat{\eta}})\), &nbsp;ขอบเขต: \((\hat{\pi}_l, \hat{\pi}_u) = (e^{\hat{\eta}_l}/(1+e^{\hat{\eta}_l}), e^{\hat{\eta}_u}/(1+e^{\hat{\eta}_u}))\)
+</div>
+<p>ตอนนี้กลับมาตอบคำถามตั้งต้นของ case study ได้แล้ว: "ทำนายความล้มเหลวที่ 31°F ได้หรือไม่" — คำนวณ π̂ ที่ temp=31 พร้อม 95% CI:</p>
+<pre><code>> plink<-predict(model, newdata=data.frame(temp=31), se.fit=T,
++ type="link")
+> plink$fit
+       1
+4.959746
+> plink$se.fit
+[1] 1.66731
+> # 95% CI for eta
+> CIeta<-c(plink$fit-1.96*plink$se.fit, plink$fit+1.96*plink$se.fit)
+> CIeta
+       1        1
+1.691818 8.227674
+> # 95% CI for pi
+> CIprob<-exp(CIeta)/(1+exp(CIeta))
+> CIprob
+        1         1
+0.8444631 0.9997329
+> CIcounts<-6*CIprob # CI for mean number of damaged O-rings
+> CIcounts
+       1        1
+5.066779 5.998397</code></pre>
+<p>ตรวจสอบเลขที่มา: \(\hat{\eta} = 11.66299 - 0.21623 \times 31 = 4.9597\) ตรงกับ <code>plink$fit</code> เป๊ะ — <strong>95% CI ของความน่าจะเป็นที่ O-ring จะเสียหายที่ 31°F คือ (0.844, 0.9997)</strong> กล่าวคือมั่นใจ 95% ว่าโอกาสเสียหายของ O-ring แต่ละวงอยู่ระหว่าง 84.4% ถึง 99.97% — เมื่อแปลงเป็นจำนวน O-ring ที่คาดว่าจะเสียหายจากทั้งหมด 6 วง ได้ช่วง (5.07, 6.00) นั่นคือ<strong>โมเดลทำนายว่าแทบทุก O-ring (5 ถึง 6 จาก 6 วง) น่าจะเสียหายที่อุณหภูมิ 31°F</strong> — คำตอบต่อคำถามตั้งต้น "ทำนายได้หรือไม่": <strong>ได้ — โมเดลนี้ (ถ้าฟิตไว้ก่อนการปล่อยยาน) จะเตือนได้ชัดเจนว่าความเสี่ยงสูงมากที่อุณหภูมินี้</strong> แม้จะเป็นการ extrapolate ไกลจากช่วงข้อมูลจริง (53–81°F) ตามที่เตือนไว้ในหัวข้อ 2 ก็ตาม — นี่คือเหตุผลที่ case study นี้ถูกใช้สอนเรื่อง logistic regression บ่อยครั้งในวงการสถิติ</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 10 (Free response)</span><span>แปลผล Prediction Interval</span></div>
+  <div class="qtext">95% CI ของความน่าจะเป็นที่ O-ring จะเสียหายที่ 31°F คือ (0.844, 0.9997) จงเขียนประโยคแปลผลที่ถูกต้อง และอธิบายว่าทำไมต้องสร้าง CI บน link scale (η) ก่อนแล้วค่อยแปลงกลับ แทนที่จะสร้าง CI ของ π ตรง ๆ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"เรามั่นใจ 95% ว่าความน่าจะเป็นที่ O-ring แต่ละวงจะเสียหายเมื่อปล่อยยานที่อุณหภูมิ 31°F อยู่ระหว่าง 84.4% ถึง 99.97%" — ต้องสร้าง CI บน link scale (η̂ = xβ̂) ก่อน เพราะบน scale นี้ β̂ มีการแจกแจงปกติโดยประมาณตามทฤษฎี MLE (จึงใช้ ±1.96×SE ได้ตรง ๆ) ในขณะที่ π ถูกจำกัดอยู่ในช่วง (0,1) เสมอ การแจกแจงของ π̂ จึงไม่สมมาตรและไม่เป็นปกติ — ถ้าสร้าง CI ของ π ตรง ๆ ด้วยสูตร normal อาจได้ขอบเขตที่หลุดจากช่วง (0,1) ซึ่งไม่มีความหมายในทางความน่าจะเป็น จึงต้องแปลง CI ของ η กลับเป็น π ด้วยฟังก์ชัน inverse-logit ทีหลังเสมอ</div>
+</div>
+
+<h2>9. Overdispersion — เช็ค Assumption ที่สำคัญที่สุดของบทนี้</h2>
+<p>Assumption ของ binomial คือ \(\text{Var}[Y_i] = n_i\pi_i(1-\pi_i)\) พอดี — แต่ถ้าการลองแต่ละครั้งใน trial เดียวกันไม่ได้เป็นอิสระต่อกันจริง (เช่น O-ring 6 วงในภารกิจเดียวกันอาจเสียหายพร้อมกันเพราะสาเหตุร่วม ไม่ใช่สุ่มอิสระ) หรือมีตัวแปรอิสระสำคัญที่ยังไม่ได้ใส่ในโมเดล variance ที่สังเกตได้จริงมักจะ<strong>มากกว่า</strong>ที่ทฤษฎี binomial ทำนายไว้ เรียกว่า <em class="term">overdispersion</em> (ตรงข้ามคือ <em class="term">underdispersion</em> ถ้า variance จริงน้อยกว่า):</p>
+<div class="box">
+\(\text{Overdispersion: } \text{Var}[Y_i] > n_i\pi_i(1-\pi_i)\) &nbsp;|&nbsp; \(\text{Underdispersion: } \text{Var}[Y_i] < n_i\pi_i(1-\pi_i)\)
+</div>
+<p><strong>ผลกระทบสำคัญที่ต้องจำ:</strong> เมื่อเกิด overdispersion/underdispersion ค่าประมาณ β̂ ยังไม่เอนเอียงมากนัก (ไม่ผิดพลาดร้ายแรง) แต่ <strong>SE[β̂] ที่โมเดล binomial มาตรฐานรายงานจะเล็กกว่าความเป็นจริง</strong> — ทำให้ z-test/Wald's test ดูมีนัยสำคัญเกินจริง (p-value เตี้ยเกินไป) นี่คือเหตุผลที่การเช็ค overdispersion เป็นขั้นตอน assumption-check ที่จำเป็นก่อนเชื่อ p-value จาก <code>summary()</code> ตรง ๆ</p>
+
+<p>วิธีตรวจสอบ: ประมาณ dispersion parameter \(\phi\) ด้วย Pearson's \(X^2\):</p>
+<div class="box">
+\(\hat{\phi} = X^2 / (n - (p+1))\) &nbsp;โดย p = จำนวนตัวแปรอิสระในโมเดล
+</div>
+<pre><code>est.phi<-function(glmobj)
+{
+  sum(residuals(glmobj, type="pearson")^2)/df.residual(glmobj)
+}
+> est.phi(model)
+[1] 1.336542</code></pre>
+<p>กฎอย่างคร่าว: <strong>φ &gt; 1.5 บ่งชี้ overdispersion, φ &gt;&gt; 2 บ่งชี้ overdispersion ที่รุนแรง</strong> — สำหรับโมเดล O-rings ได้ \(\hat{\phi} = 1.336542\) ซึ่ง<strong>ยังต่ำกว่าเกณฑ์ 1.5</strong> จึงยังไม่ถือว่าเป็น overdispersion ที่รุนแรง (แม้จะมากกว่า 1 เล็กน้อย) — ส่วนโมเดล bird extinction ได้ \(\hat{\phi} = 0.732573\) (น้อยกว่า 1 คือ underdispersion เล็กน้อย) ก็ไม่ถือว่าผิดปกติรุนแรงเช่นกัน — ทั้งสองกรณีจึงเป็นตัวอย่างที่ดีว่า "φ̂ ≠ 1 พอดี" ไม่ได้แปลว่าต้องแก้ไขทันที ต้องดูเทียบกับเกณฑ์อย่างมีเหตุผล</p>
+
+<p>วิธีจัดการ overdispersion คือ <em class="term">quasi-likelihood approach</em> — เพิ่มพารามิเตอร์ dispersion เข้าไปใน variance function โดยตรง โดยไม่เปลี่ยนค่าประมาณ β̂ (เพราะ φ ไม่กระทบ E[Y_i]) แต่ปรับ SE[β̂] ให้ถูกต้องขึ้น:</p>
+<div class="box">
+\(\text{Var}[Y_i] = \phi \, n_i\pi_i(1-\pi_i)\), &nbsp;การทดสอบเปลี่ยนจาก z-test เป็น t-test: &nbsp;\(t = \hat{\beta}/SE[\hat{\beta}] \sim t_{(n-(p+1))}\)
+</div>
+<p>ใน R เปลี่ยน <code>family=binomial</code> เป็น <code>family=quasibinomial</code>:</p>
+<pre><code>> qmodel<-glm(cbind(damage, 6-damage)~temp, family=quasibinomial,
+                  data=orings)
+> summary(qmodel)
+...
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 11.66299    3.81077   3.061  0.00594 **
+temp        -0.21623    0.06148  -3.517  0.00205 **
+---
+(Dispersion parameter for quasibinomial family taken to be 1.336542)
+
+Null deviance: 38.898 on 22 degrees of freedom
+Residual deviance: 16.912 on 21 degrees of freedom
+AIC: NA</code></pre>
+<p>เช็คความสัมพันธ์ของตัวเลข: \(\hat{\beta}\) (11.66299, −0.21623) <strong>เหมือนเดิมทุกประการ</strong> กับโมเดล binomial มาตรฐานในหัวข้อ 3 (ยืนยันว่า φ ไม่กระทบค่าประมาณ) แต่ \(SE\) ขยายขึ้นด้วยตัวคูณ \(\sqrt{\hat{\phi}} = \sqrt{1.336542} \approx 1.1561\) พอดี: \(0.05318 \times 1.1561 \approx 0.06148\) และ \(3.29626 \times 1.1561 \approx 3.8108\) ตรงกับค่าที่รายงานเป๊ะ — เพราะ SE ใหญ่ขึ้น สถิติทดสอบจึงเล็กลงตามสัดส่วน: \(t = z/\sqrt{\hat{\phi}} = -4.066/1.1561 \approx -3.518\) ใกล้เคียง \(t\text{ value} = -3.517\) ที่รายงาน — <strong>p-value ยังมีนัยสำคัญ (0.00205) แต่ไม่สุดโต่งเท่าตอนไม่ปรับ dispersion (4.78e-05)</strong> — นี่คือผลลัพธ์รูปธรรมของการ "ไม่เช็ค overdispersion แล้วได้ p-value ที่มั่นใจเกินจริง"</p>
+
+<p>สำหรับการเปรียบเทียบโมเดล nested ภายใต้ overdispersion ใช้ F-test แทน χ²-test:</p>
+<div class="box">
+\(F = \dfrac{(\text{Deviance}_{reduced} - \text{Deviance}_{full})/(df_{reduced} - df_{full})}{\hat{\phi}_{full}}\) &nbsp;~&nbsp; \(F_{(df_{reduced}-df_{full},\, df_{full})}\)
+</div>
+<pre><code>> redqmodel<-glm(cbind(damage, 6-damage)~1, family=quasibinomial, data=orings)
+> anova(redqmodel, qmodel, test="F")
+Analysis of Deviance Table
+
+Model 1: cbind(damage, 6 - damage) ~ 1
+Model 2: cbind(damage, 6 - damage) ~ temp
+  Resid. Df Resid. Dev Df Deviance      F    Pr(>F)
+1        22     38.898
+2        21     16.912  1   21.985 16.449 0.0005686 ***</code></pre>
+<p>เทียบกับ LRT/χ² test ในหัวข้อ 7 (p=2.747e-06) — F-test ที่ปรับ dispersion แล้วให้ p-value ที่<strong>สูงขึ้น (0.0005686) แต่ก็ยังมีนัยสำคัญมาก</strong> — สรุปเหมือนกันว่า temp มีผลต่อการเสียหายจริง เพียงแต่ p-value ที่ปรับ overdispersion แล้วสะท้อนความไม่แน่นอนที่แท้จริงได้ดีกว่า</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 11</span><span>Overdispersion — นิยาม</span></div>
+  <div class="qtext">ผลกระทบหลักของการมี overdispersion ที่ไม่ได้แก้ไข (ยังใช้ binomial ธรรมดา) ต่อการอนุมานทางสถิติ (inference) คืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">SE[β̂] จะถูกประมาณต่ำกว่าความเป็นจริง ทำให้ z-test ดูมีนัยสำคัญเกินจริง (p-value เตี้ยเกินไป)</button>
+  <button class="opt" data-correct="false">ค่าประมาณ β̂ จะเอนเอียงอย่างรุนแรงจนใช้ไม่ได้</button>
+  <button class="opt" data-correct="false">โมเดลจะไม่สามารถ converge (Fisher Scoring iterations ไม่จบ) ได้เลย</button>
+  <button class="opt" data-correct="false">R² ของโมเดลจะลดลงอย่างมาก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 12 (Free response)</span><span>ประเมิน φ̂ และตัดสินใจ</span></div>
+  <div class="qtext">โมเดลหนึ่งได้ φ̂ = 1.336542 (จากข้อมูล O-rings) จงตัดสินว่านี่คือ overdispersion ที่ "รุนแรง" ตามเกณฑ์ที่ให้ไว้หรือไม่ พร้อมอธิบายว่าถ้าเปลี่ยนไปใช้ <code>family=quasibinomial</code> อะไรจะเปลี่ยนและอะไรจะไม่เปลี่ยนในผลลัพธ์</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">φ̂ = 1.336542 &lt; 1.5 (เกณฑ์ overdispersion) และห่างไกลจาก 2 (เกณฑ์ overdispersion รุนแรง) มาก จึง<strong>ยังไม่ถือว่ารุนแรง</strong> แม้จะสูงกว่า 1 เล็กน้อย — ถ้าเปลี่ยนเป็น quasibinomial: <strong>β̂ ไม่เปลี่ยน</strong> (ยังเป็น 11.66299 และ −0.21623 เหมือนเดิม เพราะ φ ไม่กระทบ E[Y_i]) แต่ <strong>SE[β̂] จะขยายขึ้นด้วยตัวคูณ √φ̂ ≈ 1.156</strong> ทำให้สถิติทดสอบเปลี่ยนจาก z เป็น t (df = n−(p+1)) และ p-value จะสูงขึ้นเล็กน้อยแต่ยังมีนัยสำคัญอยู่ (สอดคล้องกับตัวอย่างจริงในหัวข้อ 9 ที่ p เปลี่ยนจาก 4.78e-05 เป็น 0.00205)</div>
+</div>
+
+<h2>10. Other Link Functions: Probit และ Complementary Log-Log</h2>
+<p>Logit ไม่ใช่ link function เดียวที่ใช้กับ binomial data — สไลด์แนะนำอีก 2 แบบ:</p>
+<div class="box">
+<p><strong>Probit:</strong> link function \(\Phi^{-1}(\pi(x_i)) = x_i\beta\), inverse link \(\pi(x_i) = \Phi(x_i\beta)\) (Φ คือ CDF ของ standard normal) — R: <code>glm(formula, data, family=binomial(link="probit"))</code></p>
+<p><strong>Complementary Log-Log (cloglog):</strong> link function \(\log\{-\log[1-\pi(x_i)]\} = x_i\beta\), inverse link \(\pi(x_i) = 1 - \exp\{-\exp(x_i\beta)\}\) — R: <code>glm(formula, data, family=binomial(link="cloglog"))</code></p>
+</div>
+<p>ความต่างสำคัญ: logit และ probit มีรูปทรง<strong>สมมาตร</strong>รอบจุดที่ \(\pi(x)=0.5\) ส่วน cloglog เป็น link แบบ<strong>ไม่สมมาตร</strong> — π(x) เข้าใกล้ 0 ค่อนข้างช้า แต่เข้าใกล้ 1 อย่างรวดเร็ว:</p>
+<figure>
+<img src="../assets/slides/as10-p37-link-function-comparison.png" alt="Line plot comparing predicted mean response curves for four link functions (logit, probit, complementary log-log, log-log) against a linear function of predictors from -5 to 5, showing logit and probit as symmetric S-curves nearly overlapping, while complementary log-log and log-log are asymmetric mirror-image curves">
+<figcaption>Slide: Other Models for Binomial Data — เปรียบเทียบ link function 4 แบบ (Lecture 10, p.37)</figcaption>
+</figure>
+<p>อ่านกราฟ: เส้นสีน้ำเงิน (logit) กับเส้นสีเขียว (probit) เกือบทับกันตลอดช่วง โค้ง S สมมาตรรอบจุด (0, 0.5) พอดี — เห็นได้ว่าสองแบบนี้ให้ผลทำนายใกล้เคียงกันมากในทางปฏิบัติ (ต่างกันแค่การตีความสัมประสิทธิ์ทางคณิตศาสตร์ ไม่ต่างกันมากในแง่ π ที่ทำนายได้) ส่วนเส้นสีแดง (complementary log-log) ไต่จาก 0 ขึ้นไปถึง 1 อย่างรวดเร็วกว่าทางฝั่งขวา (ค่า X เป็นบวก) เทียบกับทางฝั่งซ้าย — ไม่สมมาตรรอบจุดกึ่งกลางเหมือนอีกสองเส้น เหมาะกับข้อมูลที่ความน่าจะเป็นเข้าใกล้ 1 เร็วกว่าเข้าใกล้ 0 (เช่น ข้อมูลความล้มเหลว/เวลารอดชีวิตบางประเภท) — การเลือก link function ที่เหมาะสมจึงควรพิจารณาจากรูปร่างของความสัมพันธ์จริงในข้อมูล ไม่ใช่ใช้ logit เป็นค่าตั้งต้นเสมอไปโดยไม่คิด</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 13</span><span>เลือก Link Function</span></div>
+  <div class="qtext">ข้อใดอธิบายความแตกต่างระหว่าง logit/probit กับ complementary log-log ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Probit เป็น default link function ของ family=binomial ใน R</button>
+  <button class="opt" data-correct="false">Complementary log-log ใช้ได้เฉพาะกับข้อมูล binary เท่านั้น ใช้กับ binomial counts ไม่ได้</button>
+  <button class="opt" data-correct="false">ทั้งสามแบบให้ผลทำนาย π(x) เหมือนกันทุกกรณีไม่ว่าข้อมูลจะมีรูปแบบใด</button>
+  <button class="opt" data-correct="true">Logit และ probit มีรูปทรงสมมาตรรอบ π=0.5 ส่วน complementary log-log ไม่สมมาตร โดย π(x) เข้าใกล้ 0 ช้ากว่าเข้าใกล้ 1</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ \(Y_i \sim \text{Binomial}(n_i, \pi_i)\) พร้อม logit link ได้จากความจำ, รู้ว่าเมื่อไรต้องใช้ <code>cbind(successes, failures) ~ x</code> แทน <code>Y ~ x</code> ตรง ๆ, แปลผลสัมประสิทธิ์ได้ทั้ง log-odds/odds-ratio/probability scale พร้อมกฎพิเศษสำหรับตัวแปรที่ผ่าน log (k-fold rule), เช็ค goodness-of-fit ด้วย deviance-based χ² test, เลือกใช้ Wald's test หรือ LRT ได้ถูกสถานการณ์, สร้าง prediction interval บน link scale แล้วแปลงกลับเป็น probability ได้, และที่สำคัญที่สุดคือ<strong>เช็ค overdispersion ด้วย φ̂ ก่อนเชื่อ p-value จาก summary() เสมอ</strong> — ทักษะทั้งหมดนี้จะขยายผลต่อใน Lecture 11 (Count Regression) ที่ overdispersion กลับมาเป็นประเด็นสำคัญอีกครั้งกับข้อมูลแบบนับจำนวน (Poisson)
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (37 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture10.pdf</code> ตั้งแต่หน้า 1 ถึง 37 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่นที่ไม่มีเนื้อหาทฤษฎีใหม่ให้ทำ quiz เพิ่ม</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 10: Binomial Counts"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Binomial Response Variables — นิยาม Y~Binomial(n,π), Mean/Var</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Case Study 1 divider — ภาพถ่ายการปล่อยยาน/การระเบิด</td><td>etc — ภาพเปิดเรื่อง ไม่มีเนื้อหาสถิติ</td></tr>
+<tr><td>4</td><td>Challenger O-rings — โจทย์ + ข้อมูล + scatter plot</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>5</td><td>Challenger O-rings — ตั้งโมเดล Yi~Binomial(6,πi) + logit link</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>6</td><td>Logistic Regression Models in R — args ของ glm()</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>7</td><td>Logistic Regression Models in R — cbind() syntax + ตัวอย่าง orings</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>8</td><td>Case Study 1 — summary(model) เต็ม</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>9</td><td>Graphical Check — sample logit + Haldane adjustment</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>10</td><td>Case Study 2: Bird Extinction — โจทย์ + ตารางข้อมูล</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>11</td><td>Case Study 2 — โค้ด R + plot logit เทียบ Area/log(Area)</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>12</td><td>Case Study 2 — birdmodel summary() เต็ม</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>13</td><td>Interpretation ของสัมประสิทธิ์ตัวแปรที่ผ่าน log — กฎ k-fold</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>14</td><td>Inference for Logistic Regression — รายการ 3 ประเภทการทดสอบ</td><td>✓ หัวข้อ 6 (ภาพรวม)</td></tr>
+<tr><td>15</td><td>Goodness-of-Fit Test — สูตร χ² + ตัวอย่าง orings</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>16</td><td>Wald's Test — สูตร z</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>17</td><td>Likelihood Ratio Test (LRT) — นิยาม + สูตรทั่วไป</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>18</td><td>LRT (cont.) — เขียนในรูป deviance D(.)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>19</td><td>Case Study 1 — summary(model) ซ้ำ (เชื่อมกับ Wald's test)</td><td>✓ หัวข้อ 7 (ผลซ้ำจาก p.8)</td></tr>
+<tr><td>20</td><td>Case Study 1 — reducedmodel summary() (intercept-only)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>21</td><td>Case Study 1 — anova(reducedmodel, model, test="LRT"/"Chisq")</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>22</td><td>Comparing Nested Models — สูตร LRT ทั่วไป</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>23</td><td>Wald's Test or LRT — คำแนะนำการเลือกใช้</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>24</td><td>Prediction at New Data x — สูตร CI ของ η และ π</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>25</td><td>Case Study 1 — โค้ด predict() + CI ของ π ที่ temp=31</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>26</td><td>Overdispersion — นิยาม overdispersion/underdispersion</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>27</td><td>Overdispersion — สาเหตุที่เป็นไปได้ + คำถามที่ควรถาม</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>28</td><td>Quasi-likelihood Approach — สูตร φ̂ + ฟังก์ชัน est.phi()</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>29</td><td>Quasi-likelihood Approach — เกณฑ์ φ (1.5, 2)</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>30</td><td>Quasi-likelihood Approach — Mean/Var เมื่อรวม φ</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>31</td><td>Quasi-likelihood Approach — IWLS/t-distribution/สูตรทดสอบ</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>32</td><td>Quasi-likelihood Approach — qmodel summary() (orings)</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>33</td><td>Quasi-likelihood Approach — birdquasimodel summary()</td><td>✓ หัวข้อ 9 (อ้างอิงค่า φ̂)</td></tr>
+<tr><td>34</td><td>LRT when Extra-Binomial is Presented — สูตร F-test</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>35</td><td>Case Study 1 — anova(redqmodel, qmodel, test="F")</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>36</td><td>Other Models for Binomial Data — Probit/Complementary Log-Log นิยาม</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>37</td><td>Other Models for Binomial Data — กราฟเปรียบเทียบ link function</td><td>✓ หัวข้อ 10 (มีรูป)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0009-binary-data.html">← Lesson 9: Binary Data</a></span>
+  <span><a href="0011-count-regression.html">Lesson 11: Count Regression →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

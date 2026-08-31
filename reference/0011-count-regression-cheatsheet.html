@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Count Regression Formulas + Rate Ratio Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 11</span>
+  <span><a href="../lessons/0011-count-regression.html">← Lesson 11: Count Regression</a></span>
+</nav>
+
+<p class="kicker">Lecture 11 — Count Regression</p>
+<h1>Poisson / Negative Binomial Formulas + Rate Ratio Cheat Sheet</h1>
+
+<p>สรุปสมการ Poisson vs NB, กฎวินิจฉัย overdispersion, การใช้ offset, และ template แปลผลที่ต้องใช้ซ้ำทุกครั้งที่ fit count regression — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. Poisson vs Negative Binomial — สมการโมเดล (เทียบข้าง ๆ กัน)</h2>
+<table>
+<tr><th></th><th>Poisson</th><th>Negative Binomial</th></tr>
+<tr><td>Distribution</td><td>\(y \sim \text{Poisson}(\lambda)\), \(P(y)=\dfrac{e^{-\lambda}\lambda^y}{y!}\)</td><td>\(f(y_i|x_i)=\dfrac{\Gamma(y_i+\theta)}{y_i!\,\Gamma(\theta)}\left(\dfrac{\theta}{\theta+\mu_i}\right)^{\theta}\left(\dfrac{\mu_i}{\theta+\mu_i}\right)^{y_i}\)</td></tr>
+<tr><td>E[y]</td><td>\(\mu\)</td><td>\(\mu_i\)</td></tr>
+<tr><td>Var(y)</td><td>\(\mu\) (= mean เป๊ะ)</td><td>\(\mu_i(1+\mu_i/\theta) > \mu_i\) เสมอ</td></tr>
+<tr><td>Canonical link</td><td>\(\log(\mu)\)</td><td>\(\log(\mu)\) (เหมือนกัน)</td></tr>
+<tr><td>สมการโมเดล</td><td colspan="2">\(\log(\mu_i) = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip}\)</td></tr>
+<tr><td>R function</td><td><code>glm(y~x, family=poisson)</code></td><td><code>glm.nb(y~x)</code> — package <code>MASS</code></td></tr>
+</table>
+<div class="box">
+<p><strong>ความสัมพันธ์:</strong> Poisson คือกรณีพิเศษของ NB เมื่อ \(\theta \to \infty\) (ไม่มี unobserved heterogeneity เหลืออยู่เลย) — \(\hat{\theta}\) ยิ่งเล็กยิ่งมี overdispersion มาก NB มองว่า \((y_i|x_i,\tau_i) \sim \text{Poisson}(\mu_i \tau_i)\) โดย \(\tau_i \sim \text{Gamma}(\theta,\theta)\) แล้วอินทิเกรต \(\tau_i\) ออก ("gamma mixture ของ Poisson")</p>
+</div>
+
+<h2>2. Rate Ratio Interpretation Template — ทักษะที่ออกสอบหนักที่สุด</h2>
+<div class="box win">
+<div class="label">Template: การแปลผลสัมประสิทธิ์ Poisson/NB Regression (ใช้เหมือนกันทั้งคู่)</div>
+<p>เพราะ link function เป็น log ต้อง <strong>exponentiate</strong> ก่อนเสมอ: \(\exp(\hat{\beta})\) คือ<strong>อัตราส่วนอัตรา (rate ratio)</strong> ไม่ใช่ผลต่าง</p>
+<p>"จากข้อมูลนี้ เมื่อ [ตัวแปร X] เพิ่มขึ้น 1 [หน่วยของ X] ค่าคาดหวังของจำนวนนับ (expected count/rate) ของ [Y] เปลี่ยนเป็น <strong>\(\exp(\hat{\beta})\) เท่า</strong> ของเดิม โดยตัวแปรอื่นคงที่ (holding other variables constant)"</p>
+<p><strong>ห้ามพูด</strong> "odds เพิ่มขึ้น" — Poisson/NB ไม่มีแนวคิด odds เลย มีแต่ expected count/rate (ต่างจาก odds ratio ใน Lecture 9)</p>
+</div>
+<p><strong>กฎสเกล:</strong> ถ้า \(\hat{\beta}\) มีขนาดเล็กมาก (เช่น \(10^{-4}\)) ให้ลองคูณด้วยขนาดช่วงที่สมเหตุสมผลของ X ก่อนสรุปว่า "ไม่มีผล" — \(\exp(\hat{\beta} \times \Delta x)\) — สัมประสิทธิ์เล็กไม่ได้แปลว่าผลกระทบทางปฏิบัติเล็กเสมอไปถ้าหน่วยของ X มีสเกลใหญ่</p>
+
+<h2>3. กฎวินิจฉัย Overdispersion</h2>
+<div class="box win">
+<p>เช็ค <strong>residual deviance / df</strong> (หรือ <code>sum(residuals(model,type="pearson")^2)/df.residual</code>):</p>
+<ul>
+<li>ใกล้ <strong>1</strong> → assumption mean=variance ของ Poisson สมเหตุสมผล ไม่ต้องแก้</li>
+<li>มากกว่า 1 ชัดเจน (โดยเฉพาะ &gt;&gt;1.5–2) → <strong>overdispersion</strong> ต้องแก้ด้วย quasi-Poisson หรือ Negative Binomial ไม่ใช่เชื่อ SE จาก Poisson ตรง ๆ</li>
+</ul>
+</div>
+<p>Goodness-of-fit test: <code>pchisq(deviance(model), model$df.residual, lower=FALSE)</code> — H₀: โมเดลฟิตข้อมูลได้ดี; p&lt;0.05 → ปฏิเสธ H₀ (fit แย่)</p>
+<p><strong>ก่อนสรุปว่า overdispersion:</strong> เช็ค functional form ก่อน (plot X กับ log(Y) หรือ collapsed logplot) — ลองเพิ่มพจน์กำลังสองถ้าความสัมพันธ์โค้ง ถ้าเพิ่มแล้ว dispersion ยังสูงอยู่มาก แสดงว่าปัญหาไม่ใช่ functional form แต่คือ distribution assumption เอง</p>
+
+<h2>4. Quasi-Poisson vs Negative Binomial</h2>
+<table>
+<tr><th></th><th>Quasi-Poisson</th><th>Negative Binomial</th></tr>
+<tr><td>กลไก</td><td>point estimate เหมือน Poisson, ปรับ SE ทีหลังด้วย √dispersion</td><td>เปลี่ยน distribution assumption ของ y ไปเลย</td></tr>
+<tr><td>Var(Y)</td><td>\(\phi\mu = \mu+\alpha\mu\) — เชิงเส้น (linear) ตาม mean</td><td>\(\mu+\kappa\mu^2\) — กำลังสอง (quadratic) ตาม mean</td></tr>
+<tr><td>SE</td><td>\(SE(\text{quasi}) = SE(\text{Poisson}) \times \sqrt{\text{dispersion}}\)</td><td>มาจาก full likelihood โดยตรง</td></tr>
+<tr><td>AIC</td><td>ไม่มี (<code>NA</code>) — ไม่ใช่ full likelihood</td><td>มี — เทียบ AIC ได้ตรง ๆ</td></tr>
+<tr><td>Model comparison test</td><td><code>drop1(model, test="F")</code></td><td><code>drop1(model, test="Chisq")</code></td></tr>
+</table>
+<p><strong>กฎเลือก:</strong> ถ้า overdispersion โตขึ้นเร็วกว่าเชิงเส้นเมื่อ mean สูง (variance ของกลุ่ม mean สูงเกินจริงเป็นพิเศษ) ให้ใช้ NB — ในทางปฏิบัติมักลองทั้งสองแล้วเทียบ AIC (มีแค่ NB ที่มี AIC ให้เทียบตรง ๆ)</p>
+
+<h2>5. เมื่อไรต้องใช้ <code>offset()</code></h2>
+<div class="box win">
+<p>ใช้เมื่อสนใจ<strong>อัตรา (rate)</strong> ไม่ใช่จำนวนนับดิบ (จำนวนนับดิบเพิ่มตาม "ฐาน" ที่นับด้วยโดยธรรมชาติ เช่น เมืองใหญ่มีคดีมากกว่าเมืองเล็กเพราะประชากรเยอะ ไม่ใช่เพราะอันตรายกว่า)</p>
+\[\log \mu = \log N + \beta_0+\beta_1 x_1+\cdots+\beta_p x_p\] — พจน์ \(\log N\) ไม่มีสัมประสิทธิ์ (บังคับ = 1 เสมอ ไม่ใช่ให้ข้อมูลประมาณ)
+<p><strong>กฎการใช้ offset:</strong> ถ้ามีเหตุผลทางทฤษฎีที่บอกว่าสัมประสิทธิ์ของตัวแปรหนึ่งต้องเท่ากับ 1 พอดี (เช่น "ฐาน" ของอัตรา — นับเซลล์เพิ่ม 2 เท่า ก็ควรเจอเหตุการณ์เพิ่ม 2 เท่าโดยธรรมชาติ) ให้ใช้ <code>offset()</code> แทนปล่อยให้โมเดลประมาณเอง</p>
+<p>ผลของการใช้ offset ถูก: ไม่ต้องเสีย 1 df ไปกับการประมาณสัมประสิทธิ์ที่รู้คำตอบอยู่แล้ว → SE ของพารามิเตอร์ที่เหลือแม่นยำขึ้น (เล็กลง) + AIC ดีขึ้น</p>
+</div>
+<p>ตัวอย่าง R: <code>glm(ca ~ offset(log(cells)) + log(doserate)*dosef, family=poisson, data=dicentric)</code></p>
+
+<h2>6. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit Poisson</td><td><code>glm(y~x, data=data, family=poisson)</code></td></tr>
+<tr><td>Fit Quasi-Poisson</td><td><code>glm(y~x, data=data, family=quasipoisson)</code></td></tr>
+<tr><td>Fit Negative Binomial</td><td><code>library(MASS); glm.nb(y~x, data=data)</code></td></tr>
+<tr><td>Goodness-of-fit test</td><td><code>pchisq(deviance(model), model$df.residual, lower=FALSE)</code></td></tr>
+<tr><td>Dispersion parameter (Pearson)</td><td><code>sum(residuals(model,type="pearson")^2)/model$df.residual</code></td></tr>
+<tr><td>เปรียบเทียบตัวแปร (quasi-Poisson)</td><td><code>drop1(model, test="F")</code></td></tr>
+<tr><td>เปรียบเทียบตัวแปร (NB)</td><td><code>drop1(model, test="Chisq")</code></td></tr>
+<tr><td>โมเดลอัตราด้วย offset</td><td><code>glm(y~offset(log(N))+x, family=poisson, data=data)</code></td></tr>
+<tr><td>สำรวจ functional form</td><td>ฟังก์ชัน <code>logplot()</code> เขียนเอง — collapse X เป็นควอนไทล์แล้วดู log(mean(y)) ต่อกลุ่ม</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

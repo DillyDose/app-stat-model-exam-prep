@@ -1,0 +1,221 @@
+/* Exam / drill component styles. Loaded alongside style.css (never instead of it).
+   Used by everything in ../exams/. White background only, matches lesson look. */
+
+.exam-meta {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1em 1.3em;
+  margin: 1.5em 0 2em;
+  background: var(--accent-soft);
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.9rem;
+}
+.exam-meta dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35em 1em; margin: 0; }
+.exam-meta dt { font-weight: 700; color: var(--accent); }
+.exam-meta dd { margin: 0; }
+
+/* --- Sticky running score --- */
+.scorebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+  border-bottom: 2px solid var(--accent);
+  padding: 0.6em 0.9em;
+  margin: 0 0 2em;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.88rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+.scorebar .sb-score { font-weight: 700; color: var(--accent); }
+.scorebar .sb-bar {
+  flex: 1 1 120px;
+  height: 8px;
+  background: var(--code-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 100px;
+}
+.scorebar .sb-fill { height: 100%; width: 0%; background: var(--good); transition: width 0.3s; }
+.scorebar button {
+  font-family: inherit;
+  font-size: 0.78rem;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 5px;
+  padding: 0.35em 0.7em;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.scorebar button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* --- Question block --- */
+.exq {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.2em 1.4em;
+  margin: 1.8em 0;
+  background: #fff;
+}
+.exq-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  flex-wrap: wrap;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  margin-bottom: 0.8em;
+  padding-bottom: 0.6em;
+  border-bottom: 1px dashed var(--rule);
+}
+.exq-num { font-weight: 700; font-size: 0.95rem; color: var(--ink); }
+.exq-pts { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
+.exq-tag {
+  margin-left: auto;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+.exq-body { margin-bottom: 0.9em; }
+.exq-body > p:first-child { margin-top: 0; }
+
+/* R output blocks inside exams get a distinct "printed on the exam paper" look */
+.rout {
+  background: var(--code-bg);
+  border-left: 3px solid var(--ink-soft);
+  border-radius: 4px;
+  padding: 0.9em 1em;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre;
+}
+.rout .rout-label {
+  display: block;
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  margin-bottom: 0.5em;
+  white-space: normal;
+}
+
+.exq textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.7em;
+  margin-bottom: 0.6em;
+  resize: vertical;
+  min-height: 4.5em;
+  background: #fff;
+  color: var(--ink);
+}
+.exq textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.exq-reveal {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.exq-reveal:hover { border-color: var(--accent); color: var(--accent); }
+
+.exq-answer { display: none; margin-top: 1em; }
+.exq-answer.show { display: block; }
+
+.ans-model, .ans-rubric, .ans-trap { border-radius: 6px; padding: 0.85em 1.05em; margin: 0.7em 0; }
+.ans-model { background: var(--good-bg); border: 1px solid var(--good); }
+.ans-rubric { background: var(--code-bg); border: 1px solid var(--rule); }
+.ans-trap { background: var(--bad-bg); border: 1px solid var(--bad); }
+
+.ans-model .label, .ans-rubric .label, .ans-trap .label {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-bottom: 0.45em;
+}
+.ans-model .label { color: var(--good); }
+.ans-rubric .label { color: var(--ink-soft); }
+.ans-trap .label { color: var(--bad); }
+.ans-model p, .ans-rubric p, .ans-trap p { margin: 0.45em 0; }
+.ans-model p:first-of-type, .ans-rubric p:first-of-type, .ans-trap p:first-of-type { margin-top: 0; }
+.ans-rubric ul, .ans-trap ul { margin: 0.3em 0; padding-left: 1.2em; }
+
+/* --- Self-grade buttons --- */
+.selfgrade {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  margin-top: 0.9em;
+  padding-top: 0.8em;
+  border-top: 1px dashed var(--rule);
+  align-items: center;
+}
+.selfgrade .sg-q {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-right: 0.2em;
+}
+.selfgrade button {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.82rem;
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.4em 0.85em;
+  cursor: pointer;
+  color: var(--ink);
+}
+.selfgrade button:hover { border-color: var(--accent); }
+.selfgrade button.picked { font-weight: 700; }
+.selfgrade button.picked[data-credit="full"] { background: var(--good-bg); border-color: var(--good); color: var(--good); }
+.selfgrade button.picked[data-credit="half"] { background: #fdf5e6; border-color: #b8860b; color: #8b6508; }
+.selfgrade button.picked[data-credit="zero"] { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+
+/* --- Section divider inside an exam --- */
+.exam-section {
+  margin: 3em 0 1.5em;
+  padding: 0.7em 0 0.5em;
+  border-top: 2px solid var(--accent);
+  border-bottom: 1px solid var(--rule);
+}
+.exam-section h2 { margin: 0; border: none; padding: 0; font-size: 1.2rem; }
+.exam-section .sec-note {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-top: 0.35em;
+}
+
+/* --- Final summary --- */
+.exam-summary {
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 1.2em 1.4em;
+  margin: 2.5em 0;
+  background: var(--accent-soft);
+}
+.exam-summary h3 { margin-top: 0; }
+
+@media print {
+  .scorebar, .exq-reveal, .selfgrade { display: none; }
+  .exq-answer { display: block; }
+  .exq { break-inside: avoid; }
+}

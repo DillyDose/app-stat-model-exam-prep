@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Mock Exam B — Applied Statistical Modeling</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Mock Exam B</span>
+</nav>
+
+<p class="kicker">2603645 APP STAT MODEL · Comprehensive · จับเวลาจริง</p>
+<h1>Mock Exam B</h1>
+
+<p>ชุดที่สอง — คนละ dataset จาก Mock A ทั้งหมด ครอบคลุมบทที่ A ยังไม่ได้ทดสอบเป็นข้อใหญ่ <strong>ปิดหนังสือ ปิดเฉลย จับเวลาจริง จนกว่าจะทำครบทุกข้อ</strong> แล้วค่อยเปิดเฉลยทีละข้อ</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>เวลา</dt><dd>90 นาที</dd>
+  <dt>คะแนนเต็ม</dt><dd>102 คะแนน</dd>
+  <dt>ครอบคลุม</dt><dd>L3, L5, L10, L12, L13, L14</dd>
+  <dt>ส่วนที่เหลือ</dt><dd>L1, L2, L4, L6, L7, L8, L9, L11 อยู่ใน <a href="mock-exam-a.html">Mock Exam A</a></dd>
+</dl>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ข้อ 1 — Corn Yield and Rainfall: Diagnostics & Remedy [22 คะแนน]</h2>
+<div class="sec-note">Regression Diagnostics — non-linearity, autocorrelation, remedy · L3</div>
+</div>
+
+<div class="exq" data-points="22">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[22 คะแนน]</span><span class="exq-tag">L3</span></div>
+  <div class="exq-body">
+    <p>ผลผลิตข้าวโพด (YIELD, บุชเชลต่อเอเคอร์) และปริมาณน้ำฝน (RAINFALL, นิ้ว) จาก 6 รัฐสหรัฐฯ ปี 1890–1927 (38 ปี)</p>
+    <div class="rout"><span class="rout-label">R output — Model 1: YIELD ~ RAINFALL + I(RAINFALL^2)</span>Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)     -5.01467   11.44158  -0.438  0.66387
+RAINFALL         6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2)   -0.22936    0.08864  -2.588  0.01397 *
+
+Residual standard error: 3.763 on 35 degrees of freedom
+Multiple R-squared: 0.2967,     Adjusted R-squared: 0.2565
+F-statistic: 7.382 on 2 and 35 DF, p-value: 0.002115</div>
+    <figure>
+      <img src="../assets/exam-plots/ex-a3-corn-resid-vs-year.png" alt="Residuals plotted against YEAR from 1890 to 1927; early years cluster below zero, later years drift above zero, showing a rising trend over time">
+      <figcaption>residual ของ Model 1 เทียบกับ YEAR</figcaption>
+    </figure>
+    <div class="rout"><span class="rout-label">R output — Model 2: YIELD ~ RAINFALL + I(RAINFALL^2) + YEAR</span>Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)   -263.30324   98.24094  -2.680  0.01126 *
+RAINFALL         5.67038    1.88824   3.003  0.00499 **
+I(RAINFALL^2)   -0.21550    0.08207  -2.626  0.01286 *
+YEAR             0.13634    0.05156   2.644  0.01229 *
+
+Residual standard error: 3.402 on 34 degrees of freedom
+Multiple R-squared: 0.4344,     Adjusted R-squared: 0.3844</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียน fitted model ของ Model 1</li>
+      <li>[3] จาก residual-vs-YEAR plot มีแพทเทิร์นหรือไม่ แปลว่าอะไร (อ้างหลักฐานจากภาพ)</li>
+      <li>[2] ทำไมการดู residuals vs fitted อย่างเดียวจึงตรวจไม่พบปัญหาในข้อ 2</li>
+      <li>[3] อธิบายว่าทำไมนักวิจัยจึงฟิต Model 2 เพิ่ม YEAR เข้าไป และผลลัพธ์ยืนยันสมมติฐานนั้นหรือไม่</li>
+      <li>[2] ตีความสัมประสิทธิ์ของ YEAR ใน Model 2</li>
+      <li>[3] ทดสอบว่าเครื่องหมายของสัมประสิทธิ์ RAINFALL² บอกอะไรเกี่ยวกับรูปร่างความสัมพันธ์ (ผลตอบแทนลดลงหรือเพิ่มขึ้น)</li>
+      <li>[3] เทียบ \(R^2_{adj}\) ของสองโมเดล (0.2565 vs 0.3844) — สรุปว่าโมเดลใดเหมาะสมกว่า พร้อมเหตุผลว่าทำไมใช้ \(R^2_{adj}\) แทน \(R^2\) ดิบ</li>
+      <li>[4] ทำนายผลผลิตจาก Model 2 เมื่อ RAINFALL=9, YEAR=1920 แสดงวิธีคำนวณ</li>
+    </ol>
+  </div>
+  <textarea rows="9" placeholder="เขียนคำตอบทั้ง 8 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> \(\widehat{\text{YIELD}} = -5.01467 + 6.00428\,\text{RAINFALL} - 0.22936\,\text{RAINFALL}^2\)</p>
+      <p><strong>2.</strong> "there is an increasing trend of residuals over time" (คำตัดสินอาจารย์) — ช่วงต้น (1890s) residual ส่วนใหญ่ติดลบ ช่วงหลัง (1920s) ส่วนใหญ่เป็นบวก → independence assumption ถูกละเมิด ผลผลิตอาจสัมพันธ์กับเวลาโดยตรง (เช่น เทคโนโลยีเกษตรที่ดีขึ้น) ไม่ใช่แค่จากฝน</p>
+      <p><strong>3.</strong> residuals vs fitted ไม่มีข้อมูลเรื่อง<strong>ลำดับเวลา</strong> ของแต่ละจุด — สองจุดที่มี fitted ใกล้กันอาจมาจากปีที่ห่างกันมาก การมองหา autocorrelation ต้องพล็อตกับตัวแปรเวลาโดยตรงเท่านั้น</p>
+      <p><strong>4.</strong> ใส่ YEAR เพื่อจับแนวโน้มตามเวลาที่ residual ชี้ให้เห็น — ผลยืนยัน: YEAR มีนัยสำคัญ (p=0.01229) และ \(R^2_{adj}\) เพิ่มขึ้นชัดเจน (0.2565→0.3844) แปลว่ามีปัจจัยตามเวลาที่แยกต่างหากจากฝนจริง</p>
+      <p><strong>5.</strong> เมื่อปีเพิ่มขึ้น 1 ปี (ควบคุมปริมาณฝน) ผลผลิตข้าวโพดเฉลี่ยเพิ่มขึ้น 0.136 บุชเชลต่อเอเคอร์</p>
+      <p><strong>6.</strong> สัมประสิทธิ์ RAINFALL² ติดลบ → กราฟเป็นรูป<strong>คว่ำ (concave down)</strong> — ผลผลิตเพิ่มตามฝนแต่ในอัตราที่<strong>ลดลง</strong>เรื่อย ๆ (diminishing returns) ฝนมากเกินไปอาจเริ่มทำให้ผลผลิตลดลง</p>
+      <p><strong>7.</strong> \(R^2_{adj}\) ของ Model 2 (0.3844) สูงกว่า Model 1 (0.2565) ชัดเจน → Model 2 เหมาะสมกว่า; ใช้ \(R^2_{adj}\) เพราะ \(R^2\) ดิบเพิ่มขึ้นเสมอเมื่อเพิ่มตัวแปร (แม้ตัวแปรนั้นไม่มีประโยชน์จริง) \(R^2_{adj}\) มีพจน์ปรับตามจำนวนพารามิเตอร์จึงเปรียบเทียบระหว่างโมเดลที่มี p ต่างกันได้อย่างเป็นธรรม</p>
+      <p><strong>8.</strong> \(\hat{Y}=-263.30324+5.67038(9)-0.21550(81)+0.13634(1920)\)<br>\(=-263.30+51.03-17.46+261.77=32.04\) บุชเชลต่อเอเคอร์</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 8 ลืมพจน์ RAINFALL² หรือคำนวณ YEAR×0.13634 ผิด (ตัวเลขใหญ่ ต้องทดละเอียด); ข้อ 7 เทียบ \(R^2\) ดิบแทน \(R^2_{adj}\)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 2 — Mortality: Model Selection [16 คะแนน]</h2>
+<div class="sec-note">Model Selection — AIC/BIC/Cp/RMSE · L5</div>
+</div>
+
+<div class="exq" data-points="16">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[16 คะแนน]</span><span class="exq-tag">L5</span></div>
+  <div class="exq-body">
+    <p>ศึกษาอัตราการตาย (MORT) กับปัจจัยสภาพอากาศ/เศรษฐกิจสังคม 5 ตัว (PRECIP, EDUC, NONWHITE, log(NOX), log(SO2)) ใน 60 เมือง ทำ best-subset selection ได้ผลบางส่วนดังนี้</p>
+    <div class="rout"><span class="rout-label">R output — best subset (บางแถว)</span>                       Predictors     adj_R2         cp       AIC      BIC     RMSE
+6              EDUC NONWHITE  0.5473308  21.757608  623.2857 631.6631  40.79021
+16   PRECIP NONWHITE lSO2     0.6416181   6.925633  610.2099 620.6817  35.97452
+26 PRECIP EDUC NONWHITE lSO2  0.6605xxx   6.0xxxxx  ~608.xx  ~621.xx  34.69990
+31 (full: all 5 predictors)   ~0.66xxx    6.0000    ~610.xx  ~626.xx  34.43814
+
+Stepwise (both directions, AIC and BIC agree):
+lm(formula = MORT ~ PRECIP + EDUC + NONWHITE + lSO2, data = mortality)
+Multiple R-squared: 0.6835, Adjusted R-squared: 0.6605</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] จากเกณฑ์ Cp และ AIC/BIC (stepwise) โมเดลที่ถูกเลือกมีตัวแปรอะไรบ้าง — ตรงกันหรือไม่</li>
+      <li>[3] จากตาราง RMSE โมเดลเต็ม (5 ตัวแปร) มี RMSE ต่ำสุดเสมอ นักศึกษาคนหนึ่งจึงสรุปว่าควรใช้โมเดลเต็มเพื่อพยากรณ์อนาคต จงวิจารณ์</li>
+      <li>[3] อธิบายว่าทำไม BIC มักเลือกโมเดลที่มีตัวแปรน้อยกว่าหรือเท่ากับ AIC เสมอ (ไม่ต้องพิสูจน์ ให้เหตุผลเชิงสูตร)</li>
+      <li>[2] lNOX ไม่ถูกเลือกเข้าโมเดลสุดท้ายเลย ทั้งที่เป็นตัวแปรเกี่ยวกับมลพิษเช่นเดียวกับ lSO2 — อธิบายว่าทำไมจึงเป็นไปได้ (โดยไม่ต้องมีข้อมูลเพิ่ม)</li>
+      <li>[3] เขียนสมการโมเดลที่ stepwise เลือก (ดู R output ด้านบน) — <strong>ห้าม</strong>ใส่ lNOX</li>
+      <li>[3] ตีความ \(R^2_{adj}=0.6605\) ของโมเดลนี้</li>
+    </ol>
+  </div>
+  <textarea rows="8" placeholder="เขียนคำตอบทั้ง 6 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> ทั้ง Cp และ stepwise AIC/BIC เลือก PRECIP, EDUC, NONWHITE, lSO2 ตรงกัน (โมเดลนี้ให้ Cp≈6.93 ใกล้ p+1=5 ที่สุดในกลุ่มขนาดเล็ก และ AIC/BIC ต่ำสุดในบรรดาที่ stepwise พิจารณา)</p>
+      <p><strong>2.</strong> ไม่เห็นด้วย — RMSE คำนวณจากข้อมูล<strong>ชุดเดียวกับที่ใช้ฟิต</strong> จึงลดลงเสมอเมื่อเพิ่มตัวแปร (คุณสมบัติทางคณิตศาสตร์ ไม่ใช่หลักฐานว่าดีกว่าจริง) โมเดลเต็มอาจ overfit จับ noise เฉพาะของข้อมูลชุดนี้ ทำให้ทำนายข้อมูลใหม่ได้แย่กว่าที่ RMSE ในตัวอย่างบอกไว้</p>
+      <p><strong>3.</strong> พจน์ลงโทษของ BIC คือ \((p+1)\log(n)\) เทียบกับ AIC ที่ \(2(p+1)\) — เมื่อ \(n>7\), \(\log(n)>2\) เสมอ ทำให้ BIC ลงโทษการเพิ่มพารามิเตอร์แรงกว่า AIC โดยอัตโนมัติ จึงมักเลือกโมเดลที่กระชับกว่า</p>
+      <p><strong>4.</strong> lNOX อาจสัมพันธ์กันเองสูงกับ lSO2 (ทั้งคู่วัดมลพิษทางอากาศ) เมื่อ lSO2 อยู่ในโมเดลแล้ว lNOX อาจไม่ได้เพิ่มข้อมูลใหม่ให้โมเดลมากพอที่จะคุ้มกับพจน์ลงโทษที่เพิ่มขึ้น (multicollinearity ระหว่างตัวชี้วัดมลพิษสองตัว)</p>
+      <p><strong>5.</strong> \(\widehat{\text{MORT}} = 944.84 + 1.64\,\text{PRECIP} - 13.96\,\text{EDUC} + 3.32\,\text{NONWHITE} + 15.01\log(\text{SO2})\)</p>
+      <p><strong>6.</strong> ตัวแปรทั้ง 4 ตัวร่วมกันอธิบายความผันแปรของอัตราการตายได้ 66.05% (หลังปรับตามจำนวนพารามิเตอร์แล้ว)</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 2 เห็นด้วยกับข้อสรุปเพราะ "ตัวเลขต่ำสุดจริง" — ไม่แยกความต่างระหว่าง in-sample กับความสามารถพยากรณ์จริง</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 3 — Moth Coloration: Binomial Counts [18 คะแนน]</h2>
+<div class="sec-note">Grouped Binomial Logistic Regression · L10</div>
+</div>
+
+<div class="exq" data-points="18">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[18 คะแนน]</span><span class="exq-tag">L10</span></div>
+  <div class="exq-body">
+    <p>ศึกษาคลีนใกล้ลิเวอร์พูล: นับจำนวนผีเสื้อสีอ่อนที่ถูกล่า (light_removed) จากผีเสื้อทั้งหมดที่ถูกล่า ณ ระยะทางต่าง ๆ (distance, กม.) จากตัวเมือง — 7 ตำแหน่ง</p>
+    <div class="rout"><span class="rout-label">R output</span>> model<-glm(cbind(light_removed,dark_removed)~distance, family=binomial, data=newdata)
+> summary(model)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.28048    0.23090   1.215  0.22447
+distance    -0.01872    0.00675  -2.773  0.00556 **
+
+    Null deviance: 9.8997  on 6  degrees of freedom
+Residual deviance: 2.0741  on 5  degrees of freedom
+AIC: 35.105</div>
+    <figure>
+      <img src="../assets/exam-plots/ex-a7-moth-logit-vs-distance.png" alt="Empirical logit log(y/(n-y)) plotted against distance for 7 points, showing a roughly linear decreasing trend from about 0.2 at distance 0 down to about -0.65 at distance 42, with a slight rise at distance 50">
+      <figcaption>empirical logit vs distance</figcaption>
+    </figure>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียนสมการโมเดล (นิยาม \(\pi\) ให้ถูกต้อง — ระวังตัวส่วน)</li>
+      <li>[2] จากภาพ empirical logit เป็นเส้นตรงหรือไม่ แปลว่าอะไรเกี่ยวกับความเหมาะสมของโมเดล logit เชิงเส้น</li>
+      <li>[3] ทดสอบว่า distance มีผลต่อสัดส่วนผีเสื้อสีอ่อนที่ถูกล่าหรือไม่ ที่ \(\alpha=0.05\)</li>
+      <li>[2] ทำ GOF test ของโมเดลนี้ — ใช้ deviance ตรง ๆ ได้หรือไม่ เพราะเหตุใด (ต่างจากข้อมูล wbca ในข้ออื่นอย่างไร)</li>
+      <li>[3] ตีความสัมประสิทธิ์ของ distance ในเทอม odds ratio</li>
+      <li>[3] คำนวณความน่าจะเป็นที่ผีเสื้อที่ถูกล่าเป็นสีอ่อน ที่ระยะ 30 กม. แสดงวิธี</li>
+      <li>[3] อธิบายว่าทำไมสัมประสิทธิ์และการตีความของโมเดลนี้จะ<strong>เหมือนกันทุกประการ</strong>กับโมเดล binary logistic ที่ใช้ข้อมูลผีเสื้อรายตัว (ไม่ใช้ cbind) — ต่างกันแค่ตรงไหน</li>
+    </ol>
+  </div>
+  <textarea rows="8" placeholder="เขียนคำตอบทั้ง 7 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> Let \(\pi\) = probability that a removed moth is light-colored. \(\text{logit}(\hat\pi)=0.28048-0.01872\,\text{distance}\)</p>
+      <p><strong>2.</strong> ค่อนข้างเป็นเส้นตรง (ลดลงสม่ำเสมอจาก ~0.2 ที่ distance=0 ถึง ~−0.65 ที่ distance≈42 แล้วขยับขึ้นเล็กน้อยที่ 50) — ยืนยันว่า linearity บนสเกล logit สมเหตุสมผล ไม่จำเป็นต้องเพิ่มพจน์กำลังสอง</p>
+      <p><strong>3.</strong> \(H_0:\beta_{\text{distance}}=0\) vs \(H_1:\beta_{\text{distance}}\neq0\); z=−2.773; p=0.00556 &lt; 0.05; ปฏิเสธ \(H_0\) — distance มีผลต่อสัดส่วนผีเสื้อสีอ่อนที่ถูกล่าอย่างมีนัยสำคัญ</p>
+      <p><strong>4.</strong> ใช้ deviance GOF ตรง ๆ ได้ เพราะข้อมูลนี้เป็น<strong>ข้อมูลจัดกลุ่ม</strong> (\(n_i\) ใหญ่ต่อแถว — แต่ละแถวรวมผีเสื้อหลายสิบตัว) ต่างจาก wbca ที่ \(n_i=1\) ทุกแถว: deviance=2.0741, df=5 → p=1-pchisq(2.0741,5)≈0.84 &gt; 0.05 → ไม่ปฏิเสธ โมเดล fit ดี</p>
+      <p><strong>5.</strong> \(\exp(-0.01872)=0.9815\) — ทุกระยะทางที่เพิ่มขึ้น 1 กม. odds ที่ผีเสื้อที่ถูกล่าเป็นสีอ่อนลดลงเหลือ 98.15% ของเดิม (ลดลง 1.85%)</p>
+      <p><strong>6.</strong> \(\hat\eta=0.28048-0.01872(30)=-0.28112\); \(\hat\pi=\dfrac{e^{-0.28112}}{1+e^{-0.28112}}=0.4302\) — ที่ระยะ 30 กม. คาดว่า 43% ของผีเสื้อที่ถูกล่าจะเป็นสีอ่อน</p>
+      <p><strong>7.</strong> โมเดลทั้งสองมี link function เดียวกัน (logit) และตีความสัมประสิทธิ์แบบเดียวกันทุกประการ — ต่างกันแค่<strong>รูปแบบข้อมูลที่ป้อนเข้า R</strong> (binary: หนึ่งแถวต่อหนึ่งตัว, binomial grouped: หนึ่งแถวต่อหนึ่งกลุ่มพร้อม <code>cbind(สำเร็จ,ล้มเหลว)</code>) ซึ่งเป็นการจัดเก็บข้อมูลคนละแบบของปรากฏการณ์เดียวกัน</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 1 นิยาม \(\pi\) ผิดตัวส่วน (เช่น "ความน่าจะเป็นที่ผีเสื้อถูกล่า" แทนที่จะเป็น "ในบรรดาที่ถูกล่า สัดส่วนที่เป็นสีอ่อน")</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 4 — Pneumoconiosis: Nominal vs Ordinal [22 คะแนน]</h2>
+<div class="sec-note">Multinomial & Proportional Odds · L12</div>
+</div>
+
+<div class="exq" data-points="22">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[22 คะแนน]</span><span class="exq-tag">L12</span></div>
+  <div class="exq-body">
+    <p>คนงานเหมืองถ่านหิน จำแนกภาวะปอด (normal / mild / severe) ตามจำนวนปีทำงานหน้าเหมือง (year)</p>
+    <div class="rout"><span class="rout-label">R output — Multinomial (baseline-category)</span>multinom(formula = status~year, data=pneumo, weights=Freq)
+
+Coefficients:
+       (Intercept)        year
+normal   4.2916723 -0.08356506
+severe  -0.7681706  0.02572027
+
+Residual Deviance: 417.4496
+AIC: 425.4496</div>
+    <div class="rout"><span class="rout-label">R output — Proportional Odds</span>polr(formula = status_order~year, data=pneumo, weights=Freq)
+
+Coefficients:
+      Value Std. Error t value
+year 0.0959    0.01194   8.034
+
+Intercepts:
+             Value   Std. Error t value
+normal|mild   3.9558 0.4097      9.6558
+mild|severe   4.8690 0.4411     11.0383
+
+Residual Deviance: 416.9188
+AIC: 422.9188
+
+> brant(omodel)
+Test for   X2   df   probability
+Omnibus     0    1        1
+year        0    1        1
+H0: Parallel Regression Assumption holds</div>
+    <ol style="margin:0.6em 0">
+      <li>[3] เขียนสมการของโมเดล multinomial <strong>ให้ครบทั้ง 2 สมการ</strong> ระบุ baseline category</li>
+      <li>[3] เขียนสมการของโมเดล proportional odds ให้ครบ 2 cutpoint (สังเกตเครื่องหมายของ slope ให้ดี)</li>
+      <li>[3] เปรียบเทียบ AIC ของสองโมเดล (425.45 vs 422.92) — โมเดลใดต่ำกว่า และต่ำกว่ามากพอจะสรุปได้หรือไม่</li>
+      <li>[3] อ่านผล Brant test — สรุปว่า proportional odds assumption ถือหรือไม่ (ระวังทิศทางของ \(H_0\))</li>
+      <li>[4] จากผลข้อ 3 และ 4 ร่วมกับธรรมชาติของตัวแปร (normal &lt; mild &lt; severe) จงตัดสินว่าโมเดลใดเหมาะสมกว่า พร้อมเหตุผลครบทุกข้อ</li>
+      <li>[3] คำนวณ \(\hat{P}(\text{status}\leq\text{normal})\) ที่ year=25 จากโมเดล proportional odds แสดงวิธี</li>
+      <li>[3] ตีความสัมประสิทธิ์ \(\hat\beta_{\text{severe}}=0.02572\) ของโมเดล multinomial ในเทอม odds ratio (ระบุ baseline ให้ชัด)</li>
+    </ol>
+  </div>
+  <textarea rows="9" placeholder="เขียนคำตอบทั้ง 7 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> baseline = <strong>mild</strong> (ระดับที่หายไปจากตาราง)</p>
+      <p>\[\log\!\left(\frac{\hat\pi_{\text{normal}}}{\hat\pi_{\text{mild}}}\right)=4.2917-0.0836\,\text{year}\]</p>
+      <p>\[\log\!\left(\frac{\hat\pi_{\text{severe}}}{\hat\pi_{\text{mild}}}\right)=-0.7682+0.0257\,\text{year}\]</p>
+      <p><strong>2.</strong> (parameterization ของ polr: \(\text{logit}(P(Y\leq j))=\theta_j-\beta x\))</p>
+      <p>\[\text{logit}\big(\hat{P}(\leq\text{normal})\big)=3.9558-0.0959\,\text{year}\]</p>
+      <p>\[\text{logit}\big(\hat{P}(\leq\text{mild})\big)=4.8690-0.0959\,\text{year}\]</p>
+      <p><strong>3.</strong> Proportional odds ต่ำกว่า (422.92 &lt; 425.45) แต่ต่างกันเพียง 2.53 — ไม่มาก ยังต้องใช้เหตุผลอื่นประกอบการตัดสินใจ (ดูข้อ 5)</p>
+      <p><strong>4.</strong> p-value ของ Brant test = 1 (สูงมาก) → <strong>ไม่ปฏิเสธ</strong> \(H_0\): "Parallel Regression Assumption holds" — assumption ของ proportional odds ผ่าน (ระวัง: \(H_0\) ที่นี่คือ "assumption ถือ" ตรงข้ามกับ GOF ทั่วไป)</p>
+      <p><strong>5.</strong> เลือก <strong>proportional odds</strong> เพราะ (1) response มีลำดับโดยธรรมชาติ (normal&lt;mild&lt;severe) ตรงกับโครงสร้างของโมเดลนี้ (2) Brant test ยืนยันว่า assumption ผ่าน (3) AIC ต่ำกว่าเล็กน้อยด้วย — ทั้งสามเหตุผลชี้ไปทางเดียวกัน</p>
+      <p><strong>6.</strong> \(\hat\eta=3.9558-0.0959(25)=1.5583\); \(\hat{P}=\dfrac{e^{1.5583}}{1+e^{1.5583}}=0.826\) — มีโอกาส 82.6% ที่คนงาน 25 ปียังอยู่ในสถานะ normal</p>
+      <p><strong>7.</strong> \(\exp(0.02572)=1.026\) — เมื่อปีทำงานเพิ่มขึ้น 1 ปี odds ของการอยู่ในกลุ่ม <strong>severe เทียบกับ mild</strong> (baseline) เพิ่มขึ้นเป็น 1.026 เท่า (เพิ่ม 2.6%) ต่อปี — ต้องระบุ "เทียบกับ mild" เสมอ ไม่ใช่แค่ "severe เพิ่มขึ้น"</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 2 ลืมใส่เครื่องหมายลบหน้า slope ตาม parameterization ของ <code>polr</code>; ข้อ 4 อ่าน p-value=1 แล้วสรุปผิดทิศทาง (คิดว่า p สูงคือ "ไม่ผ่าน" เหมือน GOF ทั่วไป); ข้อ 7 ไม่ระบุ baseline category</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 5 — Corn Nitrogen: Other GLMs [10 คะแนน]</h2>
+<div class="sec-note">Gamma GLM · L13</div>
+</div>
+
+<div class="exq" data-points="10">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[10 คะแนน]</span><span class="exq-tag">L13</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผลผลิตข้าวโพด (yield) กับปริมาณไนโตรเจน (nitrogen) — ข้อมูลบวกต่อเนื่อง มีแนวโน้มเบ้ขวาเล็กน้อย ลองฟิต Gamma GLM สองแบบ (link ต่างกัน)</p>
+    <div class="rout"><span class="rout-label">R output — Gamma, log link</span>glm(formula = yield~nitrogen, family=Gamma(link=log), data=cornnit)
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 4.6686724 0.0407938 114.446 < 2e-16 ***
+nitrogen    0.0015178 0.0002952   5.141 6.73e-06 ***
+
+(Dispersion parameter for Gamma family taken to be 0.03220794)
+Null deviance: 2.4061  on 43  degrees of freedom
+Residual deviance: 1.6272  on 42  degrees of freedom
+AIC: 409.08
+
+> 1-pchisq(1.6272, 42)
+[1] 1</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียนสมการโมเดล (นิยาม \(\mu\))</li>
+      <li>[2] ทำไมข้อมูลลักษณะนี้ (บวกต่อเนื่อง เบ้ขวา) จึงเหมาะกับ Gamma GLM มากกว่า OLS ธรรมดา</li>
+      <li>[3] ทำ GOF test — สรุปผล</li>
+      <li>[3] ตีความสัมประสิทธิ์ของ nitrogen (คูณสเกลเป็นช่วง 100 หน่วยให้อ่านง่าย)</li>
+    </ol>
+  </div>
+  <textarea rows="6" placeholder="เขียนคำตอบทั้ง 4 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> Let \(\mu\) = expected corn yield. \(\log(\hat\mu)=4.6687+0.0015178\,\text{nitrogen}\)</p>
+      <p><strong>2.</strong> Gamma มี variance function \(V(\mu)=\mu^2\) — ความแปรปรวนโตตามค่าเฉลี่ยเป็นธรรมชาติของข้อมูลบวกเบ้ขวา (ค่าที่มากมักแปรปรวนมากกว่าค่าที่น้อย) ต่างจาก OLS ที่ตั้ง variance คงที่ ซึ่งไม่สมจริงกับข้อมูลแบบนี้ นอกจากนี้ Gamma รับประกันค่าทำนายเป็นบวกเสมอผ่าน log link</p>
+      <p><strong>3.</strong> \(H_0\): โมเดล fit ข้อมูล; deviance=1.6272, df=42; p=1-pchisq(1.6272,42)≈1; <strong>ไม่ปฏิเสธ</strong> \(H_0\) — โมเดล fit ข้อมูลได้ดีมาก</p>
+      <p><strong>4.</strong> \(\exp(0.0015178\times100)=\exp(0.15178)=1.164\) — เมื่อไนโตรเจนเพิ่มขึ้น 100 หน่วย ผลผลิตที่คาดหวังเพิ่มเป็น 1.164 เท่าของเดิม (เพิ่มขึ้น 16.4%)</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 4 ตอบ \(\exp(0.0015178)\approx1.0015\) ตรง ๆ โดยไม่ขยายสเกล — ตัวเลขจริงแต่ตีความยาก ("เพิ่ม 0.15% ต่อ 1 หน่วยไนโตรเจน" ฟังดูเล็กเกินจะมีความหมาย) ควรขยายสเกลตามความเหมาะสมของข้อมูล</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 6 — Rat Weights: Linear Mixed Model [14 คะแนน]</h2>
+<div class="sec-note">Random Intercept & Slope · L14</div>
+</div>
+
+<div class="exq" data-points="14">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[14 คะแนน]</span><span class="exq-tag">L14</span></div>
+  <div class="exq-body">
+    <p>หนู 27 ตัว วัดน้ำหนักตัวรายสัปดาห์ 5 ครั้ง (135 แถว) แบ่ง 3 กลุ่ม: control, thiouracil, thyroxine</p>
+    <figure>
+      <img src="../assets/exam-plots/ex-a10-ratdrink-weight-by-week.png" alt="27 small panels each showing one rat's weight rising across weeks 0-4; panels differ visibly in both starting height and slope">
+      <figcaption>น้ำหนักตามสัปดาห์ รายตัว</figcaption>
+    </figure>
+    <div class="rout"><span class="rout-label">R output — Model 1: random intercept only</span>lmer(wt~treat+weeks+(1|subject), ratdrink)
+Random effects:
+ Groups   Variance Std.Dev.
+ subject   60.42    7.773
+ Residual 105.15   10.254
+REML criterion: 1031.1</div>
+    <div class="rout"><span class="rout-label">R output — Model 2: random intercept + random slope</span>lmer(wt~treat+weeks+(weeks|subject), ratdrink)
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ subject (Intercept)  36.14    6.012
+          weeks        35.49    5.958   -0.33
+ Residual              18.91    4.348
+REML criterion: 908.7
+
+Fixed effects:
+                Estimate Std. Error    df t value Pr(>|t|)
+(Intercept)      59.4770     3.1150(≈)         19.09  < 2e-16 ***
+treatthiouracil -13.9600     4.0361(≈)         -3.46  0.00204 **
+treatthyroxine    0.5314     4.4476(≈)          0.12  0.90588
+weeks            23.1815     0.6241(≈)         37.15  < 2e-16 ***</div>
+    <ol style="margin:0.6em 0">
+      <li>[3] จากภาพ ทำไมข้อมูลนี้จึงต้องใช้ mixed model แทน OLS ธรรมดา</li>
+      <li>[3] จากภาพ ทำไม Model 2 (random slope) จึงสมเหตุสมผลกว่า Model 1 (random intercept อย่างเดียว) — อ้างหลักฐานจากภาพ</li>
+      <li>[2] เปรียบเทียบ REML criterion ของสองโมเดล (1031.1 vs 908.7) บอกอะไร</li>
+      <li>[2] เขียนสมการของ Model 2 ทั้งฝั่ง fixed และ random</li>
+      <li>[2] ตีความสัมประสิทธิ์ของ treatthiouracil</li>
+      <li>[2] คำนวณ ICC ของ random intercept ใน Model 2 จาก variance components ที่ให้มา ตีความสั้น ๆ</li>
+    </ol>
+  </div>
+  <textarea rows="8" placeholder="เขียนคำตอบทั้ง 6 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> แต่ละแผงคือหนู 1 ตัวที่วัดซ้ำ 5 ครั้ง — จุดในแผงเดียวกันมาจากตัวเดียวกัน ไม่เป็นอิสระต่อกัน OLS ธรรมดาจะนับข้อมูล 135 จุดเป็นอิสระทั้งหมด (ทั้งที่จริงมาจากหนูแค่ 27 ตัว) ทำให้ SE เล็กเกินจริง</p>
+      <p><strong>2.</strong> "we see the differences in slope. The intercept are pretty much the same" (คำตัดสินอาจารย์) — แต่ละแผงเริ่มต้นใกล้เคียงกัน แต่ความชัน (อัตราการโต) ต่างกันชัดเจนระหว่างตัว — ถ้าใช้ random intercept อย่างเดียว โมเดลจะบังคับให้ทุกตัวมีอัตราการโตเท่ากัน ซึ่งขัดกับภาพที่เห็น</p>
+      <p><strong>3.</strong> REML criterion ลดลงมาก (1031.1→908.7) — Model 2 ให้ likelihood ที่ดีกว่ามาก ยืนยันว่าการเพิ่ม random slope ช่วยอธิบายข้อมูลได้ดีขึ้นจริง สอดคล้องกับสิ่งที่เห็นในภาพ</p>
+      <p><strong>4.</strong> Fixed: \(\hat{Y}_{ij}=59.48-13.96\,\text{treatThiouracil}_i+0.53\,\text{treatThyroxine}_i+23.18\,\text{weeks}_{ij}\); Random: \(+b_{0i}+b_{1i}\,\text{weeks}_{ij}+\varepsilon_{ij}\) โดย \((b_{0i},b_{1i})\) แจกแจงปกติสองมิติ ความแปรปรวน 36.14 และ 35.49 ตามลำดับ สหสัมพันธ์ −0.33</p>
+      <p><strong>5.</strong> หนูที่ได้ thiouracil มีน้ำหนักเฉลี่ยต่ำกว่ากลุ่ม control อยู่ 13.96 กรัม เมื่อควบคุมสัปดาห์ให้เท่ากัน</p>
+      <p><strong>6.</strong> \(\text{ICC}=\dfrac{36.14}{36.14+35.49+18.91}=\dfrac{36.14}{90.54}=0.399\) — ราว 40% ของความแปรปรวนรวม (ที่ weeks=0) มาจากความต่างระหว่างหนูแต่ละตัว สูงพอที่การไม่ใส่ random effect จะทำให้ผิดพลาดมาก</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 6 ลืมรวม residual variance ในตัวส่วนของ ICC หรือคำนวณ ICC จาก Model 1 แทน Model 2 (ต้องใช้ตัวที่โจทย์เจาะจงถาม)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">ทำ Mock A และ B ครบแล้ว = ผ่านทุก archetype ครบทั้ง 14 บทอย่างน้อยหนึ่งรอบในบริบทข้อสอบจริง ถ้ายังพลาดบทไหนซ้ำ ๆ กลับไป drill บทนั้นเพิ่มอีกรอบก่อนสอบจริง</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="mock-exam-a.html">← Mock Exam A</a></span>
+  <span><a href="index.html">กลับคลังข้อสอบ →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

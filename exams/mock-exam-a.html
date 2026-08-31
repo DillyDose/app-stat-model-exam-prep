@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Mock Exam A — Applied Statistical Modeling</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Mock Exam A</span>
+</nav>
+
+<p class="kicker">2603645 APP STAT MODEL · Comprehensive · จับเวลาจริง</p>
+<h1>Mock Exam A</h1>
+
+<p>โครงสร้างเลียนแบบข้อสอบจริง: 1 dataset ต่อ 1 ข้อใหญ่ แตกเป็นข้อย่อย ไม่มีการเขียน R — อ่าน output/plot ที่ให้มาแล้วตอบ <strong>ปิดหนังสือ ปิดเฉลย จับเวลาจริง จนกว่าจะทำครบทุกข้อ</strong> แล้วค่อยเปิดเฉลยทีละข้อ</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>เวลา</dt><dd>90 นาที</dd>
+  <dt>คะแนนเต็ม</dt><dd>104 คะแนน</dd>
+  <dt>ครอบคลุม</dt><dd>L1, L2, L4, L6, L7 (บางส่วน), L8 (บางส่วน), L9, L11</dd>
+  <dt>ส่วนที่เหลือ</dt><dd>L3, L5, L10, L12, L13, L14 อยู่ใน <a href="mock-exam-b.html">Mock Exam B</a></dd>
+</dl>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ข้อ 1 — Bus Company Cost Function [18 คะแนน]</h2>
+<div class="sec-note">Simple Linear Regression · L1</div>
+</div>
+
+<div class="exq" data-points="18">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[18 คะแนน]</span><span class="exq-tag">L1</span></div>
+  <div class="exq-body">
+    <p>บริษัทรถโดยสารในอังกฤษเก็บค่าใช้จ่ายรวมที่ปรับเงินเฟ้อแล้ว (Cost, £100,000s) และระยะทางรถวิ่ง (Miles, ล้านไมล์) จาก 33 ช่วงเวลา ต้องการสร้าง cost function จาก Miles</p>
+    <div class="rout"><span class="rout-label">R output — summary(lm(Cost~Miles))</span>Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 0.64963    0.06636    9.79 5.31e-11 ***
+Miles       0.44673    0.01909   23.40  < 2e-16 ***
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+Multiple R-squared: 0.9464,     Adjusted R-squared: 0.9447
+F-statistic: 547.7 on 1 and 31 DF,  p-value: < 2.2e-16
+
+> confint(model)
+                2.5 %    97.5 %
+(Intercept) 0.5142912 0.7849743
+Miles       0.4078000 0.4856592
+
+> anova(model)
+          Df Sum Sq Mean Sq F value    Pr(>F)
+Miles      1 1.17209 1.17209  547.75 < 2.2e-16 ***
+Residuals 31 0.06633 0.00214</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียน estimated regression function</li>
+      <li>[2] แปลผลสัมประสิทธิ์ของ Miles พร้อมหน่วยจริง</li>
+      <li>[3] ทดสอบว่ามี linear association ระหว่าง Miles กับ Cost หรือไม่ ที่ \(\alpha=0.05\) — เขียนครบทุกท่อน</li>
+      <li>[3] ทำ F-test เดียวกันจากตาราง ANOVA — เขียนครบทุกท่อน แล้วเปรียบเทียบผลกับข้อ 3</li>
+      <li>[2] ตีความ 95% CI ของ \(\beta_1\)</li>
+      <li>[2] ตีความ \(R^2\)</li>
+      <li>[2] หา \(\hat\sigma^2\) (ประมาณค่าความแปรปรวนของ error term)</li>
+      <li>[2] ทำนายค่าเฉลี่ยค่าใช้จ่ายเมื่อ Miles = 3.62 แสดงวิธีคำนวณ</li>
+    </ol>
+  </div>
+  <textarea rows="8" placeholder="เขียนคำตอบทั้ง 8 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> \(\hat{Y} = 0.64963 + 0.44673\,\text{Miles}\)</p>
+      <p><strong>2.</strong> เมื่อรถวิ่งเพิ่มขึ้น 1 ล้านไมล์ ค่าใช้จ่ายรวมโดยเฉลี่ยเพิ่มขึ้น 0.44673×£100,000 = <strong>£44,673</strong></p>
+      <p><strong>3.</strong> \(H_0:\beta_1=0\) vs \(H_1:\beta_1\neq0\); t = 23.40, df=31; p-value &lt; 2.2e-16; ปฏิเสธ \(H_0\) — มีหลักฐานหนักแน่นว่ามีความสัมพันธ์เชิงเส้นระหว่าง Miles กับ Cost ที่ระดับนัยสำคัญ 5%</p>
+      <p><strong>4.</strong> \(H_0:\beta_1=0\) vs \(H_1:\beta_1\neq0\); F = 547.75, \(F_{1,31}\); p-value &lt; 2.2e-16; ปฏิเสธ \(H_0\) เช่นกัน — <strong>ผลตรงกับข้อ 3 ทุกประการ</strong> เพราะใน SLR \(t^2=F\) เสมอ (23.40² ≈ 547.6 ✓)</p>
+      <p><strong>5.</strong> มั่นใจ 95% ว่าค่าจริงของ \(\beta_1\) อยู่ระหว่าง 0.41 ถึง 0.49</p>
+      <p><strong>6.</strong> \(R^2=0.9464\) — Miles อธิบายความผันแปรของ Cost ได้ 94.64%</p>
+      <p><strong>7.</strong> \(\hat\sigma^2 = MSE = 0.00214\) (จากตาราง ANOVA)</p>
+      <p><strong>8.</strong> \(\hat{Y}=0.64963+0.44673(3.62)=2.2668\) → ค่าใช้จ่ายเฉลี่ยที่คาดไว้ ≈ £226,680</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนนโดยสังเขป</div>
+      <p>ข้อ 3,4 ให้เต็มเฉพาะที่เขียนครบ 4 ท่อน (H0/H1, สถิติทดสอบ+distribution, p-value, สรุปมีบริบท); ข้อ 8 ต้องแสดงวิธีคำนวณ ไม่ใช่แค่คำตอบ</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 2 ลืมคูณ £100,000 กลับ; ข้อ 3/4 สรุปแค่ "reject H0" ไม่ผูกกับบริบท Miles/Cost; ข้อ 6 ตอบแค่ "94.64%" ไม่บอกว่าเป็นสัดส่วนของอะไร</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 2 — Lung Pressure: MLR + Diagnostics + Ridge [26 คะแนน]</h2>
+<div class="sec-note">MLR with interaction, diagnostics, multicollinearity remedy · L2, L4, L7</div>
+</div>
+
+<div class="exq" data-points="26">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[26 คะแนน]</span><span class="exq-tag">L2 / L4 / L7</span></div>
+  <div class="exq-body">
+    <p>คาร์ดิโอโลจิสต์ศึกษาความดันหลอดเลือดแดงในปอด (Y) จากตัวแปรที่วัดแบบไม่รุกล้ำ X1 (อัตราการไหลเข้าหัวใจ) และ X2 (อัตราการสูบออกจากหัวใจ) จาก 19 ผู้ป่วย COPD ฟิต <code>Y ~ X1*X2</code></p>
+    <div class="rout"><span class="rout-label">R output — summary(model)</span>Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 134.399866  15.981599   8.410 4.63e-07 ***
+X1           -2.133022   0.522157  -4.085 0.000975 ***
+X2           -1.699330   0.363669  -4.673 0.000300 ***
+X1:X2         0.033347   0.009283   3.592 0.002667 **
+
+Residual standard error: 10.58 on 15 degrees of freedom
+Multiple R-squared: 0.7922,     Adjusted R-squared: 0.7507
+
+> vif(predictors)
+  Variables       VIF
+1        X1  5.431477
+2        X2 11.639560
+3      X1X2 22.474469</div>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-resid-4panel.png" alt="Residuals plotted against fitted, X1, X2, and X1*X2; top row scattered randomly, bottom row shows bunching at low values with wider spread at higher values and one point at X1 about 13 sitting well above the rest">
+      <figcaption>residuals vs fitted และตัวแปรอิสระแต่ละตัว</figcaption>
+    </figure>
+    <figure>
+      <img src="../assets/exam-plots/ex-a4-lung-leverage.png" alt="Leverage spikes by case index with a blue dashed cutoff near 0.42; cases 3, 8, 15 rise above the cutoff, case 8 highest at about 0.88">
+      <figcaption>leverage, เส้นตัด \(2p/n=0.4210526\)</figcaption>
+    </figure>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียน fitted model</li>
+      <li>[2] ตีความว่าทำไมสัมประสิทธิ์ของ X1 <strong>เพียงตัวเดียว</strong> ไม่สามารถบอก "ผลของ X1 ต่อ Y" ได้ตรง ๆ ในโมเดลนี้</li>
+      <li>[3] จาก residual plot มี assumption ใดน่ากังวลบ้าง อ้างหลักฐานจากภาพ</li>
+      <li>[2] จาก leverage plot เคสใดเป็น outlying observation ใน X (ระบุกฎที่ใช้ด้วย)</li>
+      <li>[3] จากตาราง VIF มีปัญหา multicollinearity หรือไม่ อธิบายเหตุผล</li>
+      <li>[2] เสนอเครื่องมือแก้ปัญหาข้อ 5 พร้อมเหตุผลว่าทำไมเลือกวิธีนี้แทนการตัดตัวแปรทิ้ง</li>
+      <li>[3] ทำนาย Y ที่ X1=30, X2=50 แสดงวิธีคำนวณ</li>
+      <li>[3] เขียน 95% CI ของ \(\beta_{X1}\) และแปลผล จาก SE ที่ให้มาข้างต้น (ใช้ \(t_{(0.975,15)}\approx 2.131\))</li>
+      <li>[3] ทดสอบว่าพจน์ interaction มีนัยสำคัญหรือไม่ ที่ \(\alpha=0.05\) — เขียนครบทุกท่อน</li>
+      <li>[3] อธิบายว่าทำไมการตัดพจน์ X1:X2 ทิ้งโดยไม่ตัดพจน์เดี่ยว X1 หรือ X2 ออกด้วย จะขัดกับหลัก marginality</li>
+    </ol>
+  </div>
+  <textarea rows="10" placeholder="เขียนคำตอบทั้ง 10 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> \(\hat{Y} = 134.4 - 2.133 X_1 - 1.699 X_2 + 0.0333 X_1 X_2\)</p>
+      <p><strong>2.</strong> เพราะมีพจน์ interaction — ผลของ X1 ต่อ Y ขึ้นกับระดับของ X2 ด้วย (อนุพันธ์ย่อยของ Y เทียบ X1 คือ \(-2.133+0.0333X_2\) ซึ่งเปลี่ยนค่าไปตาม X2) จึงตอบเป็นตัวเลขเดียวไม่ได้ ต้องระบุค่า X2 ประกอบเสมอ</p>
+      <p><strong>3.</strong> "Nothing is outstanding in the top-left and top-right plots. The plots on the bottom panel seem to be problematic regarding the constant variance assumption. In addition, it appears that there is outlier in X1" (คำตัดสินอาจารย์) — แผงล่างกระจุกที่ค่าน้อยแล้วขยายเมื่อค่าโต และมีจุดที่ X1≈13 โดดจากกลุ่ม</p>
+      <p><strong>4.</strong> เคส 3, 8, 15 (ทะลุเส้น \(2p/n=0.421\), เคส 8 สูงสุด ≈0.88)</p>
+      <p><strong>5.</strong> มี — VIF ของ X2 (11.64) และ X1X2 (22.47) เกิน 10 ชัดเจน</p>
+      <p><strong>6.</strong> Ridge regression — เพราะทั้ง X1 และ X2 มีนัยสำคัญและมีความหมายทางคลินิก ไม่ควรตัดทิ้ง ridge ลดความไม่เสถียรของสัมประสิทธิ์โดยรักษาตัวแปรไว้ครบ แลกกับ bias เล็กน้อย</p>
+      <p><strong>7.</strong> \(\hat{Y}=134.4-2.133(30)-1.699(50)+0.0333(30)(50) = 134.4-63.99-84.97+50.0 = 35.5\)</p>
+      <p><strong>8.</strong> \(-2.133 \pm 2.131(0.522157) = -2.133\pm1.1127 \Rightarrow (-3.246,-1.020)\) — มั่นใจ 95% ว่า \(\beta_{X1}\) แท้จริงอยู่ในช่วงนี้ (ไม่ครอบคลุม 0 → นัยสำคัญ)</p>
+      <p><strong>9.</strong> \(H_0:\beta_{X1X2}=0\) vs \(H_1:\beta_{X1X2}\neq0\); t=3.592, df=15; p=0.002667 &lt; 0.05; ปฏิเสธ \(H_0\) — interaction มีนัยสำคัญ ผลของ X1 ต่อ Y ขึ้นกับ X2 จริง</p>
+      <p><strong>10.</strong> Marginality: ถ้ามี interaction อยู่ในโมเดล พจน์เดี่ยวของตัวแปรที่ประกอบเป็น interaction นั้นต้องอยู่ด้วยเสมอ มิฉะนั้นการตีความ/ค่าทำนายจะขึ้นกับหน่วยวัดของ X (ไม่ invariant ต่อการเลื่อนจุดศูนย์) และสัมประสิทธิ์ของพจน์เดี่ยวที่เหลือจะสูญเสียความหมาย</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนนโดยสังเขป</div>
+      <p>ข้อ 9 คิดคะแนนเหมือน hypothesis-test ritual ปกติ (4 ท่อน); ข้อ 7 ต้องแสดงวิธี ไม่ใช่แค่คำตอบ; ข้อ 3/4 ต้องอ้างหลักฐานจากภาพ ไม่ใช่ตอบลอย</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 7 ลืมพจน์ interaction; ข้อ 5 สับสน VIF กับ leverage; ข้อ 10 ตอบว่า "ไม่มีผล" โดยไม่อธิบายเรื่อง scale-dependence</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 3 — Cash Offers by Age Group [16 คะแนน]</h2>
+<div class="sec-note">Single-Factor ANOVA · L6</div>
+</div>
+
+<div class="exq" data-points="16">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[16 คะแนน]</span><span class="exq-tag">L6</span></div>
+  <div class="exq-body">
+    <p>องค์กรผู้บริโภคศึกษาผลของอายุเจ้าของรถต่อราคาเสนอซื้อรถมือสอง (หน่วยร้อยดอลลาร์) จาก 36 ดีลเลอร์ แบ่ง 3 กลุ่มอายุ กลุ่มละ 12 ราย</p>
+    <div class="rout"><span class="rout-label">R output</span>> print(model.tables(aovmodel, "means"))
+Grand mean
+23.55556
+ AgeGroup
+Elderly Middle  Young
+ 21.417 27.750 21.500
+
+> summary(aovmodel)
+            Df Sum Sq Mean Sq F value   Pr(>F)
+AgeGroup     2  316.7  158.36    63.6 4.77e-12 ***
+Residuals   33   82.2    2.49
+
+> TukeyHSD(aovmodel, conf.level=0.90)
+                   diff       lwr       upr     p adj
+Middle-Elderly    6.333     3.72      8.95   0.0000000
+Young-Elderly     0.083    -2.53      2.70   0.9743
+Young-Middle     -6.250    -8.87     -3.63   0.0000001</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียน cell means model พร้อมค่าตัวเลข</li>
+      <li>[2] เขียน factor effects model พร้อมค่าตัวเลข</li>
+      <li>[4] ทดสอบว่า factor level means เท่ากันทั้งหมดหรือไม่ ที่ \(\alpha=0.05\) — เขียนครบทุกท่อน</li>
+      <li>[2] จากผล Tukey คู่ใดต่างกันอย่างมีนัยสำคัญ คู่ใดไม่ต่าง</li>
+      <li>[3] เขียนประโยคแปลผลคู่เปรียบเทียบ Middle−Elderly ให้ครบองค์ประกอบ</li>
+      <li>[3] เจ้าของรถกลุ่ม Young คาดว่าจะได้รับข้อเสนอเท่าไร และเพราะเหตุใดค่าทำนายของทุกคนในกลุ่มเดียวกันจึงเท่ากันหมด</li>
+    </ol>
+  </div>
+  <textarea rows="8" placeholder="เขียนคำตอบทั้ง 6 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> \(\hat{Y}_{\text{Elderly}}=21.417,\ \hat{Y}_{\text{Middle}}=27.750,\ \hat{Y}_{\text{Young}}=21.500\)</p>
+      <p><strong>2.</strong> \(\hat{Y}_{ij}=\mu+\tau_i\); \(\mu=23.56\), \(\tau_{\text{Elderly}}=-2.14,\ \tau_{\text{Middle}}=4.19,\ \tau_{\text{Young}}=-2.06\)</p>
+      <p><strong>3.</strong> \(H_0:\mu_{\text{Elderly}}=\mu_{\text{Middle}}=\mu_{\text{Young}}\) vs \(H_1\): ไม่เป็นเช่นนั้น; F=63.6, \(F_{2,33}\); p=4.77e-12; ปฏิเสธ \(H_0\) — มีหลักฐานว่าราคาเสนอเฉลี่ยต่างกันในอย่างน้อย 2 กลุ่มอายุที่ระดับ 5%</p>
+      <p><strong>4.</strong> Middle−Elderly และ Young−Middle ต่างกันอย่างมีนัยสำคัญ (p adj ≈ 0 ทั้งคู่); Young−Elderly <strong>ไม่ต่าง</strong> (p adj = 0.9743, CI คร่อม 0)</p>
+      <p><strong>5.</strong> "ราคาเสนอเฉลี่ยของกลุ่ม Middle สูงกว่ากลุ่ม Elderly อยู่ 633 ดอลลาร์ อย่างมีนัยสำคัญที่ 90% family-wise confidence (CI: 372 ถึง 895 ดอลลาร์ ไม่ครอบคลุม 0)"</p>
+      <p><strong>6.</strong> 21.5×100=2,150 ดอลลาร์; เท่ากันหมดเพราะโมเดลมีตัวทำนายเดียวคือกลุ่มอายุ ซึ่งเป็นตัวแปรเชิงกลุ่ม ค่าทำนายที่ดีที่สุดจึงเป็นค่าเฉลี่ยกลุ่ม ไม่มีตัวแปรต่อเนื่องมาแยกความต่างในกลุ่ม</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สลับ cell means กับ factor effects; ข้อ 5 ลืมคูณ 100 (หน่วยดอลลาร์จริง) และลืม "อย่างมีนัยสำคัญ"</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 4 — Breast Cancer Diagnosis [22 คะแนน]</h2>
+<div class="sec-note">Logistic Regression · L8, L9</div>
+</div>
+
+<div class="exq" data-points="22">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[22 คะแนน]</span><span class="exq-tag">L8 / L9</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลเนื้องอกเต้านม 681 เคส (238 ราย malignant) ตัวแปร Class=1 คือ benign ฟิต binomial regression กับตัวแปรทั้งหมด</p>
+    <div class="rout"><span class="rout-label">R output — full model (บางส่วน)</span>Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.16678   1.41491   7.892 2.97e-15 ***
+Adhes       -0.39681   0.13384  -2.965  0.00303 **
+BNucl       -0.41478   0.10230  -4.055 5.02e-05 ***
+Chrom       -0.56456   0.18728  -3.014  0.00257 **
+Thick       -0.62675   0.15890  -3.944 8.01e-05 ***
+
+    Null deviance: 881.388  on 680  degrees of freedom
+Residual deviance:  89.464  on 671  degrees of freedom
+AIC: 109.46
+
+> hosmerlem(wbca$Class, model$fitted.values)
+      X^2       Df   P(>Chi)
+3.9019449 8.0000000 0.8658601
+
+> eta<-predict(reducedmod, newdata, se.fit=TRUE)
+$fit
+       1
+4.750162
+$se.fit
+[1] 0.5775932</div>
+    <ol style="margin:0.6em 0">
+      <li>[3] เขียนสมการโมเดล (นิยามพารามิเตอร์ก่อนเขียน)</li>
+      <li>[3] ตีความสัมประสิทธิ์ของ Thick ในเทอม odds ratio ให้ครบ</li>
+      <li>[3] ทำ goodness-of-fit test ที่ \(\alpha=0.05\) — เขียนครบทุกท่อน และอธิบายว่าทำไมต้องใช้ Hosmer-Lemeshow แทน deviance GOF ปกติ</li>
+      <li>[2] คำนวณความน่าจะเป็นที่ผู้ป่วยรายหนึ่งเป็น benign จาก \(\hat\eta=4.750162\)</li>
+      <li>[4] สร้าง 95% CI ของความน่าจะเป็นในข้อ 4 (ใช้ \(z=1.96\)) — แสดงลำดับขั้นตอนที่ถูกต้อง</li>
+      <li>[3] ถ้าใช้ cutoff \(\pi>0.5\)→benign จำแนกผู้ป่วยรายนี้อย่างไร ถ้าเปลี่ยน cutoff เป็น 0.9 จะเปลี่ยนคำตอบหรือไม่ อธิบายผลของการเปลี่ยน cutoff ต่อ sensitivity/specificity</li>
+      <li>[4] AIC ของโมเดลเต็มคือ 109.46 ถ้าอาจารย์ใช้ <code>step()</code> ตัดตัวแปรที่ไม่จำเป็นออกแล้วได้ AIC ต่ำกว่า จงอธิบายว่าทำไม AIC ที่ต่ำกว่าจึง "ดีกว่า" ทั้งที่ deviance อาจสูงขึ้นเล็กน้อย</li>
+    </ol>
+  </div>
+  <textarea rows="9" placeholder="เขียนคำตอบทั้ง 7 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> Let \(\pi\) = probability of benign. \(\text{logit}(\hat\pi)=11.17-0.40\,\text{Adhes}-0.41\,\text{BNucl}-0.56\,\text{Chrom}-\cdots-0.63\,\text{Thick}\)</p>
+      <p><strong>2.</strong> \(\exp(-0.62675)=0.534\) — เมื่อ Thick เพิ่มขึ้น 1 หน่วย odds ที่เนื้องอกเป็น benign ลดลงเหลือ 53.4% ของเดิม (ลดลง 46.6%) โดยตัวแปรอื่นคงที่ — สอดคล้องกับที่ Thick เป็นตัวชี้วัดความร้ายแรง ยิ่งหนายิ่งมีแนวโน้มเป็นมะเร็งมากขึ้น</p>
+      <p><strong>3.</strong> \(H_0\): โมเดล fit ข้อมูล vs \(H_1\): ไม่ fit; \(X^2=3.902,\ df=8\); p=0.8659; <strong>ไม่ปฏิเสธ</strong> \(H_0\) — โมเดล fit ข้อมูลได้ดีเพียงพอ ต้องใช้ Hosmer-Lemeshow เพราะข้อมูลเป็นรายบุคคล (\(n_i=1\) ทุกแถว) ทำให้ deviance ไม่ตามการแจกแจง \(\chi^2\) โดยประมาณ</p>
+      <p><strong>4.</strong> \(\hat\pi=\dfrac{e^{4.750162}}{1+e^{4.750162}}=0.9914\)</p>
+      <p><strong>5.</strong> สร้างบนสเกล logit ก่อน: \(4.750162\pm1.96(0.5775932)=(3.618,5.882)\) แล้วแปลงกลับ: \((0.9739,\ 0.9972)\)</p>
+      <p><strong>6.</strong> ทั้งสอง cutoff (0.5 และ 0.9) จำแนกเป็น benign เหมือนกัน เพราะ \(\hat\pi\) สูงมาก; การยกเกณฑ์ขึ้นทำให้ sensitivity ต่อ malignant สูงขึ้น (จับมะเร็งได้มากขึ้น) แต่ specificity ลดลง (เตือนผิดมากขึ้น)</p>
+      <p><strong>7.</strong> AIC ลงโทษความซับซ้อนด้วยพจน์ \(2(p+1)\) — โมเดลที่ตัดตัวแปรไม่จำเป็นออกอาจมี deviance สูงขึ้นเล็กน้อยแต่ประหยัดพารามิเตอร์มากกว่า ถ้า AIC รวมต่ำกว่า แปลว่าความคุ้มค่า (fit ที่ได้ต่อพารามิเตอร์ที่เสีย) ดีกว่า — โมเดลเล็กกว่ามักทำนายข้อมูลใหม่ได้ดีกว่าเพราะ overfit น้อยกว่า</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 5 คำนวณ CI บนสเกลความน่าจะเป็นตรง ๆ (\(0.99\pm1.96\times0.578\)) จะได้ช่วงที่ทะลุ 1 — ต้องทำบนสเกล link ก่อนเสมอ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ข้อ 5 — Salmonella Mutagenicity Assay [22 คะแนน]</h2>
+<div class="sec-note">Poisson vs Negative Binomial · L11</div>
+</div>
+
+<div class="exq" data-points="22">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[22 คะแนน]</span><span class="exq-tag">L11</span></div>
+  <div class="exq-body">
+    <p>ทดลอง salmonella reverse mutagenicity: นับจำนวนโคโลนีที่กลายพันธุ์กลับ (colonies) ตามระดับยา (dose) 6 ระดับ ทำซ้ำระดับละ 3 จาน</p>
+    <div class="rout"><span class="rout-label">R output — Poisson</span>Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.163e+00  6.701e-02  47.202  < 2e-16 ***
+dose         2.507e-03  5.122e-04   4.895 9.84e-07 ***
+I(dose^2)   -2.294e-06  4.937e-07  -4.647 3.36e-06 ***
+
+    Null deviance: 78.358  on 17  degrees of freedom
+Residual deviance: 55.535  on 15  degrees of freedom
+AIC: 154.07
+
+> 1-pchisq(deviance(model), model$df.residual)
+[1] 1.451732e-06
+> sum(residuals(model,type="pearson")^2)/model$df.residual
+[1] 4.126227</div>
+    <div class="rout"><span class="rout-label">R output — Negative Binomial</span>glm.nb(formula = colonies ~ dose + I(dose^2), data = salmonella,
+    init.theta = 14.30585996, link = log)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.143e+00  1.120e-01  28.061  < 2e-16 ***
+dose         2.751e-03  9.572e-04   2.874  0.00405 **
+I(dose^2)   -2.518e-06  9.280e-07  -2.713  0.00667 **
+
+Residual deviance: 17.626  on 15  degrees of freedom
+AIC: 137.69
+Theta:  14.31  Std. Err.: 6.97
+
+> 1-pchisq(deviance(nbmodel), nbmodel$df.residual)
+[1] 0.2828136</div>
+    <ol style="margin:0.6em 0">
+      <li>[2] เขียนสมการโมเดล Poisson (นิยามพารามิเตอร์ก่อน)</li>
+      <li>[3] ทำ goodness-of-fit test ของ Poisson model ที่ \(\alpha=0.05\) — เขียนครบทุกท่อน</li>
+      <li>[3] อ่านค่า dispersion parameter ที่คำนวณได้ (4.126227) แล้วสรุปว่าเกิดอะไรขึ้น พร้อมเสนอทางแก้ 2 วิธี</li>
+      <li>[2] เขียนสมการโมเดล Negative Binomial พร้อมค่า \(\hat\theta\)</li>
+      <li>[3] ทำ GOF test ของ NB model — สรุปว่าดีขึ้นจาก Poisson หรือไม่ อย่างไร</li>
+      <li>[3] เปรียบเทียบ AIC ของทั้งสองโมเดล (154.07 vs 137.69) แล้วตัดสินว่าโมเดลใดเหมาะสมกว่า พร้อมเหตุผลประกอบจาก GOF</li>
+      <li>[3] ทำนายจำนวนโคโลนีที่คาดหวังที่ dose=100 โดยใช้ NB model แสดงวิธีคำนวณ</li>
+      <li>[3] เขียนประโยค rate ratio interpretation ของสัมประสิทธิ์ dose ในโมเดล NB (\(\hat\beta=2.751\times10^{-3}\)) คูณสเกลเป็นช่วง 100 หน่วยให้อ่านง่ายขึ้น</li>
+    </ol>
+  </div>
+  <textarea rows="9" placeholder="เขียนคำตอบทั้ง 8 ข้อย่อยที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>1.</strong> Let \(\mu\) = average number of revertant colonies. \(\log(\hat\mu)=3.163+0.002507\,\text{dose}-0.000002294\,\text{dose}^2\)</p>
+      <p><strong>2.</strong> \(H_0\): โมเดล fit ข้อมูล vs \(H_1\): ไม่ fit; deviance=55.535, df=15; p=1.45e-06; ปฏิเสธ \(H_0\) — โมเดลไม่ fit ข้อมูลที่ระดับ 5%</p>
+      <p><strong>3.</strong> dispersion=4.13 ≫ 1 → มี overdispersion ชัดเจน (variance สูงกว่าที่ Poisson ตั้งไว้ราว 4 เท่า); แก้ได้ด้วย quasi-Poisson (ปรับ SE) หรือ Negative Binomial (เปลี่ยนตัวแบบ)</p>
+      <p><strong>4.</strong> Let \(\mu\) = average number of revertant colonies. \(\log(\hat\mu)=3.14+0.0028\,\text{dose}-0.0000025\,\text{dose}^2\); \(\hat\theta=14.31\) (SE=6.97)</p>
+      <p><strong>5.</strong> deviance=17.626, df=15; p=0.2828 &gt; 0.05; <strong>ไม่ปฏิเสธ</strong> \(H_0\) — NB fit ข้อมูลได้ดี ต่างจาก Poisson ที่ถูกปฏิเสธชัดเจน (p=1.45e-06) → NB ดีขึ้นมาก</p>
+      <p><strong>6.</strong> NB (AIC=137.69) ต่ำกว่า Poisson (AIC=154.07) มาก และ GOF ของ NB ผ่านขณะที่ Poisson ไม่ผ่าน → <strong>เลือก Negative Binomial</strong></p>
+      <p><strong>7.</strong> \(\log(\hat\mu)=3.143+0.002751(100)-0.000002518(100)^2=3.143+0.2751-0.02518=3.393\); \(\hat\mu=e^{3.393}=29.75\) โคโลนี</p>
+      <p><strong>8.</strong> \(\exp(0.002751\times100)=\exp(0.2751)=1.317\) — ทุกการเพิ่มระดับยา 100 หน่วย จำนวนโคโลนีที่คาดหวังเพิ่มเป็น 1.317 เท่าของเดิม (เพิ่มขึ้นประมาณ 31.7%)</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ข้อ 6 เลือกจาก AIC อย่างเดียวโดยไม่อ้าง GOF ประกอบ — คำตอบถูกแต่เหตุผลไม่ครบ</p>
+      <p>ข้อ 7 ลืมพจน์กำลังสองของ dose หรือ exponentiate ผิดขั้นตอน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-06-predict-and-explain.html">← Drill 6</a></span>
+  <span><a href="mock-exam-b.html">Mock Exam B →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

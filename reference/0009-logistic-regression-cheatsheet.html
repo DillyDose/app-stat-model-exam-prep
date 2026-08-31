@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Logistic Regression Formulas + Interpretation Template</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 9</span>
+  <span><a href="../lessons/0009-binary-data.html">← Lesson 9: Binary Data</a></span>
+</nav>
+
+<p class="kicker">Lecture 9 — Binary Data</p>
+<h1>Logistic Regression: สมการ + Interpretation Template (Log-odds/Odds Ratio/Probability)</h1>
+
+<p>สรุปสมการ logistic regression และ template แปลผลสัมประสิทธิ์ — <strong>ทักษะที่ออกสอบหนักที่สุดในวิชานี้ทั้งเทอม</strong> ตาม MISSION.md — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. โมเดลและ Logit Link</h2>
+<div class="box source">
+\(Y_i \sim \text{Bernoulli}(\pi_i)\) ⟺ \(\text{Binomial}(1, \pi_i)\), &nbsp;\(\text{Mean}[Y_i]=\pi_i\), &nbsp;\(\text{Variance}[Y_i]=\pi_i(1-\pi_i)\)
+<p>เป็นกรณีพิเศษของ GLM: random component = Bernoulli, canonical link = logit</p>
+</div>
+<div class="box win">
+\[\text{logit}(\pi_i) = \log\left(\dfrac{\pi_i}{1-\pi_i}\right) = \beta_0 + \beta_1 X_{i1} + \cdots + \beta_p X_{ip}\]  (= \(\eta_i\), linear predictor)
+</div>
+<p>ฟังก์ชันผกผัน (logistic function): \(\pi_i = \dfrac{e^{\eta_i}}{1+e^{\eta_i}}\)</p>
+<p><strong>Odds:</strong> \(\omega = \dfrac{\pi}{1-\pi}\) — อัตราส่วน "เกิด : ไม่เกิด" (ขอบเขต [0,∞) ต่างจาก π ที่มีขอบเขต [0,1]) &nbsp;|&nbsp; \(\text{logit}(\pi) = \log(\omega)\)</p>
+
+<h2>2. ★ ทักษะสำคัญที่สุด: Interpretation Template 3 ระดับ ★</h2>
+<div class="box win">
+<div class="label">แปลผล β̂_k ได้ 3 แบบ — ใช้ตอบข้อสอบเสมอ</div>
+<p><strong>(1) Log-odds:</strong> "เมื่อ [X_k] เพิ่มขึ้น 1 [หน่วย] โดยตัวแปรอื่นคงที่ log-odds ของ [outcome=1] เปลี่ยนไป [β̂_k] หน่วย (บวก=เพิ่ม, ลบ=ลด)"</p>
+<p><strong>(2) Odds ratio (ตอบสอบบ่อยที่สุด):</strong> "odds ของ [outcome=1] เปลี่ยนเป็น \(\exp(\hat{\beta}_k)\) เท่า ทุก 1 [หน่วย] ที่ [X_k] เพิ่มขึ้น โดยตัวแปรอื่นคงที่" — ถ้า \(\exp(\hat{\beta}_k) > 1\): "odds เพิ่มขึ้น [\((\exp(\hat{\beta}_k)-1)\times 100\)]%"; ถ้า \(\exp(\hat{\beta}_k) < 1\): "odds ลดลงเหลือ [\(\exp(\hat{\beta}_k)\times 100\)]% ของเดิม" หรือกลับเศษส่วน \(1/\exp(\hat{\beta}_k)\) พูดว่า "กลุ่มอ้างอิง odds สูงกว่า [\(1/\exp(\hat{\beta}_k)\)] เท่า"</p>
+<p><strong>(3) Probability ที่จุด X เฉพาะเจาะจง:</strong> <code>predict(model, newdata, type="response")</code> → π̂ ตรง ๆ แล้วพูดว่า "ที่ [X_k]=[ค่า] และตัวแปรอื่น=[ค่า] ความน่าจะเป็นของ [outcome=1] คือ [π̂]" — <strong>ต้องระบุจุด X เสมอ</strong> เพราะผลของ X ต่อ π ไม่คงที่ (ต่างจาก log-odds ที่คงที่เสมอ)</p>
+<p><strong>ห้ามใช้:</strong> "ทำให้"/"เป็นสาเหตุของ" กับข้อมูล observational — ใช้ "สัมพันธ์กับ" แทน เว้นแต่มาจาก randomized experiment</p>
+</div>
+<div class="box">
+<div class="label">สูตร Odds Ratio ระหว่างสองจุด X=A vs X=B</div>
+\[\dfrac{\omega_A}{\omega_B} = \exp\{\beta_1(A-B)\}\] — A คือค่าที่อยู่ "เศษ" (กลุ่ม/ค่าที่ต้องการเทียบ), B คือค่าที่อยู่ "ส่วน" (กลุ่มอ้างอิง) — สลับ A,B แล้วจะได้ผลกลับเศษส่วน (1/เดิม) ซึ่งตอบคนละคำถาม
+</div>
+
+<h2>3. อ่าน <code>summary(glm(family=binomial))</code> เทียบกับ <code>summary(lm())</code></h2>
+<table>
+<tr><th>ส่วนของ Output</th><th><code>lm()</code></th><th><code>glm(family=binomial)</code></th></tr>
+<tr><td>สถิติทดสอบ coefficient</td><td>t value (exact t-dist)</td><td>z value (Wald, asymptotic N(0,1)) — สูตรหน้าตาเดียวกัน (Estimate/SE) แต่ referenced distribution เปลี่ยน</td></tr>
+<tr><td>Dispersion parameter</td><td>ไม่มีบรรทัดนี้</td><td>บรรทัดใหม่ — สำหรับ binomial family ตรึงไว้ที่ 1 เสมอ (ไม่มี scale parameter แยก)</td></tr>
+<tr><td>Deviance</td><td>ไม่มี — มี SST/SSE แทน</td><td>Null deviance (≈SST, โมเดล intercept-only), Residual deviance (≈SSE, โมเดลเต็ม)</td></tr>
+<tr><td>R² / F-statistic</td><td>มีในบรรทัดท้าย</td><td><strong>ไม่มีเลย</strong> — ต้องคำนวณ pseudo R² (Nagelkerke) เอง</td></tr>
+<tr><td>AIC</td><td>ไม่มี</td><td>บรรทัดใหม่ — เทียบโมเดลไม่ nested กันได้ ยิ่งน้อยยิ่งดี</td></tr>
+<tr><td>Fisher Scoring iterations</td><td>ไม่มี (closed-form)</td><td>บรรทัดใหม่ — MLE ไม่มี closed-form ต้องวนซ้ำ (IRWLS)</td></tr>
+</table>
+<div class="box">
+\[R^2 = \dfrac{1 - \exp\left[\dfrac{D(\hat{\beta})-D_{null}}{n}\right]}{1 - \exp\left[-\dfrac{D_{null}}{n}\right]}\] — อยู่บนสเกล 0–1 แต่<strong>ไม่ตีความ</strong>เป็น "สัดส่วนความแปรปรวนที่อธิบายได้" แบบ R² จริง
+</div>
+
+<h2>4. Goodness-of-Fit และ Hypothesis Testing</h2>
+<table>
+<tr><th>การทดสอบ</th><th>H₀ / สถิติ</th><th>กฎการตัดสินใจ</th></tr>
+<tr><td>Hosmer-Lemeshow</td><td>โมเดล fit ข้อมูล — χ²(g−2), g≈10 กลุ่มตาม π̂</td><td>p สูง (&gt;0.05) → ไม่ปฏิเสธ H₀ → โมเดลใช้ได้ (สลับทิศจาก test ปกติ)</td></tr>
+<tr><td>Wald's Test (β_k เดี่ยว)</td><td>\(z = \dfrac{\hat{\beta}_k - \beta_k}{SE} \sim N(0,1)\)</td><td>ดูจากตาราง Coefficients ตรง ๆ</td></tr>
+<tr><td>Likelihood Ratio Test (drop-in-deviance)</td><td>\(D(\hat{\beta}_{reduced}) - D(\hat{\beta}_{full}) \sim \chi^2_{df}\)</td><td>ใช้ทดสอบหลายตัวพร้อมกันได้ (LRT วิธีเดียวที่ใช้ได้จริงตรงนี้)</td></tr>
+</table>
+<pre><code>tmod1 <- update(fullmodel, .~.-varname)
+pchisq(deviance(tmod1)-deviance(fullmodel), df=1, lower=F)   # LRT p-value ของตัวแปรเดียว
+
+LRT <- deviance(redmodel)-deviance(fullmodel)
+1-pchisq(LRT, df.residual(redmodel)-df.residual(fullmodel))  # LRT ของหลายตัวแปรพร้อมกัน</code></pre>
+
+<h2>5. Prospective vs Retrospective (Case-Control)</h2>
+<div class="box win">
+ใน retrospective/case-control study: <strong>Intercept ไม่ใช่ค่าประมาณของ prospective intercept ที่แท้จริง</strong> (สัดส่วน case:control ถูกกำหนดโดยนักวิจัย ไม่ใช่สัดส่วนในประชากร) แต่ <strong>สัมประสิทธิ์ของตัวแปรอิสระยังคงประมาณได้ถูกต้อง และแปลผลได้แบบเดียวกับ prospective study ทุกประการ</strong>
+</div>
+
+<h2>6. Model Selection: AIC vs BIC</h2>
+<div class="box">
+\(AIC = \text{Deviance} + 2(p+1)\), &nbsp;\(BIC = \text{Deviance} + (p+1)\log(N)\)
+<p>BIC ลงโทษพารามิเตอร์แรงกว่า AIC เมื่อ N มาก (log(N)&gt;2 เมื่อ N&gt;e²≈7.4) → BIC มักเลือกโมเดลกระชับกว่า</p>
+</div>
+<pre><code>step(fullmodel, trace=F)                 # AIC-based stepwise
+step(fullmodel, k=log(N), trace=F)       # BIC-based stepwise</code></pre>
+
+<h2>7. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit โมเดล</td><td><code>glm(y~x1+x2, data=data, family=binomial)</code> (default link=logit)</td></tr>
+<tr><td>ทำนาย log-odds (η̂)</td><td><code>predict(model, newdata, type="link")</code></td></tr>
+<tr><td>ทำนายความน่าจะเป็น (π̂)</td><td><code>predict(model, newdata, type="response")</code></td></tr>
+<tr><td>CI ของ π̂ (ทำถูกวิธี)</td><td>สร้าง CI ของ η̂ ก่อน (<code>se.fit=TRUE</code>) แล้วแปลงกลับด้วย logistic function — ห้ามสร้าง CI ของ π̂ ตรง ๆ</td></tr>
+<tr><td>Cook's distance</td><td><code>plot(model, 4)</code> — cutoff คร่าว ๆ \(4/n\)</td></tr>
+<tr><td>Confusion matrix metrics</td><td>\(\text{Precision} = \dfrac{TP}{TP+FP}\), \(\text{Recall} = \dfrac{TP}{TP+FN}\), \(\text{Specificity} = \dfrac{TN}{TN+FP}\), \(F_1 = \dfrac{2PR}{P+R}\)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Multinomial Data Formulas + Interpretation Template Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 12</span>
+  <span><a href="../lessons/0012-multinomial-data.html">← Lesson 12: Multinomial Data</a></span>
+</nav>
+
+<p class="kicker">Lecture 12 — Multinomial Data</p>
+<h1>Baseline-Category Logit + Proportional Odds — Formulas &amp; Interpretation Cheat Sheet</h1>
+
+<p>สรุปสูตรทั้งสองโมเดล + template แปลผลที่ต้องระบุ baseline เสมอ + คู่มืออ่าน <code>multinom()</code>/<code>polr()</code> — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. เลือกโมเดลให้ถูกก่อนเขียนสมการ: Nominal vs Ordinal</h2>
+<table>
+<tr><th>ชนิด response</th><th>ตัวอย่าง</th><th>โมเดล</th><th>R function</th></tr>
+<tr><td>Nominal (ไม่มีลำดับ)</td><td>สีที่ชอบ, พรรคที่สังกัด, แผนกที่ติดต่อ</td><td>Baseline-category logistic model</td><td><code>multinom()</code> — package <code>nnet</code></td></tr>
+<tr><td>Ordinal (มีลำดับ)</td><td>อายุกลุ่ม, Likert scale, ระดับความเสี่ยง</td><td>Proportional odds model</td><td><code>polr()</code> — package <code>MASS</code></td></tr>
+</table>
+<div class="box">
+\(\pi_j = P(\text{Category } j) \geq 0\), &nbsp;\(\sum \pi_j = 1\) (j=1..J) — รู้แค่ <strong>J−1</strong> probability ก็พอ จึงเป็นที่มาว่าทุกโมเดลในบทนี้มีแค่ <strong>J−1 สมการ</strong> ไม่ใช่ J สมการ
+</div>
+
+<h2>2. Baseline-Category Logit Model — สมการ (J−1 สมการพร้อมกัน)</h2>
+<div class="box win">
+\[\log\left[\dfrac{\pi_j(x_i)}{\pi_1(x_i)}\right] = \beta_{0j} + \beta_{1j}\cdot x_{i1} + \cdots + \beta_{pj}\cdot x_{i,p}\], &nbsp;สำหรับ j = 2, 3, …, J
+</div>
+<p><strong>อ่านให้ถูก:</strong> ไม่ใช่สมการเดียว — J category ⟹ J−1 สมการ แต่ละสมการมีชุด β เป็นของตัวเอง (subscript j ติดทุก β) เทียบกับ baseline (category 1) เสมอ — เปลี่ยน baseline แล้วค่า \(\hat{\beta}\) เปลี่ยน แต่ fitted probabilities \(\hat{\pi}_j(x)\) และ prediction ไม่เปลี่ยน (โมเดลเดียวกันเขียนคนละมุมมอง)</p>
+<p>Logit ระหว่าง 2 category ที่ไม่ใช่ baseline: \(\log[\pi_j(x)/\pi_k(x)] = \log[\pi_j(x)/\pi_1(x)] - \log[\pi_k(x)/\pi_1(x)] = x(\beta_j-\beta_k)\) — เอาสัมประสิทธิ์ 2 สมการมาลบกันตรง ๆ</p>
+<p>Softmax (ความน่าจะเป็นจาก log-odds):</p>
+<div class="box">
+\[\pi_1(x_i) = \dfrac{1}{1 + \sum_{k=2}^{J} \exp(x_i \beta_k)}\] (baseline)<br>
+\[\pi_j(x_i) = \dfrac{\exp(x_i \beta_j)}{1 + \sum_{k=2}^{J} \exp(x_i \beta_k)}\], j=2,…,J
+</div>
+
+<h2>3. Interpretation Template — ต้องระบุ Baseline เสมอ (ทักษะที่ออกสอบหนักที่สุด)</h2>
+<div class="box win">
+<div class="label">Template สำหรับสัมประสิทธิ์ \(\hat{\beta}_{pj}\) (ตัวแปร \(X_p\) ในสมการของ category j)</div>
+<p>"\(\exp(\hat{\beta}_{pj})\) คือตัวคูณ (multiplicative factor) ของการเปลี่ยนแปลง odds ของ <strong>category j เทียบกับ baseline category</strong> เมื่อ \(X_p\) เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่"</p>
+<p><strong>ต้องระบุชื่อ baseline category ทุกครั้งที่แปลผล</strong> — สัมประสิทธิ์ตัวเดียวกันความหมายเปลี่ยนไปทันทีถ้าเลือก baseline คนละตัว (nominal ที่ J&gt;2 ไม่มี "the" reference โดยธรรมชาติแบบ binary logistic — ต้องประกาศเองเสมอ)</p>
+</div>
+<p>องค์ประกอบที่ขาดไม่ได้: (1) หน่วยของ X ที่เปลี่ยน (2) ชื่อ category ที่กำลังพูดถึง (3) <strong>ชื่อ baseline category ระบุชัดเจน</strong> (4) คำว่า "multiplicative"/"เท่าของเดิม" ไม่ใช่ "increase/decrease" ตรง ๆ</p>
+
+<h2>4. Proportional Odds Model — สมการ (\(\beta\) ชุดเดียว, \(\theta_j\) เปลี่ยนตาม level)</h2>
+<div class="box">
+\(\gamma_j = P(Y \leq j) = \sum P(Y=k)\) สำหรับ k ≤ j &nbsp;(cumulative probability)
+</div>
+<div class="box win">
+\[\log\left[\dfrac{\gamma_j(x_i)}{1 - \gamma_j(x_i)}\right] = \theta_j - \beta\cdot x_i\], &nbsp;สำหรับ j = 1, …, J−1
+</div>
+<p>โครงสร้างประโยคแปลผล: <strong>ไม่ต้องระบุ baseline</strong> (ไม่มีแนวคิดนี้) แต่ต้องพูดถึง<strong>ทิศทางของการเปรียบเทียบตามลำดับ</strong> ("moving from lower category to higher category") — ตัวอย่าง: "The odds of moving to a higher category decrease by a multiplicative factor of \(\exp(\hat{\beta})\) as X increases by one unit" — คำนวณ P(category กลาง) จากการ<strong>ลบ cumulative probability ที่ติดกัน</strong>: \(P(\text{category } j) = \hat{\gamma}_j - \hat{\gamma}_{j-1}\)</p>
+
+<h2>5. Baseline-Category Logit vs Proportional Odds — ต่างกันตรงไหน</h2>
+<table>
+<tr><th></th><th>Baseline-Category Logit</th><th>Proportional Odds</th></tr>
+<tr><td>Slope \(\beta\)</td><td>แยกชุดต่อ category (\(\beta_j\))</td><td>ชุดเดียวใช้ร่วมกันทุก j</td></tr>
+<tr><td>Intercept</td><td>แยกต่อ category</td><td>\(\theta_j\) เปลี่ยนตาม level (threshold)</td></tr>
+<tr><td>จำนวนพารามิเตอร์</td><td>\((J-1)\times(p+1)\)</td><td>\((J-1)+p\) (น้อยกว่า)</td></tr>
+<tr><td>Assumption พิเศษ</td><td>ไม่มี</td><td>Proportional odds (parallel regression) — ต้องเช็คด้วย Brant Test</td></tr>
+<tr><td>ต้องระบุ baseline ตอนแปลผล?</td><td>ใช่ เสมอ</td><td>ไม่ใช้ — ใช้ทิศทาง "moving to higher category" แทน</td></tr>
+<tr><td>R function</td><td><code>multinom()</code> (nnet)</td><td><code>polr()</code> (MASS)</td></tr>
+</table>
+
+<h2>6. Brant Test — เช็ค Proportional Odds Assumption</h2>
+<div class="box">
+\(H_0\): Proportional odds (parallel regression) assumption holds — สัมประสิทธิ์เท่ากันในทุก cumulative logit<br>
+\(H_1\): มีตัวแปรอย่างน้อยหนึ่งตัวละเมิด proportionality
+</div>
+<p>อ่านผล: แถว <strong>Omnibus</strong> p&lt;0.05 → ปฏิเสธ \(H_0\) (assumption ถูกละเมิด) → ดู p-value รายตัวแปรเพื่อหาตัวการ → ตัดตัวที่เป็นปัญหาออก → เช็คซ้ำ — ต้องชั่งน้ำหนัก: ตัดตัวแปรที่ทำนายดีที่สุดออกเพื่อให้ assumption ผ่าน อาจไม่คุ้มเสมอไป (อาจพิจารณา baseline-category logit แทน เพราะไม่มี assumption นี้ตั้งแต่แรก)</p>
+
+<h2>7. Inference: Wald Test vs LRT</h2>
+<p><strong>Wald test</strong> (จาก Estimate/Std.Error ใน <code>summary()</code>) ทดสอบ β ทีละตัว — <strong>ไม่นิยม</strong>เพราะตัดตัวแปร x หนึ่งตัวกระทบสัมประสิทธิ์ทั้ง J−1 สมการพร้อมกัน<br>
+<strong>LRT</strong> เทียบ nested models — ทดสอบผลรวมของการตัดตัวแปรได้ในครั้งเดียว จึงเป็นตัวหลัก</p>
+<pre><code>pchisq(deviance(model2)-deviance(model), model$edf-model2$edf, lower=F)
+# หรือ
+anova(model2, model, test="Chisq")</code></pre>
+
+<h2>8. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit baseline-category logit</td><td><code>library(nnet); multinom(cbind(cat1,cat2,cat3)~x, data=data)</code></td></tr>
+<tr><td>Fit proportional odds</td><td><code>library(MASS); polr(y~x, data=data)</code></td></tr>
+<tr><td>Predict probability</td><td><code>predict(model, newdata, type="prob")</code></td></tr>
+<tr><td>Predict class</td><td><code>predict(model, newdata, type="class")</code> (default) — เลือก category ที่มี \(\hat{\pi}\) สูงสุด ไม่ใช่ threshold 0.5</td></tr>
+<tr><td>Stepwise AIC selection</td><td><code>step(model)</code></td></tr>
+<tr><td>GOF (grouped data)</td><td><code>1-pchisq(deviance(model), n*(J-1)-edf)</code></td></tr>
+<tr><td>GOF (ungrouped data)</td><td><code>library(generalhoslem); logitgof(y, fitted(model), ord=FALSE)</code></td></tr>
+<tr><td>Brant test</td><td><code>library(brant); brant(polr_model)</code></td></tr>
+<tr><td>ความน่าจะเป็นสะสม → รายหมวด</td><td><code>ilogit(theta_j)</code> แล้วลบค่าที่ติดกัน</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Gamma / Inverse Gaussian GLM Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 13</span>
+  <span><a href="../lessons/0013-other-glms.html">← Lesson 13: Other GLMs</a></span>
+</nav>
+
+<p class="kicker">Lecture 13 — Other GLMs</p>
+<h1>Gamma / Inverse Gaussian GLM Formulas + Link Selection Cheat Sheet</h1>
+
+<p>สรุปสูตร variance function ของแต่ละ family, ตารางเปรียบเทียบกลาง (centerpiece), และ template แปลผลแบบ multiplicative เหมือน Poisson — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. เมื่อไรต้องใช้ Gamma / Inverse Gaussian แทน Normal</h2>
+<div class="box source">
+<p>Binomial, Gaussian, Poisson ใช้บ่อยที่สุด — <strong>Gamma</strong> และ <strong>Inverse Gaussian</strong> ออกแบบมาสำหรับ<strong>ข้อมูลต่อเนื่อง เป็นบวกเสมอ และเบ้ขวา</strong> (เช่น เวลาถึงจุดเสียหาย, ค่าเคลมประกัน, resistivity) ที่ normal linear regression (error สมมาตร, variance คงที่) ไม่เหมาะ</p>
+</div>
+<p>ที่มาของ Gamma: ถ้า \(\text{Var}(Y_i) = \sigma^2\mu_i^2\) (variance โตแบบกำลังสองตามค่าเฉลี่ย) การ log-transform Y จะได้ \(\text{Var}(\log Y_i) \approx \sigma^2\) คงที่ ("variance stabilizing") — ทางเลือกที่ไม่ต้อง log (ทำงานบนสเกลเดิม) คือ gamma GLM ซึ่งมี variance function เป็น \(\mu^2\) อยู่แล้วในตัว</p>
+
+<h2>2. สูตรแต่ละ Family</h2>
+<table>
+<tr><th></th><th>Gamma</th><th>Inverse Gaussian</th></tr>
+<tr><td>Density</td><td>\(f(y)=\dfrac{1}{\Gamma(\nu)}\left(\dfrac{\nu}{\mu}\right)^\nu y^{\nu-1} \exp\!\left(-\dfrac{y\nu}{\mu}\right)\), \(y>0\)</td><td>\(f(y|\mu,\lambda)=\sqrt{\dfrac{\lambda}{2\pi y^3}} \exp\!\left(-\dfrac{\lambda(y-\mu)^2}{2\mu^2 y}\right)\), \(y,\mu,\lambda>0\)</td></tr>
+<tr><td>E[Y]</td><td>\(\mu\)</td><td>\(\mu\)</td></tr>
+<tr><td>Var(Y)</td><td>\(\dfrac{\mu^2}{\nu}\) &nbsp;\(\propto\) <strong>\(\mu^2\)</strong></td><td>\(\dfrac{\mu^3}{\lambda}\) &nbsp;\(\propto\) <strong>\(\mu^3\)</strong> (โตเร็วกว่า)</td></tr>
+<tr><td>Canonical parameter \(\theta\)</td><td>\(-1/\mu\)</td><td>\(-1/\mu^2\)</td></tr>
+<tr><td>Dispersion \(\phi\)</td><td>\(\nu^{-1}\)</td><td>\(2/\lambda\)</td></tr>
+<tr><td>Canonical link</td><td>\(\eta=1/\mu\) (inverse)</td><td>\(\eta=1/\mu^2\)</td></tr>
+</table>
+
+<h2>3. เลือก Link Function — เหตุผลของแต่ละแบบ (ไม่ใช่แค่รายชื่อสูตร)</h2>
+<table>
+<tr><th>Link</th><th>สูตร</th><th>เมื่อไรควรใช้</th></tr>
+<tr><td>Canonical (inverse)</td><td>\(\eta=1/\mu\)</td><td>เหมาะเมื่อรู้อยู่แล้วว่า mean response มีขอบเขต (bounded) — ไม่การันตี \(\mu&gt;0\) เสมอไป</td></tr>
+<tr><td>Log</td><td>\(\eta=\log(\mu)\)</td><td>ใช้บ่อยที่สุด — เมื่อสงสัยว่าผลของ X เป็นแบบ <strong>คูณ (multiplicative)</strong> กับค่าเฉลี่ย; เมื่อ variance เล็ก ให้ผลใกล้เคียง Gaussian model ที่ log(Y) แล้ว</td></tr>
+<tr><td>Linear (identity)</td><td>\(\eta=\mu\)</td><td>เหมาะกับการโมเดล sum of squares/variance component ที่เป็น \(\chi^2\) (กรณีพิเศษของ gamma)</td></tr>
+<tr><td>Identity (IG เท่านั้น)</td><td>\(\eta=\mu\)</td><td>ทางเลือกของ inverse Gaussian — มักแปลผลยากกว่า log</td></tr>
+</table>
+
+<h2>4. ตารางเปรียบเทียบกลาง: Family → ข้อมูล → Link → การแปลผล</h2>
+<div class="box win">
+<table>
+<tr><th>Family</th><th>ข้อมูลที่เหมาะสม</th><th>Var(Y)</th><th>Link ที่นิยม</th><th>สมการโมเดล (log link)</th><th>การแปลผล \(\hat\beta\)</th></tr>
+<tr><td>Gamma</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวา (เช่น ค่าใช้จ่ายเคลม, resistivity)</td><td>\(\propto \mu^2\)</td><td>log (multiplicative), canonical/inverse \((\eta=1/\mu)\), linear \((\eta=\mu\), สำหรับ \(\chi^2)\)</td><td>\(\log(\mu_i)=X_i\beta\)</td><td>\(\exp(\hat\beta)\) = ตัวคูณของค่าเฉลี่ยต่อการเพิ่ม X 1 หน่วย; % เปลี่ยนแปลง = \((\exp(\hat\beta)-1)\times100\%\)</td></tr>
+<tr><td>Inverse Gaussian</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวารุนแรงกว่า มีค่าสุดโต่งมากกว่า Gamma</td><td>\(\propto \mu^3\)</td><td>canonical \((\eta=1/\mu^2)\), inverse \((\eta=1/\mu)\), identity \((\eta=\mu)\), log</td><td>ขึ้นกับ link ที่เลือก เช่น \(\dfrac{1}{\mu_i}=X_i\beta\) ถ้าใช้ inverse link</td><td>ถ้าใช้ log link: แปลผลแบบ \(\exp(\hat\beta)\) เหมือน Gamma; ถ้า link อื่น (identity/inverse) ต้องอ่านทิศทาง (บวก/ลบ) ของผลต่อ \(\eta\) โดยตรง ซึ่งตีความยากกว่า</td></tr>
+</table>
+</div>
+<p><strong>วิธีเลือก:</strong> (1) response บวกเบ้ขวาปกติ → เริ่มจาก <strong>Gamma</strong> (2) มีค่าสุดโต่งมากกว่าปกติ (heavy tail ชัดเจน) → ลอง <strong>Inverse Gaussian</strong> เพิ่ม (3) เทียบ AIC/deviance ระหว่าง link <em>ภายใน</em> family เดียวกันได้ตรง ๆ — เทียบข้าม family/distribution ต้องระวัง (หัวข้อ 6)</p>
+
+<h2>5. Interpretation Template — เหมือน Poisson ทุกจุด (เมื่อใช้ log link)</h2>
+<div class="box win">
+<p>เพราะ log link ทำให้ผลของ X เป็นตัวคูณ (multiplicative) จึงต้อง<strong>ยกกำลัง exp() ก่อนแปลผล</strong> เสมอ:</p>
+<p><strong>\(\hat\beta > 0 \implies \exp(\hat\beta) > 1 \implies\) ค่าเฉลี่ยเพิ่มขึ้น</strong>, &nbsp;<strong>\(\hat\beta < 0 \implies \exp(\hat\beta) < 1 \implies\) ค่าเฉลี่ยลดลง</strong> — เปอร์เซ็นต์การเปลี่ยนแปลงคือ \((\exp(\hat\beta) - 1) \times 100\%\)</p>
+<p>Template ประโยค: "จากข้อมูลนี้ เมื่อ [X] เพิ่มขึ้น 1 [หน่วย] ค่าเฉลี่ยของ [Y] คาดว่าจะเปลี่ยนเป็น \(\exp(\hat\beta)\) เท่าของเดิม (เพิ่ม/ลด \([(\exp(\hat\beta)-1)\times100]\%\)) โดยตัวแปรอื่นคงที่"</p>
+</div>
+<p>ถ้าใช้ <code>offset(log(N))</code> (เช่นโมเดลค่าสินไหมต่อกรมธรรม์): \(\log(\mu_i)=\log(N_i)+X_i\beta \implies \dfrac{\mu_i}{N_i}=\exp(X_i\beta)\) — โมเดลทำนาย<strong>ค่าเฉลี่ยต่อหน่วยฐาน</strong> ไม่ใช่ยอดรวมดิบ — หลักการเดียวกับ offset ใน Poisson (Lecture 11)</p>
+
+<h2>6. เปรียบเทียบโมเดล — ข้อจำกัดสำคัญ</h2>
+<div class="box">
+<p><strong>เทียบ link ภายใน family เดียวกัน:</strong> ใช้ AIC และ <code>1-pchisq(deviance,df)</code> (goodness-of-fit) เทียบกันได้ตรง ๆ — เลือก link ที่ AIC ต่ำสุด + p-value goodness-of-fit สูง + coefficient significant + plot \(g(\mu)\) เทียบ x เป็นเส้นตรงที่สุด</p>
+<p><strong>เทียบข้าม distribution (เช่น Gamma vs log-normal):</strong> <strong>LRT ใช้ไม่ได้</strong> เพราะไม่ nested กัน (distribution assumption คนละแบบ) และ AIC เทียบตรง ๆ ไม่ได้ตรงไปตรงมา — ถ้า null deviance ใกล้เคียงกัน ให้เทียบว่า residual deviance ของโมเดลไหนลดลงได้มากกว่าหลัง fit ตัวแปร (สัญญาณอ้อมว่าโมเดลไหนดีกว่า)</p>
+</div>
+<p>เช็ค: ถ้า \(\sqrt{\text{dispersion}}\) ของ gamma GLM ใกล้เคียงกับ Residual standard error ของ <code>lm(log(y)~...)</code> มาก แปลว่า \(\nu=1/\phi\) ใหญ่ → gamma distribution ถูกประมาณด้วย normal ได้ดี → สองโมเดลแทบแยกกันไม่ออก</p>
+
+<h2>7. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Fit Gamma GLM (log link)</td><td><code>glm(y~x, data=data, family=Gamma(link=log))</code></td></tr>
+<tr><td>Fit Inverse Gaussian (canonical)</td><td><code>glm(y~x, data=data, family=inverse.gaussian)</code></td></tr>
+<tr><td>Fit Inverse Gaussian (link อื่น)</td><td><code>glm(y~x, family=inverse.gaussian(link=inverse|identity|log))</code></td></tr>
+<tr><td>Stepwise AIC selection</td><td><code>step(glm(...))</code></td></tr>
+<tr><td>Goodness-of-fit test</td><td><code>1-pchisq(deviance(model), model$df.residual)</code></td></tr>
+<tr><td>Offset (rate model)</td><td><code>glm(y~offset(log(N))+x, family=Gamma(link=log))</code></td></tr>
+<tr><td>เทียบ log-normal (สำหรับเทียบเชิงคุณภาพ)</td><td><code>glm(log(y)~x, family=gaussian)</code></td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

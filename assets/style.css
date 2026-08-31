@@ -1,0 +1,257 @@
+/* Shared stylesheet for Data Visualization lessons & reference sheets. Tufte-ish: quiet, serif, generous margins. */
+
+:root {
+  --bg: #ffffff;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a45;
+  --rule: #ddd8cc;
+  --accent: #a5502c;
+  --accent-soft: #f2e6da;
+  --good: #2f6d3e;
+  --good-bg: #e9f3ea;
+  --bad: #a5342c;
+  --bad-bg: #f8eae8;
+  --code-bg: #f1efe6;
+  --max-width: 720px;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "iowan old style", "Palatino Linotype", Palatino, Georgia, "Noto Serif Thai", serif;
+  font-size: 19px;
+  line-height: 1.55;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.3em;
+}
+
+.kicker {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: var(--accent);
+  margin: 0 0 0.6em;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin: 2.4em 0 0.6em;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--rule);
+}
+
+h3 {
+  font-size: 1.08rem;
+  margin: 1.6em 0 0.5em;
+}
+
+p { margin: 0.9em 0; }
+
+a { color: var(--accent); text-decoration-color: var(--rule); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+
+ul, ol { padding-left: 1.3em; }
+li { margin: 0.35em 0; }
+
+strong { font-weight: 700; }
+
+em.term { font-style: italic; color: var(--accent); }
+
+code, pre, .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+code {
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+
+blockquote {
+  margin: 1.2em 0;
+  padding: 0.2em 1.2em;
+  border-left: 3px solid var(--rule);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 2.5em 0;
+}
+
+/* --- Nav / breadcrumbs --- */
+.lesson-nav {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  color: var(--ink-soft);
+  margin-bottom: 2.5em;
+}
+.lesson-nav a { color: var(--ink-soft); }
+
+/* --- Callout boxes --- */
+.box {
+  border: 1px solid var(--rule);
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.1em 1.3em;
+  margin: 1.4em 0;
+  overflow-x: auto;
+}
+.box .katex-display {
+  margin: 0.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.box.source {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.box.win {
+  border-left: 4px solid var(--accent);
+}
+.box .label {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-bottom: 0.5em;
+  font-weight: 700;
+}
+
+/* --- Figures --- */
+figure { margin: 1.5em 0; }
+figure img, figure svg { width: 100%; height: auto; display: block; border-radius: 6px; border: 1px solid var(--rule); }
+figcaption {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-top: 0.5em;
+  text-align: center;
+}
+
+/* --- Tables --- */
+table { border-collapse: collapse; width: 100%; margin: 1.2em 0; font-size: 0.92em; }
+th, td { text-align: left; padding: 0.45em 0.7em; border-bottom: 1px solid var(--rule); }
+th { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); }
+
+/* --- Quiz component --- */
+.quiz {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.2em 1.4em;
+  margin: 1.4em 0;
+  background: #fff;
+}
+.quiz .qhead {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin-bottom: 0.6em;
+  display: flex;
+  justify-content: space-between;
+}
+.quiz .qtext { font-weight: 600; margin-bottom: 0.8em; }
+.quiz .options { display: flex; flex-direction: column; gap: 0.5em; }
+.quiz .opt {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.95rem;
+  text-align: left;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 0.6em 0.9em;
+  cursor: pointer;
+  color: var(--ink);
+}
+.quiz .opt:hover { border-color: var(--accent); }
+.quiz .opt.correct { background: var(--good-bg); border-color: var(--good); }
+.quiz .opt.wrong { background: var(--bad-bg); border-color: var(--bad); }
+.quiz .opt:disabled { cursor: default; }
+.quiz .feedback {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.88rem;
+  margin-top: 0.8em;
+  padding-top: 0.7em;
+  border-top: 1px dashed var(--rule);
+  display: none;
+}
+.quiz .feedback.show { display: block; }
+.quiz .feedback.good { color: var(--good); }
+.quiz .feedback.bad { color: var(--bad); }
+
+.quiz.free .answer-reveal {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.88rem;
+  margin-top: 0.8em;
+}
+.quiz.free .reveal-btn {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 0.45em 0.9em;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.quiz.free textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.6em;
+  margin-bottom: 0.6em;
+  resize: vertical;
+  min-height: 3.2em;
+}
+.quiz.free .model-answer {
+  display: none;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 0.7em 0.9em;
+  margin-top: 0.6em;
+}
+.quiz.free .model-answer.show { display: block; }
+
+.quiz-score {
+  font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  text-align: right;
+  margin-top: -0.5em;
+}

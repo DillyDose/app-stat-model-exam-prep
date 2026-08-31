@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 6: Single Factor ANOVA — สมการ, ANOVA Table, และ Post-hoc ใน R</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 6 / 14 · Single Factor ANOVA</span>
+  <span><a href="../reference/0006-anova-cheatsheet.html">Reference: สูตร ANOVA + Post-hoc Cheat Sheet →</a></span>
+</nav>
+
+<p class="kicker">Lecture 6 — Single Factor ANOVA</p>
+<h1>Single Factor ANOVA: เขียนสมการ, อ่าน ANOVA Table, แปลผล Post-hoc</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก <a href="../lessons/0001-simple-linear-regression.html">Lesson 1 (Simple Linear Regression)</a> โดยตรง: ANOVA ไม่ใช่เทคนิคใหม่ที่แยกจากกัน แต่เป็น<strong>กรณีพิเศษของ regression</strong> ที่ตัวแปรอิสระเป็นตัวแปรกลุ่ม (categorical) แทนตัวเลขต่อเนื่อง — สมการ, assumption, การอ่าน <code>summary()</code>, และการแปลผล ที่ฝึกมาแล้วใน Lesson 1 จะถูกใช้ซ้ำเกือบทั้งหมดที่นี่ เพียงแค่เปลี่ยนหน้าตาของตัวแปรอิสระ. เป้าหมาย 4 ข้อของบทนี้: <strong>เขียนสมการ ANOVA ถูก</strong> (ทั้งแบบ cell means และ factor effects), <strong>อ่าน ANOVA table</strong> ได้ทุกช่อง, <strong>แปลผล F-test และ post-hoc comparison</strong> เป็นประโยค, และ<strong>อ่าน R output</strong> จาก <code>aov()</code>/<code>lm()</code>/<code>TukeyHSD()</code> ได้ทุกบรรทัด.</p>
+
+<h2>1. Experimental vs Observational Studies — ย้อนกลับไปที่ Causal Inference</h2>
+<p>สไลด์เปิดเรื่องด้วยการแยก <em class="term">experimental studies</em> (ระบุตัวแปรที่สนใจก่อน แล้ว<strong>ควบคุม</strong>ตัวแปรอื่นเพื่อดูผลต่อตัวแปรที่สนใจ) ออกจาก <em class="term">observational studies</em> (ไม่มีการควบคุมหรือแทรกแซงตัวแปรใด ๆ เลย เช่น sample survey) — นี่คือประเด็นเดียวกับหัวข้อ Associative vs Causal Inference ใน <a href="../lessons/0001-simple-linear-regression.html">Lesson 1</a> ที่ใช้ตัวอย่างไอศกรีม/นักท่องเที่ยว/อุณหภูมิ เพียงแต่ตอนนี้จะเห็นมันในรูปแบบของ ANOVA แทน regression เชิงเส้นต่อเนื่อง.</p>
+<p>คำศัพท์ที่ต้องจำ: <em class="term">factor</em> คือตัวแปรที่ศึกษา, <em class="term">treatment</em> คือแต่ละระดับ/ค่าของ factor นั้น, <em class="term">experimental unit</em> คือหน่วยทดลองที่ได้รับ treatment. ตัวอย่างในสไลด์ — บริษัทอยากหาว่าปุ๋ยชนิด A, B, C แบบไหนให้ผลผลิตพืชดีที่สุด: ปุ๋ยแต่ละชนิดคือ treatment หนึ่งระดับของ factor "ชนิดปุ๋ย".</p>
+<p>ใน <em class="term">completely randomized experimental design</em> — สุ่มตัวอย่างอิสระให้แต่ละ treatment (สมมติว่าแต่ละ sample เป็น random sample จากประชากรของค่าที่เป็นไปได้ของตัวแปรตอบสนอง และแต่ละ sample เป็นอิสระต่อกัน) — เหตุผลที่ต้อง<strong>สุ่ม</strong>คือข้อเดียวกับที่ Lesson 1 สอน: <strong>การสุ่มกำหนดค่า treatment เองทำให้สรุปความสัมพันธ์เชิงเหตุผล (cause-and-effect) ได้</strong> ไม่ใช่แค่ associative — เหมือนตัวอย่างต้นทานตะวันที่สุ่มความเข้มแสงใน Lesson 1 ทุกประการ. ตัวอย่างหลักของบทนี้ (การจัดวางสินค้าบนชั้น — หัวข้อ 2) ก็เป็น completely randomized design เช่นกัน ดังนั้นข้อสรุปเชิงเหตุผลจากมันจะสมเหตุสมผล.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Experimental Design และ Causal Inference</span></div>
+  <div class="qtext">บริษัทเบเกอรี่สุ่มกำหนด (randomly assign) ตำแหน่งชั้นวางสินค้า (บน/กลาง/ล่าง) ให้ร้านค้าปลีก 18 ร้านแบบ completely randomized design แล้วพบว่ายอดขายต่างกันอย่างมีนัยสำคัญตามตำแหน่งชั้น ข้อสรุปใดถูกต้องที่สุดตามหลักการใน Lesson 1?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">สรุปเชิงเหตุผล (causal) ได้ว่าตำแหน่งชั้นเป็นสาเหตุที่ทำให้ยอดขายต่างกัน เพราะเป็น randomized experiment ที่กระจายตัวแปรกวนออกไปเท่า ๆ กันในแต่ละกลุ่มโดยเฉลี่ย</button>
+  <button class="opt" data-correct="false">สรุปเชิงเหตุผลไม่ได้เลย เพราะมีแค่ 3 กลุ่มเปรียบเทียบ ต้องมีอย่างน้อย 5 กลุ่มขึ้นไป</button>
+  <button class="opt" data-correct="false">ต้องเก็บข้อมูลแบบ observational เพิ่มเติมก่อน ถึงจะสรุปเชิงเหตุผลได้</button>
+  <button class="opt" data-correct="false">สรุปได้แค่ว่าตำแหน่งชั้นกับยอดขาย "สัมพันธ์กัน" (associative) เท่านั้น เพราะ ANOVA ไม่ใช่ regression จึงสรุปเชิงเหตุผลไม่ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. ตัวอย่างหลักของบทเรียน: Bakery Shelf Display Height</h2>
+<p>Tastee Bakery Company อยากรู้ผลของ<strong>ความสูงของชั้นวางสินค้า</strong> (bottom, middle, top — 3 treatments ของ factor "shelf height") ต่อยอดขายรายเดือน. ใช้ completely randomized design: สุ่มซูเปอร์มาร์เก็ต 6 แห่งต่อความสูงชั้น 1 ระดับ (รวม 18 ร้าน) แต่ละร้านวางสินค้าตามความสูงที่กำหนดเป็นเวลา 1 เดือนแล้ววัดยอดขาย (หน่วย: 10 บาท/หน่วย):</p>
+<figure>
+<img src="../assets/slides/as6-p07-bakery-example-boxplot.png" alt="Table of bakery sales data for bottom, middle, top shelf heights with 6 observations each, alongside a boxplot of bakery sales by display height showing middle much higher than bottom and top">
+<figcaption>Slide: Example — A Single-Factor Study, ข้อมูล Bake Sales (Lecture 6, p.7)</figcaption>
+</figure>
+<p>คำนวณค่าเฉลี่ยแต่ละกลุ่มจากตัวเลขจริง: Bottom = (58.2+53.7+55.8+55.7+52.5+58.9)/6 = <strong>55.8</strong>, Middle = (73.0+78.1+75.4+76.2+78.4+82.1)/6 = <strong>77.2</strong>, Top = (52.4+49.7+50.9+54.0+52.1+49.9)/6 = <strong>51.5</strong>. สังเกตช่องกล่อง (box) ในภาพ: กล่องของ Middle ทั้งกล่องอยู่สูงกว่ากล่องของ Bottom และ Top อย่างชัดเจนโดยไม่มีการซ้อนทับกันเลย และแต่ละกล่องเองก็ค่อนข้าง "แคบ" (Bottom กระจายอยู่ในช่วงประมาณ 52.5–58.9 คือกว้างแค่ ~6.4 หน่วย) — ค่าเฉลี่ยทั้งสามกลุ่มห่างกันมาก (77.2 vs 55.8 vs 51.5 คือห่างกันถึง ~21–26 หน่วย) เทียบกับความกระจาย<strong>ภายใน</strong>แต่ละกลุ่มที่แคบกว่ามาก — นี่คือสัญญาณล่วงหน้าว่าเมื่อคำนวณ F-test ในหัวข้อ 6–8 ค่า F จะออกมาสูงมาก เพราะความแปรปรวน "ระหว่างกลุ่ม" (between) มากกว่าความแปรปรวน "ภายในกลุ่ม" (within) อย่างชัดเจน.</p>
+<p><em class="term">One-way ANOVA</em> คือกรณีที่ตัวแปรตอบสนอง (Y) เป็นตัวเลขต่อเนื่อง แต่ตัวแปรอิสระ (X) เป็นตัวแปรกลุ่ม (<em class="term">factor</em>) ที่มีค่าที่เป็นไปได้เรียกว่า <em class="term">levels</em> — เป็นการขยายผลจาก two-sample t-test (เทียบ 2 กลุ่ม) ไปสู่การเทียบมากกว่า 2 กลุ่มพร้อมกัน. สัญกรณ์ที่ใช้ตลอดบทนี้: \(Y\) คือตัวแปรตอบสนอง, \(X\) คือ factor ที่มี \(r\) levels (เรียกว่า groups/treatments), และ \(Y_{ij}\) คือค่าสังเกตที่ \(j\) ในกลุ่มที่ \(i\) — สำหรับตัวอย่างนี้ \(r=3\) (bottom/middle/top) และแต่ละกลุ่มมี \(n_i=6\) รวม \(n_T=18\).</p>
+
+<h2>3. สมการโมเดล ANOVA — ทักษะที่ 1: Cell Means, Factor Effects, และความเชื่อมโยงกับ Regression</h2>
+<p>สไลด์เปิดประเด็นสำคัญที่สุดของบทนี้ทันที: <strong>ANOVA เป็นกรณีพิเศษของ regression ที่ใช้ indicator (dummy) variable</strong> — เช่นเดียวกับที่ Lesson 1 ใช้ indicator variable เพื่ออธิบาย intercept ต่างกันระหว่างกลุ่มเมื่อเทียบเส้นถดถอย. สำหรับ 3 กลุ่ม เขียนโมเดลถดถอยได้เป็น \(Y_i = \beta_0 + \beta_1 X_{i1} + \beta_2 X_{i2} + \varepsilon_i\) โดย \(X_1\) คือ indicator ของกลุ่ม 1 และ \(X_2\) คือ indicator ของกลุ่ม 2 (กลุ่ม 3 เป็นกลุ่มอ้างอิงที่ \(X_1=X_2=0\)) — การใช้ indicator variable แบบนี้ทำให้แต่ละ level ของ factor มี intercept (=ค่าเฉลี่ย) ต่างกันได้อย่างอิสระ โดยไม่มีโครงสร้างเชิงเส้นระหว่างค่าเฉลี่ยเหล่านั้นเลย.</p>
+
+<div class="box source">
+<div class="label">Cell Means Model</div>
+\[Y_{ij} = \mu_i + \varepsilon_{ij}\]
+<p>โดย \(\mu_i\) คือค่าเฉลี่ยทฤษฎีของทุกค่าสังเกตในระดับ (cell) ที่ \(i\), และ \(\varepsilon_{ij} \sim \text{iid } N(0, \sigma^2)\) ซึ่งหมายความว่า \(Y_{ij} \sim \text{independent } N(\mu_i, \sigma^2)\). พารามิเตอร์ทั้งหมด: \(\mu_1, \ldots, \mu_r\) และ \(\sigma^2\) (รวม \(r+1\) ตัว)</p>
+</div>
+
+<p>คำถามหลักของ ANOVA คือคำถามเดียวกับ Simple Linear Regression ใน Lesson 1 ("X ช่วยอธิบาย Y ได้ไหม") เพียงแค่เปลี่ยนรูป: <strong>\(\mu_i\) ขึ้นกับ \(i\) หรือไม่</strong></p>
+<div class="box">
+\(H_0: \mu_1 = \mu_2 = \cdots = \mu_r = \mu\) &nbsp;(ค่าเฉลี่ยทุกกลุ่มเท่ากันหมด)<br>
+\(H_1\): อย่างน้อยหนึ่ง \(\mu_i\) แตกต่างจากตัวอื่น
+</div>
+
+<p>อีกวิธีเขียนโมเดลเดียวกันนี้ที่ตีความง่ายกว่าเมื่อพูดถึง "ผลของ treatment" คือ <em class="term">Factor Effects Model</em>:</p>
+<div class="box source">
+<div class="label">Factor Effects Model</div>
+\[Y_{ij} = \mu + \tau_i + \varepsilon_{ij}\]
+<p>โดย \(\mu\) และ \(\tau_1, \ldots, \tau_r\) คือพารามิเตอร์ (รวมกับ \(\sigma^2\) เป็น \(r+2\) ตัว) — <strong>มากกว่า cell means model 1 ตัว</strong> ทั้งที่อธิบายข้อมูลชุดเดียวกัน นี่คือ overparameterization ที่ทำให้สมการนี้<strong>ไม่มีคำตอบเดียว (non-unique solution)</strong> ถ้าไม่มีข้อจำกัดเพิ่ม</p>
+</div>
+<p>ทางแก้คือใส่ constraint บน \(\tau_i\) — ตัวที่นิยมที่สุดคือ \(\sum\tau_i = 0\) ซึ่งลดพารามิเตอร์ลง 1 ตัวจนได้คำตอบเดียว. เมื่อ \(r=3\) และ \(n_i=n\) เท่ากันทุกกลุ่ม (balanced design) ภายใต้ \(\sum\tau_i=0\) จะได้ \(E[\bar{Y}_{\cdot\cdot}] = \mu\) (\(\mu\) คือ grand mean) และ \(E[\bar{Y}_{i\cdot}] = \mu + \tau_i\) (\(\tau_i\) คือ "ผลของกลุ่ม i" ที่เบี่ยงจาก grand mean) — แต่ถ้าเลือก constraint แบบอื่น เช่น \(\tau_r=0\) ความหมายของ \(\mu\) และ \(\tau_i\) จะเปลี่ยนไปเป็น "\(\mu\) คือค่าเฉลี่ยกลุ่มที่ \(r\)" และ "\(\tau_i\) คือผลต่างระหว่างกลุ่ม \(i\) กับกลุ่ม \(r\)" — <strong>ค่าประมาณของ \(\mu, \tau_i\) เองเปลี่ยนไปตาม constraint ที่เลือก แต่ปริมาณที่สนใจจริง เช่น \(\hat{\mu}+\hat{\tau}_1\) (ค่าเฉลี่ยกลุ่ม 1), หรือ \(\hat{\tau}_1-\hat{\tau}_3\) (ผลต่างกลุ่ม 1 กับ 3) จะเท่ากันเสมอไม่ว่าจะเลือก constraint แบบไหน</strong> — ข้อนี้สำคัญมากตอนอ่าน R output ในหัวข้อ 7 เพราะ R ให้เลือก constraint ผ่าน argument <code>contrasts</code> ได้ และตัวเลขที่ print ออกมาจะหน้าตาต่างกันโดยสิ้นเชิงแม้จะมาจากข้อมูลชุดเดียวกัน.</p>
+<p>Hypothesis ในภาษา factor effects model แปลจาก cell means model ได้ตรงตัว:</p>
+<div class="box win">
+\(H_0: \tau_1 = \tau_2 = \cdots = \tau_r = 0\) &nbsp;(ไม่มี treatment ใดมีผลต่างจาก grand mean เลย)<br>
+\(H_1\): อย่างน้อยหนึ่ง \(\tau_i \neq 0\)
+</div>
+<p>ในเชิง regression ภายใต้ constraint \(\sum\tau_i=0\) ใช้ indicator variable แบบพิเศษ: \(X_{ij,k} = 1\) ถ้า \(i=k\), \(=-1\) ถ้า \(i=r\), และ \(=0\) กรณีอื่น — ได้โมเดล \(Y_{ij} = \beta_0+\beta_1 X_{ij,1}+\cdots+\beta_{r-1} X_{ij,r-1}+\varepsilon_{ij}\) ซึ่งมี \(r-1\) สัมประสิทธิ์ (เพราะ \(\tau_r = -\tau_1-\cdots-\tau_{r-1}\) ถูกกำหนดจากตัวอื่นแล้ว) และ \(E[\bar{Y}_{\cdot\cdot}]=\beta_0\), \(\tau_i=\beta_i\) สำหรับ \(i\leq r-1\) — <strong>นี่คือหัวใจของความเชื่อมโยงระหว่าง ANOVA กับ regression: ANOVA ที่มี \(r\) กลุ่ม เทียบเท่ากับ regression ที่มีตัวแปรอิสระเป็น dummy variable จำนวน \(r-1\) ตัวพอดี</strong> (เก็บ intercept ไว้ 1 ตัวสำหรับกลุ่มอ้างอิง).</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>เขียนสมการโมเดล ANOVA</span></div>
+  <div class="qtext">นักวิจัยเปรียบเทียบน้ำหนักที่ลดได้ (กก.) ของผู้เข้าร่วม 60 คน แบ่งแบบสุ่มเป็น 4 กลุ่มเท่า ๆ กัน (กลุ่มละ 15 คน) ตามแผนการควบคุมอาหาร 4 แบบ (A, B, C, D) จงเขียนสมการทั้ง cell means model และ factor effects model (พร้อม constraint) และระบุค่า \(r\), \(n_i\), \(n_T\)</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>Cell means model: \(Y_{ij} = \mu_i + \varepsilon_{ij}\) โดย \(i=1,\ldots,4\) (แผน A,B,C,D), \(j=1,\ldots,15\), \(\varepsilon_{ij} \sim \text{iid } N(0,\sigma^2)\)</p>
+  <p>Factor effects model: \(Y_{ij} = \mu + \tau_i + \varepsilon_{ij}\) พร้อม constraint \(\tau_A+\tau_B+\tau_C+\tau_D=0\)</p>
+  <p>\(r=4\) (จำนวนกลุ่ม/แผนอาหาร), \(n_i=15\) ทุกกลุ่ม (balanced design), \(n_T = 4\times15 = 60\)</p>
+  <p>\(H_0: \mu_A=\mu_B=\mu_C=\mu_D\) (หรือเทียบเท่า \(\tau_A=\tau_B=\tau_C=\tau_D=0\)) — แผนอาหารทั้ง 4 แบบลดน้ำหนักได้เฉลี่ยเท่ากัน</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>ANOVA ↔ Regression</span></div>
+  <div class="qtext">ถ้า factor มี \(k\) ระดับ (groups) การทำ single-factor ANOVA เทียบเท่ากับการทำ multiple linear regression ที่มีตัวแปรอิสระเป็น dummy/indicator variable กี่ตัว?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">\(k+1\) ตัว</button>
+  <button class="opt" data-correct="true">\(k-1\) ตัว (เก็บ intercept ไว้แทนกลุ่มอ้างอิงหนึ่งกลุ่ม)</button>
+  <button class="opt" data-correct="false">ไม่สามารถเขียน ANOVA เป็น regression ได้ เพราะตัวแปรอิสระเป็นตัวแปรกลุ่ม</button>
+  <button class="opt" data-correct="false">\(k\) ตัว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. Assumptions ของ ANOVA — เหมือน Lesson 1 ทุกข้อ เปลี่ยนแค่บริบท</h2>
+<p>เพราะ ANOVA เป็นกรณีพิเศษของ linear regression สไลด์ระบุตรง ๆ ว่า <strong>assumption ชุดเดียวกับ regression ยังใช้ได้หมด</strong> เพียงแค่แปลความหมายใหม่ในบริบทของกลุ่ม: (1) ค่าสังเกตทุกตัว<strong>เป็นอิสระต่อกัน</strong> (independent) (2) ค่าสังเกตทุกตัว<strong>แจกแจงแบบปกติ</strong> (Normal) โดยมีค่าเฉลี่ยที่อาจขึ้นกับ level ของ factor แต่มี<strong>variance คงที่ทุกกลุ่ม</strong> (constant variance / homoscedasticity) — เทียบกับ 4 ข้อใน Lesson 1 ("mean zero, independent, constant variance, normal") จะเห็นว่าตรงกันเป๊ะ เพียงแค่ "mean" ตอนนี้ขึ้นกับกลุ่มแทนที่จะขึ้นกับ X ต่อเนื่อง.</p>
+<p>สไลด์ของบทนี้ไม่ได้ลงรายละเอียดการเช็คแต่ละ assumption ด้วย diagnostic plot/test (เนื้อหานั้นอยู่ใน Lecture 3–4 เรื่อง Regression Diagnostics ที่ Lesson 1 อ้างถึงแล้ว) แต่หลักการเดียวกันนำมาใช้ตรง ๆ ได้: residual จาก <code>aov()</code>/<code>lm()</code> พล็อต Residuals vs Fitted เพื่อเช็ค constant variance ระหว่างกลุ่ม (ในทางปฏิบัติมักใช้ Levene's test หรือ Bartlett's test แทนการมองภาพ), Normal Q-Q plot หรือ Shapiro-Wilk เพื่อเช็ค normality ของ residual ในแต่ละกลุ่ม, และเช็คลำดับการเก็บข้อมูล/design ของการทดลองเพื่อยืนยัน independence — ทั้งหมดนี้เป็น<strong>เครื่องมือเดียวกับที่ใช้กับ regression เชิงเส้นทุกประการ</strong> เพราะ ANOVA คือ regression ที่มี dummy variable ตามหัวข้อ 3.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Assumptions ของ ANOVA</span></div>
+  <div class="qtext">พล็อต boxplot ของ residual แยกตามกลุ่มแล้วพบว่ากลุ่ม A มีกล่อง (IQR) แคบมาก ในขณะที่กลุ่ม C มีกล่องกว้างกว่ากลุ่ม A ถึง 5 เท่า กำลังละเมิด assumption ข้อใดของ ANOVA?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">Constant variance — variance ของ error ไม่เท่ากันทุกกลุ่ม (heteroscedasticity ระหว่างกลุ่ม)</button>
+  <button class="opt" data-correct="false">ไม่ละเมิดอะไรเลย เพราะ ANOVA ไม่มี assumption เรื่อง variance</button>
+  <button class="opt" data-correct="false">Normality — residual ไม่แจกแจงแบบปกติ</button>
+  <button class="opt" data-correct="false">Independence — ค่าสังเกตไม่เป็นอิสระต่อกัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. Estimates และ ANOVA Table — เปรียบเทียบกับ Regression ANOVA Table</h2>
+<p>ประมาณค่า \(\mu_i\) ด้วยค่าเฉลี่ยตัวอย่างของกลุ่มนั้น: \(\hat{\mu}_i = \bar{Y}_{i\cdot}\) และประมาณ variance แต่ละกลุ่มด้วย \(s_i^2 = \sum(Y_{ij}-\bar{Y}_{i\cdot})^2/(n_i-1)\) แล้ว<strong>รวม (pool)</strong> ทั้ง \(r\) ค่านี้เข้าด้วยกันโดยถ่วงน้ำหนักด้วย df ของแต่ละกลุ่ม:</p>
+<div class="box">
+\[s^2 = \sum(n_i-1)s_i^2 / \sum(n_i-1) = \sum(n_i-1)s_i^2 / (n_T-r)\]
+</div>
+<p>ตาราง ANOVA ของ single-factor สร้างแบบเดียวกับ ANOVA table ของ regression ใน Lesson 1 เป๊ะ (Source / df / SS / MS / F) เพียงแค่ fitted value เปลี่ยนจากเส้นถดถอย \(\hat{Y}\) เป็นค่าเฉลี่ยกลุ่ม \(\bar{Y}_{i\cdot}\):</p>
+<table>
+<tr><th>Source</th><th>df</th><th>Sum of Squares</th><th>Mean Square</th></tr>
+<tr><td>Model (Treatment)</td><td>\(r-1\)</td><td>\(SSTR = \sum n_i(\bar{Y}_{i\cdot}-\bar{Y}_{\cdot\cdot})^2\)</td><td>\(MSTR = SSTR/(r-1)\)</td></tr>
+<tr><td>Error</td><td>\(n_T-r\)</td><td>\(SSE = \sum\sum(Y_{ij}-\bar{Y}_{i\cdot})^2\)</td><td>\(MSE = SSE/(n_T-r)\)</td></tr>
+<tr><td>Total</td><td>\(n_T-1\)</td><td>\(SST = \sum\sum(Y_{ij}-\bar{Y}_{\cdot\cdot})^2\)</td><td>\(MST = SST/(n_T-1)\)</td></tr>
+</table>
+<p>เทียบกับตาราง ANOVA ของ regression ใน Lesson 1 (Source: Regression/Error/Total ที่ df=1, n−2, n−1 เพราะมีแค่ 1 ตัวแปรอิสระต่อเนื่อง): โครงสร้างเหมือนกันทุกประการ เปลี่ยนแค่ SSTR แทน SSR, และ \(r-1\) df แทน 1 df ของ Regression — เพราะ ANOVA "ใช้" dummy variable \(r-1\) ตัวตามที่หัวข้อ 3 อธิบายไว้ (แต่ละ dummy variable กิน df ไป 1 หน่วยเหมือนตัวแปรอิสระใด ๆ ใน regression).</p>
+
+<h2>6. Between-Treatment vs Within-Treatment Variability</h2>
+<p>แนวคิดที่ ANOVA ใช้ตัดสินใจ: <strong>เทียบความแปรปรวนระหว่างกลุ่ม (between-treatment) กับความแปรปรวนภายในกลุ่ม (within-treatment)</strong> — SSTR (จากตารางหัวข้อ 5) วัด between-treatment variability (ความห่างของแต่ละค่าเฉลี่ยกลุ่มจาก grand mean), ส่วน SSE วัด within-treatment variability (ความกระจายของค่าสังเกตรอบค่าเฉลี่ยกลุ่มของตัวเอง). ภาพต่อไปนี้ (จากตำราอ้างอิง) เทียบสองสถานการณ์บนแกนตัวเลขเดียวกัน (23 ถึง 28):</p>
+<figure>
+<img src="../assets/slides/as6-p17-between-within-variability-dotplot.png" alt="Two dot-plot panels comparing observations from Type A, B, C treatments on the same numeric axis: panel a shows treatment means close together with wide within-group spread, panel b shows treatment means far apart with narrow within-group spread">
+<figcaption>Slide: Comparing Between-Treatment Variability and Within-Treatment Variability (Lecture 6, p.17)</figcaption>
+</figure>
+<p>อ่านภาพเทียบกับตัวอย่าง Bakery ในหัวข้อ 2: แผง (a) ค่าเฉลี่ยของ Type B, A, C เรียงตัวชิดกันมากในช่วง 24–26 (between-treatment variability ต่ำ) ในขณะที่จุดข้อมูลแต่ละ Type เองก็กระจายแทบเต็มทั้งช่วง 23–28 (within-treatment variability สูง) — ผลคือ<strong>ไม่ปฏิเสธ \(H_0\)</strong> เพราะแยกกลุ่มไม่ออกจากความสุ่มภายในกลุ่มเอง. แผง (b) กลับกัน: ค่าเฉลี่ยของ B (~23.5), A (~25.5), C (~27.5) กระจายห่างกันครอบคลุมเกือบทั้งแกน (between-treatment variability สูง) ในขณะที่จุดข้อมูลแต่ละ Type เกาะกลุ่มแน่นรอบค่าเฉลี่ยของตัวเอง (within-treatment variability ต่ำ) — ผลคือ<strong>ปฏิเสธ \(H_0\)</strong> ได้ชัดเจน. ข้อมูล Bakery จริงในหัวข้อ 2 (ค่าเฉลี่ย 55.8/77.2/51.5 ห่างกันมาก แต่ IQR ในแต่ละกล่องแคบ) มีรูปแบบเดียวกับแผง (b) นี้พอดี — นี่คือเหตุผลที่ F-statistic ของมันจะสูงมาก.</p>
+<p>\(F = MSTR/MSE\) คือการวัดอัตราส่วน "between ÷ within" นี้เป็นตัวเลขเดียว — F สูงแปลว่า between variability มากกว่า within variability มาก (แบบแผง b), F ใกล้ 1 แปลว่าทั้งสองพอ ๆ กัน (แบบแผง a) จึงไม่มีเหตุผลให้เชื่อว่าค่าเฉลี่ยกลุ่มต่างกันจริง.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>Between vs Within Variability</span></div>
+  <div class="qtext">อธิบายว่าทำไมข้อมูลที่มีค่าเฉลี่ยกลุ่มต่างกันมาก (between-treatment variability สูง) แต่ก็ยังอาจ "ไม่ปฏิเสธ \(H_0\)" ได้ ถ้า within-treatment variability สูงมากด้วยเช่นกัน</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">เพราะ \(F = MSTR/MSE\) เป็น "อัตราส่วน" ไม่ใช่ค่า SSTR เดี่ยว ๆ — ถ้า within-treatment variability (MSE) สูงมากด้วย ความห่างของค่าเฉลี่ยกลุ่มอาจเป็นแค่ผลจากความสุ่มตามธรรมชาติที่กระจายกว้างอยู่แล้วในแต่ละกลุ่ม ไม่ใช่ผลจาก factor จริง ๆ — F จะไม่สูงพอที่จะปฏิเสธ \(H_0\) ต้องดูทั้งสองความแปรปรวนเทียบกัน ไม่ใช่ดู between-treatment variability เพียงอย่างเดียว (เหมือนแผง (a) ในภาพที่ค่าเฉลี่ยกระจายในช่วง 24-26 แต่จุดข้อมูลกระจายเกือบเต็มแกน 23-28)</div>
+</div>
+
+<h2>7. Fitting ANOVA ใน R: <code>aov()</code> vs <code>lm()</code> — ทักษะที่ 2 และ 4</h2>
+<p>R มีสองวิธีหลักในการฟิต ANOVA ที่ให้ผล F-test เหมือนกันทุกประการ: <code>aov()</code> (ออกแบบมาสำหรับ ANOVA โดยเฉพาะ) และ <code>lm()</code> (regression ทั่วไป ที่ใส่ตัวแปรกลุ่มเข้าไปตรง ๆ) — argument <code>contrasts</code> ใน R กำหนดว่าจะ encode ตัวแปรกลุ่มด้วย constraint แบบไหน (อ้างอิงหัวข้อ 3):</p>
+<pre><code>> options("contrasts")
+$contrasts
+        unordered           ordered
+"contr.treatment"      "contr.poly"</code></pre>
+<p><code>contr.treatment</code> (ค่า default ของ R) ใช้ dummy variable ปกติ (0/1) — เทียบเท่ากับ constraint \(\tau_r=0\): <code>contr.treatment(3)</code> ให้เมทริกซ์ที่กลุ่ม 1 เป็น (0,0), กลุ่ม 2 เป็น (1,0), กลุ่ม 3 เป็น (0,1) — กลุ่มอ้างอิง (ไม่มี dummy ของตัวเอง) คือกลุ่มแรก. ส่วน <code>contr.sum</code> ใช้ constraint \(\sum\tau_i=0\) ตามหัวข้อ 3: กลุ่ม 1 เป็น (1,0), กลุ่ม 2 เป็น (0,1), กลุ่ม 3 เป็น (−1,−1).</p>
+<p>ฟิตข้อมูล Bakery ด้วย <code>aov()</code>:</p>
+<pre><code>> bakesale<-read.csv('bakesale.csv')
+> aovmodel<-aov(sales~height, data=bakesale)
+> summary(aovmodel)
+            Df Sum Sq Mean Sq F value   Pr(>F)
+height       2 2273.9 1136.9    184.6 2.74e-11 ***
+Residuals   15   92.4     6.2
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> aovmodel$coefficient
+(Intercept)     height1     height2
+       61.5         -5.7       15.7</code></pre>
+<p>อ่านทีละส่วน — ตรงกับตาราง ANOVA ในหัวข้อ 5 เป๊ะ: <code>Df=2</code> คือ \(r-1=2\), <code>Sum Sq=2273.9</code> คือ SSTR, <code>Mean Sq=1136.9</code> คือ MSTR (=2273.9/2), <code>Residuals Df=15</code> คือ \(n_T-r=18-3=15\), <code>Sum Sq=92.4</code> คือ SSE, <code>Mean Sq=6.2</code> คือ MSE (=92.4/15), <code>F value=184.6</code> คือ \(MSTR/MSE = 1136.9/6.2 \approx 183.4\) (ใกล้เคียง 184.6 ต่างจากการปัดเศษของตัวเลขที่แสดง). ค่า <code>aovmodel$coefficient</code> ใช้ contrast แบบ <code>contr.treatment</code> เป็น default: <code>height1=−5.7</code> และ <code>height2=15.7</code> — ตรงกับผลจาก <code>contr.sum</code> ในหัวข้อ 3 (ไม่ใช่บังเอิญ เพราะ default ตัวแปรกลุ่มลำดับ 1 ในที่นี้คือระดับ "bottom" ตามลำดับตัวอักษร ทำให้ตัวเลขซ้ำกับตัวอย่าง contr.sum พอดี ต้องเช็ค <code>options("contrasts")</code> เสมอว่ากำลังใช้ constraint แบบไหนก่อนตีความ).</p>
+<p>เช็คด้วย <code>model.tables()</code> ให้ค่าเฉลี่ยและ effect ตรง ๆ ไม่ต้องตีความ contrast เอง:</p>
+<pre><code>> print(model.tables(aovmodel, "means"))
+Tables of means
+Grand mean
+
+61.5
+
+ height
+height
+bottom middle     top
+  55.8   77.2   51.5
+> print(model.tables(aovmodel, "effect"))
+Tables of effects
+
+ height
+height
+bottom middle     top
+  -5.7   15.7  -10.0</code></pre>
+<p>ยืนยันตัวเลขจากหัวข้อ 2: grand mean 61.5 = (55.8+77.2+51.5)/3 ✓, effect ของแต่ละกลุ่ม = ค่าเฉลี่ยกลุ่ม − grand mean (เช่น bottom: 55.8−61.5=−5.7 ✓) และ effect ทั้งสามรวมกันเป็นศูนย์พอดี (−5.7+15.7−10.0=0) ตาม constraint \(\sum\tau_i=0\).</p>
+<p>ฟิตโมเดลเดียวกันด้วย <code>lm()</code> โดยระบุ contrast ชัดเจนสองแบบ เพื่อเทียบว่า coefficient เปลี่ยนความหมายอย่างไร:</p>
+<pre><code>> lmmodel_contrTrt<-lm(sales~height, data=bakesale,
+contrasts=list(height="contr.treatment"))
+> summary(lmmodel_contrTrt)
+...
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept)    55.800      1.013 55.071 < 2e-16 ***
+heightmiddle   21.400      1.433 14.934 2.07e-10 ***
+heighttop      -4.300      1.433 -3.001 0.00896 **
+---
+Residual standard error: 2.482 on 15 degrees of freedom
+Multiple R-squared: 0.961,      Adjusted R-squared: 0.9557
+F-statistic: 184.6 on 2 and 15 DF,  p-value: 2.736e-11</code></pre>
+<pre><code>> lmmodel_contrSum<-lm(sales~height, data=bakesale,
+contrasts=list(height="contr.sum"))
+> summary(lmmodel_contrSum)
+...
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 61.5000      0.5850 105.13 < 2e-16 ***
+height1       -5.7000    0.8273   -6.89 5.15e-06 ***
+height2       15.7000    0.8273   18.98 6.74e-12 ***
+---
+Residual standard error: 2.482 on 15 degrees of freedom
+Multiple R-squared: 0.961,      Adjusted R-squared: 0.9557
+F-statistic: 184.6 on 2 and 15 DF,  p-value: 2.736e-11</code></pre>
+
+<div class="box win">
+<div class="label">Coefficient เดียวกันในข้อมูล แต่ความหมายต่างกันตาม Contrast</div>
+<p>ภายใต้ <code>contr.treatment</code>: <code>(Intercept)=55.800</code> คือค่าเฉลี่ยของ<strong>กลุ่มอ้างอิง</strong> (bottom) ตรง ๆ, <code>heightmiddle=21.400</code> คือ<strong>ผลต่างของค่าเฉลี่ย</strong> middle−bottom (77.2−55.8=21.4 ✓), <code>heighttop=−4.300</code> คือผลต่าง top−bottom (51.5−55.8=−4.3 ✓)</p>
+<p>ภายใต้ <code>contr.sum</code>: <code>(Intercept)=61.500</code> คือ<strong>grand mean</strong> ไม่ใช่ค่าเฉลี่ยกลุ่มใดกลุ่มหนึ่ง, <code>height1=−5.700</code> คือ<strong>ผลของกลุ่ม bottom เทียบกับ grand mean</strong> (\(\hat{\tau}_{bottom}\)), <code>height2=15.700</code> คือผลของกลุ่ม middle เทียบกับ grand mean (\(\hat{\tau}_{middle}\))</p>
+<p>ทั้งสองแบบให้ \(F=184.6\), \(p=2.736\text{e-}11\), และ \(R^2=0.961\) เหมือนกันทุกประการ — เพราะเป็น<strong>reparameterization ของโมเดลเดียวกัน</strong> ไม่ใช่โมเดลคนละตัว การทดสอบภาพรวมจึงไม่เปลี่ยน มีแค่ "ความหมายของ coefficient แต่ละตัว" ที่เปลี่ยนไปตาม constraint</p>
+</div>
+
+<p>สไลด์สรุปว่า <code>aov()</code> กับ <code>lm()</code> (พร้อมระบุ contrast ให้ตรงกัน) ให้ผลเหมือนกันเสมอ — F-statistic และ p-value ตรงกันทุกประการ, เพราะ <code>aov</code> เป็นแค่ "wrapper" ที่เรียก <code>lm()</code> ภายในโดยอัตโนมัติเลือก contrast ที่ตั้งไว้ใน environment.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>อ่าน Coefficient ตาม Contrast</span></div>
+  <div class="qtext">จาก output <code>lmmodel_contrTrt</code> (<code>heightmiddle=21.400</code>) และ <code>lmmodel_contrSum</code> (<code>height2=15.700</code>) ทำไมตัวเลขทั้งสองไม่เท่ากัน ทั้งที่มาจากข้อมูลชุดเดียวกันและตัวแปร "height" เดียวกัน?</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer"><code>heightmiddle=21.400</code> ภายใต้ <code>contr.treatment</code> คือ<strong>ผลต่างระหว่างค่าเฉลี่ยกลุ่ม middle กับกลุ่มอ้างอิง bottom</strong> (77.2−55.8) ในขณะที่ <code>height2=15.700</code> ภายใต้ <code>contr.sum</code> คือ<strong>ผลต่างระหว่างค่าเฉลี่ยกลุ่ม middle กับ grand mean</strong> ของทั้งสามกลุ่ม (77.2−61.5) — ทั้งสองตัวเลขวัด "middle เบี่ยงจากอะไร" ไม่เหมือนกัน (จาก bottom vs จาก grand mean) จึงมีค่าต่างกัน แม้จะมาจากข้อมูลและโมเดลตั้งต้นเดียวกันทุกประการ เป็นแค่คนละ parameterization/constraint เท่านั้น</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>aov() vs lm()</span></div>
+  <div class="qtext">ข้อใดอธิบายความสัมพันธ์ระหว่าง <code>aov(sales~height, data=bakesale)</code> กับ <code>lm(sales~height, data=bakesale, contrasts=list(height="contr.treatment"))</code> ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">aov ใช้ได้เฉพาะเมื่อ n_i เท่ากันทุกกลุ่มเท่านั้น ส่วน lm ใช้ได้กับทุกกรณี</button>
+  <button class="opt" data-correct="true">เป็นโมเดลเดียวกันในทางคณิตศาสตร์ (aov คือ lm ที่เลือก contrast ตาม environment ให้อัตโนมัติ) จึงให้ F-statistic และ p-value เหมือนกันทุกประการ</button>
+  <button class="opt" data-correct="false">เป็นคนละโมเดลกัน ให้ F-statistic และ p-value ต่างกัน เพราะ aov ใช้สูตรคำนวณคนละแบบ</button>
+  <button class="opt" data-correct="false">lm ให้ผลถูกต้องกว่า aov เสมอเมื่อ r มากกว่า 2 กลุ่ม</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>8. แปลผล F-test — ทักษะที่ 3: ทักษะที่ออกสอบหนักที่สุด</h2>
+<p>จาก output ในหัวข้อ 7: \(F=184.6\) บน df (2, 15), \(p\text{-value}=2.74\text{e-}11\). เทียบกับระดับนัยสำคัญ \(\alpha=0.05\): p-value เล็กกว่า \(\alpha\) มาก (\(2.74\times10^{-11} \ll 0.05\)) จึง<strong>ปฏิเสธ \(H_0: \mu_{bottom}=\mu_{middle}=\mu_{top}\)</strong>.</p>
+<div class="box win">
+<div class="label">Template ประโยคแปลผล F-test</div>
+<p>"จากข้อมูลนี้ ปฏิเสธ \(H_0\) ที่ระดับนัยสำคัญ \(\alpha=0.05\) (\(F(2,15)=184.6\), \(p \lt 0.001\)) สรุปได้ว่ามีอย่างน้อยหนึ่งตำแหน่งชั้นวางสินค้าที่มียอดขายเฉลี่ยแตกต่างจากตำแหน่งอื่นอย่างมีนัยสำคัญทางสถิติ" — <strong>ข้อควรระวัง:</strong> F-test บอกแค่ "มีอย่างน้อยหนึ่งกลุ่มต่างจากกลุ่มอื่น" เท่านั้น <strong>ไม่ได้บอกว่าคู่ไหนต่างจากคู่ไหน</strong> — ต้องทำ post-hoc comparison ต่อ (หัวข้อ 9–11) ถึงจะระบุคู่ที่ต่างกันได้ชัดเจน</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล F-test</span></div>
+  <div class="qtext">จากผล ANOVA table ของข้อมูล Bakery (\(F=184.6\), \(df=(2,15)\), \(p=2.74\text{e-}11\)) จงเขียนประโยคแปลผลที่สมบูรณ์ (ต้องระบุการตัดสินใจต่อ \(H_0\), ค่าสถิติ, และข้อสรุปในบริบทของปัญหา)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"ที่ระดับนัยสำคัญ \(\alpha=0.05\) ปฏิเสธ \(H_0\) (\(F(2,15)=184.6\), \(p=2.74\text{e-}11 \lt 0.05\)) สรุปได้ว่ายอดขายเฉลี่ยของสินค้าแตกต่างกันอย่างมีนัยสำคัญทางสถิติ ระหว่างตำแหน่งชั้นวางสินค้าอย่างน้อยหนึ่งคู่ (bottom, middle, top)" — องค์ประกอบที่ขาดไม่ได้: (1) การตัดสินใจต่อ \(H_0\) ชัดเจน (2) อ้างค่า F, df, p-value ประกอบ (3) แปลกลับสู่บริบทปัญหา ("ยอดขาย" ไม่ใช่แค่ "\(\mu\) ต่างกัน") (4) ไม่สรุปเกินจริงว่าคู่ไหนต่างกัน เพราะ F-test เดียวไม่ได้บอกสิ่งนั้น</div>
+</div>
+
+<h2>9. Inference: Confidence Interval ของ \(\mu_i\) และผลต่างระหว่างกลุ่ม</h2>
+<p>จากโมเดล \(\bar{Y}_{i\cdot} \sim N(\mu_i, \sigma^2/n_i)\) สร้าง CI ของ \(\mu_i\) ได้ด้วยสูตรเดียวกับ CI ของ mean response ใน regression (Lesson 1 หัวข้อ 11):</p>
+<div class="box">
+\[\bar{Y}_{i\cdot} \pm t(1-\alpha/2; n_T-r) \times s/\sqrt{n_i}\]
+</div>
+<p>ค่า \(s\) (\(=\sqrt{MSE}\)) ดึงได้ทั้งจาก object ของ <code>aov()</code> และ <code>lm()</code>:</p>
+<pre><code>> aovmodel
+Call:
+   aov(formula = sales ~ height, data = bakesale)
+Terms:
+                height Residuals
+Sum of Squares 2273.88     92.40
+Deg. of Freedom      2        15
+Residual standard error: 2.481935
+Estimated effects may be unbalanced</code></pre>
+<p><code>Residual standard error: 2.481935</code> ตรงกับ \(s=\sqrt{MSE}=\sqrt{6.2}\approx2.482\) ที่เห็นใน <code>summary(lmmodel_contrSum)</code> ("Residual standard error: 2.482 on 15 degrees of freedom") พอดี — ยืนยันว่า <code>aov</code> กับ <code>lm</code> ให้ \(s\) ตัวเดียวกันเป๊ะ ไม่ว่าจะดึงจาก object แบบไหน.</p>
+<p>สำหรับผลต่างระหว่างค่าเฉลี่ยสองกลุ่ม \(\mu_i-\mu_k\) ใช้ผลบวก variance ของทั้งสองกลุ่ม (เพราะเป็นอิสระต่อกัน): \(\bar{Y}_{i\cdot}-\bar{Y}_{k\cdot} \sim N(\mu_i-\mu_k, \sigma^2(1/n_i+1/n_k))\) จึงได้ CI:</p>
+<div class="box">
+\[(\bar{Y}_{i\cdot}-\bar{Y}_{k\cdot}) \pm t(1-\alpha/2; n_T-r) \times s\sqrt{1/n_i+1/n_k}\]
+</div>
+<p>โดยสนใจทดสอบ \(H_0: \mu_i-\mu_k=0\) — ปัญหาคือเมื่อมี \(r\) กลุ่ม จะมีคู่ให้เปรียบเทียบได้ทั้งหมด \(r(r-1)/2\) คู่ ไม่ใช่แค่คู่เดียว.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>จำนวน Pairwise Comparisons</span></div>
+  <div class="qtext">ข้อมูล Bakery มี factor "shelf height" ที่ \(r=3\) ระดับ (bottom, middle, top) มีคู่การเปรียบเทียบ (pairwise comparison) ที่เป็นไปได้ทั้งหมดกี่คู่?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">2 คู่</button>
+  <button class="opt" data-correct="false">9 คู่</button>
+  <button class="opt" data-correct="false">6 คู่</button>
+  <button class="opt" data-correct="true">3 คู่ (จากสูตร \(r(r-1)/2 = 3\times2/2 = 3\): bottom-middle, bottom-top, middle-top)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>10. ปัญหา Multiplicity และวิธีแก้: LSD, Bonferroni, Tukey, Scheffe</h2>
+<p>ถ้าสร้าง CI แบบ 95% ทีละคู่สำหรับทั้ง \(r(r-1)/2\) คู่พร้อมกัน <strong>ความเชื่อมั่นที่ทุกช่วงครอบคลุมค่าจริงพร้อมกันทั้งหมด (overall/family-wise confidence) จะต่ำกว่า \(1-\alpha\)</strong> เพราะยิ่งทดสอบหลายครั้งพร้อมกัน ยิ่งมีโอกาสสูงที่อย่างน้อยหนึ่งช่วงจะพลาดจากความบังเอิญล้วน ๆ — นี่คือปัญหา <em class="term">multiplicity</em>. ทางแก้คือปรับตัวคูณ (multiplier) ของ SE ให้กว้างขึ้นเพื่อคุมระดับ error โดยรวมไว้ที่ \(\alpha\) จริง ๆ. สไลด์เสนอ 4 วิธี เรียงจาก "ปล่อยอิสระที่สุด" ไปถึง "เข้มงวดที่สุด":</p>
+<table>
+<tr><th>วิธี</th><th>Multiplier</th><th>ลักษณะ</th></tr>
+<tr><td><em class="term">Least Significant Difference (LSD)</em></td><td>\(t(1-\alpha/2; n_T-r)\)</td><td>ไม่ปรับ multiplicity เลย — power สูงสุด (โอกาสพบนัยสำคัญเมื่อมีจริงสูงสุด) แต่ false positive สูงสุดเช่นกัน</td></tr>
+<tr><td><em class="term">Bonferroni</em></td><td>\(t(1-\alpha^*/2; n_T-r)\), \(\alpha^*=\alpha/[r(r-1)/2]\)</td><td>คำนวณง่าย แต่ conservative เกินไปเมื่อจำนวนคู่เปรียบเทียบมาก</td></tr>
+<tr><td><em class=\"term\">Tukey's HSD</em></td><td>\(q(1-\alpha; r; n_T-r)\) (studentized range)</td><td>ออกแบบมาสำหรับ pairwise comparison ทุกคู่โดยเฉพาะ — คุม family-wise error ได้พอดี \(\alpha\) เมื่อ \(n_i\) เท่ากันทุกกลุ่ม</td></tr>
+<tr><td><em class="term">Scheffe's Method</em></td><td>\(\sqrt{(r-1)F(1-\alpha; r; n_T-r)}\)</td><td>คุม multiplicity สำหรับ linear combination ของค่าเฉลี่ย<strong>ทุกรูปแบบ</strong> ไม่ใช่แค่ pairwise — จึง conservative ที่สุดในบรรดา 4 วิธี</td></tr>
+</table>
+<p>ข้อสังเกตสำคัญ: LSD "ไม่สนใจ" multiplicity เลยจึงมี power สูงสุดแต่เสี่ยง false positive มากสุด; Scheffe คุม multiplicity ได้กว้างที่สุด (ครอบคลุมทุก linear combination ไม่ใช่แค่คู่) จึงต้อง "จ่ายราคา" เป็นช่วงความเชื่อมั่นที่กว้างที่สุด (อนุรักษนิยมสุด) ในบรรดา 4 วิธีที่กล่าวถึง; Tukey อยู่ตรงกลางและออกแบบมาเฉพาะสำหรับ pairwise comparison จึงมักเป็นตัวเลือกที่แนะนำที่สุดเมื่อสนใจแค่การเทียบทีละคู่.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>เปรียบเทียบวิธี Multiplicity Adjustment</span></div>
+  <div class="qtext">นักวิเคราะห์ต้องการเปรียบเทียบยอดขายทีละคู่ระหว่าง 3 ตำแหน่งชั้นวาง (3 คู่) และต้องการควบคุม false positive ให้เข้มงวดที่สุดเท่าที่จะทำได้ (ยอมรับ CI กว้างขึ้นเพื่อความมั่นใจ) ควรเลือกวิธีใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไม่ต้องปรับ multiplicity เลย เพราะมีแค่ 3 คู่</button>
+  <button class="opt" data-correct="false">Bonferroni เท่านั้น เพราะเป็นวิธีเดียวที่ควบคุม multiplicity ได้</button>
+  <button class="opt" data-correct="true">Tukey's HSD หรือ Scheffe's Method — ทั้งคู่ปรับ multiplier ให้กว้างขึ้นเพื่อควบคุม family-wise error rate โดย Scheffe เข้มงวดกว่า</button>
+  <button class="opt" data-correct="false">Least Significant Difference (LSD) — เพราะให้ power สูงสุด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>11. Post Hoc Analysis ใน R และการอ่านผล Tukey HSD จริง</h2>
+<p>ใน R ฟังก์ชัน <code>TukeyHSD()</code> ทำงานบน object จาก <code>aov()</code> ได้ตรง ๆ:</p>
+<pre><code>> TukeyHSD(aovmodel)
+  Tukey multiple comparisons of means
+    95% family-wise confidence level
+
+Fit: aov(formula = sales ~ height, data = bakesale)
+
+$height
+               diff        lwr         upr     p adj
+middle-bottom 21.4 17.677966 25.1220338 0.0000000
+top-bottom     -4.3 -8.022034 -0.5779662 0.0229535
+top-middle    -25.7 -29.422034 -21.9779662 0.0000000</code></pre>
+<p>อ่านทีละแถว: <code>middle-bottom</code> ต่างกัน 21.4 หน่วย, 95% CI (17.68, 25.12) — ไม่ครอบคลุม 0 เลย, p adj≈0 → นัยสำคัญมาก. <code>top-bottom</code> ต่างกัน −4.3 หน่วย, CI (−8.02, −0.58) — ก็ไม่ครอบคลุม 0 เช่นกันแต่ขอบบน (−0.58) อยู่ใกล้ 0 มากกว่าคู่อื่น ๆ, p adj=0.023 → นัยสำคัญที่ระดับ 0.05 แต่ "หวุดหวิด" กว่า. <code>top-middle</code> ต่างกัน −25.7 หน่วย, CI (−29.42, −21.98) — ห่างจาก 0 มากที่สุดในสามคู่, p adj≈0 → นัยสำคัญมากที่สุด. package <code>DescTools</code> ยังให้ฟังก์ชัน <code>PostHocTest()</code> ที่เลือกวิธีปรับ multiplicity ได้ตรง ๆ ผ่าน argument <code>method</code>:</p>
+<pre><code>> library(DescTools)
+> PostHocTest(aovmodel, method="lsd")
+$height
+               diff     lwr.ci     upr.ci    pval
+middle-bottom 21.4 18.345749 24.454251 2.1e-10 ***
+top-bottom     -4.3 -7.354251 -1.245749 0.0090 **
+top-middle    -25.7 -28.754251 -22.645749 1.5e-11 ***
+
+> PostHocTest(aovmodel, method="bonferroni")
+$height
+               diff     lwr.ci       upr.ci   pval
+middle-bottom 21.4 17.540018 25.2599821 6.2e-10 ***
+top-bottom     -4.3 -8.159982 -0.4400179 0.0269 *
+top-middle    -25.7 -29.559982 -21.8400179 4.6e-11 ***
+
+> PostHocTest(aovmodel, method="hsd")
+$height
+               diff     lwr.ci      upr.ci    pval
+middle-bottom 21.4 17.677966 25.1220338 5.9e-10 ***
+top-bottom     -4.3 -8.022034 -0.5779662 0.0230 *
+top-middle    -25.7 -29.422034 -21.9779662 4.2e-11 ***
+
+> PostHocTest(aovmodel, method="scheffe")
+$height
+               diff    lwr.ci      upr.ci    pval
+middle-bottom 21.4 17.51129 25.2887096 9.9e-10 ***
+top-bottom     -4.3 -8.18871 -0.4112904 0.0294 *
+top-middle    -25.7 -29.58871 -21.8112904 7.4e-11 ***</code></pre>
+<p>ดูแถว <code>top-bottom</code> เพื่อเห็นความแตกต่างระหว่างวิธีชัด ๆ: LSD ให้ CI แคบที่สุด (−7.35, −1.25) และ p ต่ำสุด (0.0090), Scheffe ให้ CI กว้างที่สุด (−8.19, −0.41) และ p สูงสุด (0.0294) ในบรรดา 4 วิธี — ตรงกับที่หัวข้อ 10 อธิบายไว้ว่า LSD ปล่อยอิสระสุด ส่วน Scheffe เข้มงวดสุด แม้ทั้ง 4 วิธีจะยัง<strong>สรุปตรงกัน</strong>ว่า top-bottom มีนัยสำคัญที่ \(\alpha=0.05\) (p ทุกวิธี \(\lt\) 0.05) ในกรณีนี้ก็ตาม — แต่ถ้า p-value ดิบสูงกว่านี้เล็กน้อย บางวิธีอาจสรุปนัยสำคัญไม่ตรงกันได้.</p>
+<p>พล็อตผลลัพธ์ Tukey HSD ด้วย <code>plot(PostHocTest(aovmodel, method="hsd"))</code> แสดง 95% CI ของทั้ง 3 คู่บนแกนเดียวกัน โดยมีเส้นประที่ 0 เป็นเส้นอ้างอิง:</p>
+<figure>
+<img src="../assets/slides/as6-p48-tukey-hsd-plot.png" alt="Plot of Tukey HSD 95% family-wise confidence intervals for middle-bottom, top-bottom, and top-middle differences in mean levels of height, none of the three intervals crossing zero">
+<figcaption>Slide: Plot — 95% Family-Wise Confidence Level ของ Tukey HSD (Lecture 6, p.48)</figcaption>
+</figure>
+<p>อ่านภาพเทียบตัวเลขจริงจาก <code>TukeyHSD()</code> ด้านบน: แถว <code>middle-bottom</code> ทั้งช่วง (17.68 ถึง 25.12) อยู่ทางขวาของเส้นประที่ 0 ทั้งหมด — ไม่แตะ 0 เลย. แถว <code>top-middle</code> ทั้งช่วง (−29.42 ถึง −21.98) อยู่ทางซ้ายของ 0 ทั้งหมดเช่นกัน และเป็นช่วงที่ไกลจาก 0 มากที่สุดในสามแถว (สอดคล้องกับ diff=−25.7 ที่มีขนาดใหญ่สุด). แถว <code>top-bottom</code> (−8.02 ถึง −0.58) ก็อยู่ทางซ้ายของ 0 ทั้งช่วงเหมือนกัน แต่ขอบขวาของมัน (−0.58) อยู่<strong>ใกล้เส้นประที่ 0 ที่สุด</strong>ในสามแถว — ภาพนี้ยืนยันด้วยตาว่าทั้ง 3 คู่มีนัยสำคัญทางสถิติที่ 95% family-wise level ตรงกับตัวเลขในตาราง <code>TukeyHSD()</code> ทุกประการ.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 11 (Free response — บังคับ)</span><span>แปลผล Tukey HSD Pairwise Comparison</span></div>
+  <div class="qtext">จากผล <code>TukeyHSD(aovmodel)</code> จริงด้านบน แถว <code>top-middle</code> ให้ <code>diff=−25.7</code>, 95% CI (−29.42, −21.98), \(p_{adj} \approx 0\) จงเขียนประโยคแปลผลที่สมบูรณ์ของคู่เปรียบเทียบนี้</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"ยอดขายเฉลี่ยของตำแหน่งชั้น top ต่ำกว่ายอดขายเฉลี่ยของตำแหน่งชั้น middle อยู่ 25.7 หน่วย (เทียบเท่า 257 บาท เพราะข้อมูลมีหน่วยเป็น 10 บาท) อย่างมีนัยสำคัญทางสถิติที่ 95% family-wise confidence level (95% CI ของผลต่างคือ −29.42 ถึง −21.98 ซึ่งไม่ครอบคลุม 0 เลย, p adj≈0)" — องค์ประกอบที่ขาดไม่ได้: (1) ทิศทางของผลต่าง (top ต่ำกว่า middle ไม่ใช่แค่ "ต่างกัน") (2) ขนาดของผลต่างพร้อมหน่วย (3) อ้าง CI หรือ p-value ที่ปรับ multiplicity แล้ว ไม่ใช่ p-value ดิบจาก t-test ทีละคู่ (4) เพราะ CI ไม่ครอบคลุม 0 จึงสรุปนัยสำคัญได้โดยไม่ต้องดู p adj ซ้ำ (หลักการเดียวกับ CI ของ \(\beta\) ใน Lesson 1 หัวข้อ 9)</div>
+</div>
+
+<h2>12. Beyond One Factor — ก้าวถัดไป</h2>
+<p>สไลด์ปิดท้ายด้วยการย้อนกลับไปที่ตัวอย่างปุ๋ยในหัวข้อ 1 แต่คราวนี้มี<strong>สองปัจจัยพร้อมกัน</strong>: ชนิดปุ๋ย (A, B, C) และความถี่ในการใส่ปุ๋ย (Low, Medium, High) — การมีมากกว่าหนึ่ง factor เปิดคำถามใหม่ที่ single-factor ANOVA ตอบไม่ได้: ปัจจัยทั้งสอง<strong>มีปฏิสัมพันธ์กัน (interact)</strong> หรือไม่ (เช่น ปุ๋ย A ให้ผลดีที่สุดเมื่อใส่บ่อย แต่ปุ๋ย B กลับให้ผลดีที่สุดเมื่อใส่น้อย) — นี่คือหัวข้อของ Two-Factor ANOVA ที่จะขยายผลจากโครงสร้าง ANOVA table, F-test, และ post-hoc comparison ที่เพิ่งฝึกในบทนี้ทั้งหมด เพียงเพิ่มมิติของ "interaction term" เข้าไปอีกหนึ่งตัว.</p>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ ANOVA ได้ทั้งแบบ \(Y_{ij}=\mu_i+\varepsilon_{ij}\) (cell means) และ \(Y_{ij}=\mu+\tau_i+\varepsilon_{ij}\) (factor effects พร้อม constraint), อธิบายได้ว่าทำไม ANOVA คือ regression ที่มี dummy variable \(r-1\) ตัว, อ่าน ANOVA table (SSTR/SSE/SST, MSTR/MSE, F) และเชื่อมกับ between-vs-within variability ได้, อ่าน R output จาก <code>aov()</code>/<code>lm()</code> ภายใต้ contrast ต่างกันโดยไม่สับสนความหมาย, แปลผล F-test เป็นประโยคข้อสอบได้, และที่สำคัญที่สุด — แปลผล post-hoc pairwise comparison จาก <code>TukeyHSD()</code> ได้ครบทั้งทิศทาง ขนาด และนัยสำคัญ ทักษะทั้งหมดนี้จะขยายผลต่อใน Two-Factor ANOVA ที่มีเรื่อง interaction เพิ่มเข้ามา
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (49 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture6.pdf</code> ตั้งแต่หน้า 1 ถึง 49 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก หรือหน้าที่เนื้อหาซ้ำกับหน้าอื่นที่อธิบายไปแล้ว</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 6: Single Factor ANOVA"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Experimental vs Observational Studies</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Basic Concepts of Experimental Design</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>4</td><td>Example: Testing New Fertilizer</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>5</td><td>Completely Randomized Experimental Design</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>6</td><td>Why randomization?</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>7</td><td>Example: A Single-Factor Study — ข้อมูล Bake Sales + boxplot</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>8</td><td>One-way ANOVA — นิยาม Y ต่อเนื่อง, X เป็น factor</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>9</td><td>The Data / Notation — Y_ij, factor X ที่มี r levels</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>10</td><td>ANOVA vs Regression — indicator variable สำหรับ 3 กลุ่ม</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>11</td><td>ANOVA Model — \(Y_{ij}=\beta_0+\beta_1X_{ij,1}+\beta_2X_{ij,2}+\varepsilon_{ij}\) และ assumption</td><td>✓ หัวข้อ 3 / 4</td></tr>
+<tr><td>12</td><td>The Cell Means Model — \(Y_{ij}=\mu_i+\varepsilon_{ij}\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>13</td><td>Primary Question — \(H_0: \mu_1=\ldots=\mu_r\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>14</td><td>Estimates / Inference — \(\hat{\mu}_i\), \(s_i^2\), สูตร pool \(s^2\)</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>15</td><td>ANOVA Table — SSTR, SSE, SST, MS ต่าง ๆ</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>16</td><td>Variances in ANOVA — between vs within variability (นิยาม)</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>17</td><td>Comparing Between-Treatment and Within-Treatment Variability (ภาพ)</td><td>✓ หัวข้อ 6 (มีรูป)</td></tr>
+<tr><td>18</td><td>The Factor Effects Model — \(Y_{ij}=\mu+\tau_i+\varepsilon_{ij}\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>19</td><td>The Factor Effects Model — overparameterization, constraint \(\sum\tau_i=0\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>20</td><td>Consequences of Constraint Choice — \(r=3\) balanced, \(\sum\tau_i=0\) vs \(\tau_r=0\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>21</td><td>Consequences of Constraint Choice — ค่าประมาณที่เท่ากันไม่ว่าจะเลือก constraint แบบไหน</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>22</td><td>Hypotheses — cell means model แปลเป็น factor effects model</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>23</td><td>Regression Approach to ANOVA — indicator variable \(X_{ij,k}\) แบบ 1/-1/0</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>24</td><td>Regression Approach — \(\beta_0=E[\bar{Y}_{\cdot\cdot}]\), \(\tau_i=\beta_i\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>25</td><td>contrasts Argument in R — options("contrasts")</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>26</td><td>Contrasts for r=3 — contr.treatment(3) vs contr.sum(3)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>27</td><td>Example: Bake Sales — ตาราง+boxplot ซ้ำหน้า 7 (นำเข้าสู่การฟิตด้วย R)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>28</td><td>ANOVA in R — aov(), summary(aovmodel), aovmodel$coefficient</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>29</td><td>ANOVA in R — model.tables(aovmodel, "means"/"effect")</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>30</td><td>Fit ANOVA with lm — contr.treatment output</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>31</td><td>Fit ANOVA with lm — contr.sum output</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>32</td><td>ANOVA in R — สรุป aov เทียบเท่า lm พร้อม contrast</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>33</td><td>Inference of ANOVA — เกริ่นนำ (means, differences in cell means)</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>34</td><td>The Cell Means Model (สไลด์ซ้ำหน้า 12 เพื่อทบทวนก่อนเข้า inference)</td><td>etc — เนื้อหาซ้ำหน้า 12 อธิบายแล้วในหัวข้อ 3</td></tr>
+<tr><td>35</td><td>Estimates (สไลด์ซ้ำหน้า 14 — \(\hat{\mu}_i\), \(s_i^2\), สูตร pool \(s^2\))</td><td>etc — เนื้อหาซ้ำหน้า 14 อธิบายแล้วในหัวข้อ 5</td></tr>
+<tr><td>36</td><td>Confidence Interval of \(\mu_i\)'s — \(\bar{Y}_{i\cdot}\sim N(\mu_i,\sigma^2/n_i)\)</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>37</td><td>Finding s in aov Object — aovmodel print output</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>38</td><td>Finding s in lm Object — summary(lmmodel_contrSum) ซ้ำ</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>39</td><td>Difference in Means — CI ของ \(\mu_i-\mu_k\), \(r(r-1)/2\) pairwise comparisons</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>40</td><td>Multiplicity — overall confidence level ต่ำกว่า \(1-\alpha\)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>41</td><td>Least Significant Difference — multiplier \(t(1-\alpha/2;n_T-r)\)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>42</td><td>Bonferroni's Method — \(\alpha^*=\alpha/[r(r-1)/2]\)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>43</td><td>Tukey's Method — studentized range \(q(1-\alpha;r;n_T-r)\)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>44</td><td>Tukey's Method in R — TukeyHSD(aovmodel) output จริง</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>45</td><td>Scheffe's Method — \((r-1)F(1-\alpha;r;n_T-r)\)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>46</td><td>Post Hoc Analysis in R — PostHocTest method="lsd"/"bonferroni"</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>47</td><td>Post Hoc Analysis in R — PostHocTest method="hsd"/"scheffe"</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>48</td><td>Plot — plot(PostHocTest(aovmodel, method="hsd"))</td><td>✓ หัวข้อ 11 (มีรูป)</td></tr>
+<tr><td>49</td><td>Beyond One Factor — ตัวอย่างปุ๋ย 2 factors, interaction</td><td>✓ หัวข้อ 12</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0005-model-selection.html">← Lesson 5: Model Selection</a></span>
+  <span><a href="0007-penalized-regression.html">Lesson 7: Penalized Regression →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

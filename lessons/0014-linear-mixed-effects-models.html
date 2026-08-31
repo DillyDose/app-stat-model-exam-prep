@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 14: Linear Mixed-Effects Models — Fixed vs Random Effects และการอ่าน lmer() Output</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 14 / 14 · Linear Mixed-Effects Models</span>
+  <span><a href="../reference/0014-mixed-effects-cheatsheet.html">Reference: สูตร + คู่มืออ่าน lmer() output →</a></span>
+</nav>
+
+<p class="kicker">Lecture 14 — Introduction to Linear Mixed-Effects Models (บทสุดท้าย)</p>
+<h1>Linear Mixed-Effects Models: เมื่อข้อมูลไม่ independent อีกต่อไป</h1>
+
+<p>บทเรียนนี้ตอบ 4 เรื่องเดิมที่ใช้มาตลอดคอร์ส แต่ในบริบทใหม่ที่ <strong>ข้อมูล "ไม่เป็นอิสระต่อกัน" ตั้งแต่ต้น</strong>: <strong>เขียนสมการโมเดลถูก</strong> (แยก fixed effect กับ random effect ให้ชัด), <strong>เช็คได้ว่าเมื่อไรต้องใช้ mixed model</strong> แทน ordinary regression, <strong>อ่าน output จาก <code>summary(lmer(...))</code> ได้ทุกบรรทัด</strong> รวมถึงส่วนที่ไม่เคยเห็นใน <code>lm()</code> (variance ของ random effect), และ<strong>เขียนประโยคแปลผล</strong> ทั้งของ fixed-effect coefficient (แบบเดิม) และของ variance component (แบบใหม่) — นี่คือ Lecture สุดท้ายของวิชา และเป็นคำตอบของคำถามที่ค้างมาตั้งแต่ Lesson 1: "ถ้า error terms ไม่ independent จะทำอย่างไร?"</p>
+
+<div class="box source">
+<div class="label">อ่านเพิ่มก่อนเริ่ม (แนะนำ)</div>
+Julian Faraway, <em>Extending the Linear Model with R</em> (2nd ed.) มีบท Linear Mixed-Effects Models ที่ตรงกับสไลด์นี้เกือบทุกตัวอย่าง (รวม <code>pulp</code> และ <code>sleepstudy</code> dataset) พร้อม R output เต็มบรรทัดต่อบรรทัด — ดูฟรีได้จาก <a href="https://github.com/robjhyndman/ETC3580/blob/master/Faraway%20(2016)%20Extending%20the%20linear%20model%20with%20R.pdf" target="_blank" rel="noopener">github.com/robjhyndman/ETC3580</a>.
+</div>
+
+<h2>1. ทำไมต้องมี Mixed Model — จุดที่ Assumption ข้อ 2 จาก Lesson 1 พัง</h2>
+<p>ย้อนกลับไป Lesson 1 หัวข้อ 4: assumption ของ error term มี 4 ข้อ และข้อที่ 2 คือ <strong>"error terms เป็นอิสระต่อกัน (independent)"</strong> — ตลอดคอร์สที่ผ่านมา (SLR, MLR, GLM ทุกแบบ) เราสมมติข้อนี้เงียบ ๆ โดยไม่เคยถามว่ามันจริงหรือไม่ Lecture นี้คือคำตอบของคำถามนั้น: <strong>เมื่อไรข้อ 2 พัง และพังแล้วต้องทำอย่างไร</strong></p>
+<p>สไลด์นิยาม 4 รูปแบบข้อมูลที่ทำให้ error terms ไม่ independent โดยธรรมชาติ: <em class="term">Clustered Data</em> — วัดผลลัพธ์ครั้งเดียวต่อคน แต่คนถูก "nested" อยู่ในกลุ่ม (ครอบครัว โรงเรียน ย่าน) ทำให้คนในกลุ่มเดียวกันมีแนวโน้มคล้ายกัน; <em class="term">Longitudinal Data</em> — วัดผลลัพธ์ซ้ำกับคนเดิมข้ามเวลา ทำให้ค่าที่วัดจากคนเดิมสัมพันธ์กันเอง; <em class="term">Clustered-Longitudinal Data</em> — ผสมทั้งสองแบบ (วัดซ้ำข้ามเวลา และคนยังถูก nested ในกลุ่มอีกชั้น); <em class="term">Repeated Measures Data</em> — วัดผลลัพธ์หลายครั้งกับหน่วยเดิมข้ามมิติใดก็ได้ (เวลา พื้นที่ ฯลฯ) ไม่จำเพาะเวลาอย่างเดียว ทั้งหมดนี้ถูกเรียกรวมว่า <em class="term">Multilevel Data</em> — Level 1 คือระดับต่ำสุดที่วัดตัวแปรตาม ส่วน Level 2, 3, … คือชั้นข้อมูลที่สูงขึ้นซึ่งจับกลุ่ม Level 1 ไว้</p>
+<p>ตัวอย่างสองระดับที่สไลด์ใช้: การศึกษาผลของ "ประเภทโรงเรียน (public/catholic)" ต่อคะแนนคณิตศาสตร์ของนักเรียน — นักเรียนแต่ละคนสอบครั้งเดียว แต่นักเรียนถูกจัดกลุ่มอยู่ในโรงเรียน:</p>
+<figure>
+<img src="../assets/slides/as14-p09-two-level-clustered-diagram.png" alt="Diagram: School 1 with Student 1, 2, 3 nested underneath at Level 1, and School 2 with Student 1, 2 nested underneath, with schools themselves at Level 2">
+<figcaption>Slide: Two-Level Clustered Data (Students Nested within Schools) (Lecture 14, p.9)</figcaption>
+</figure>
+<p>อ่านโครงสร้างนี้ให้ทะลุ: School 1 มีนักเรียน 3 คน ส่วน School 2 มีนักเรียน 2 คน — <strong>จำนวนหน่วยย่อยต่อกลุ่มไม่เท่ากัน</strong> (unbalanced) ซึ่งเป็นเรื่องปกติของข้อมูลจริง ไม่ใช่ข้อยกเว้น ตัวแปรระดับ 1 (คะแนนสอบ เพศ SES ของนักเรียน) เปลี่ยนค่าได้ทีละคน แต่ตัวแปรระดับ 2 (ประเภทโรงเรียน) <strong>คงที่สำหรับนักเรียนทุกคนในโรงเรียนเดียวกัน</strong> — นี่คือรากของปัญหา: นักเรียน 3 คนใน School 1 ใช้ค่า "ประเภทโรงเรียน" เดียวกันซ้ำ 3 ครั้ง ทำให้คะแนนของนักเรียน 3 คนนี้มีแนวโน้มคล้ายกันมากกว่าคะแนนของนักเรียนที่สุ่มมาจากคนละโรงเรียน (ครูคนเดียวกัน สิ่งแวดล้อมเดียวกัน ทรัพยากรเดียวกัน) — ถ้าฟิต <code>lm()</code> ตรง ๆ โดยไม่จับโครงสร้างนี้ไว้ error ของนักเรียน 3 คนนี้จะสัมพันธ์กันเอง (correlated) ละเมิด assumption ข้อ 2 ทันที</p>
+
+<p>โครงสร้างเดียวกันเกิดกับ<strong>เวลา</strong>แทนที่จะเป็น "กลุ่ม" ได้เช่นกัน — ตัวอย่างศึกษาการเติบโตของคลังคำศัพท์เด็ก วัดคำศัพท์ซ้ำหลายครั้งต่อเด็กคนเดียว:</p>
+<figure>
+<img src="../assets/slides/as14-p11-longitudinal-data-diagram.png" alt="Diagram: Child 1 with Vocab measurements at Time 1, 2, up to n1 nested underneath at Level 1, and Child 2 with Vocab measurements at Time 1, 2 underneath, with children themselves at Level 2">
+<figcaption>Slide: Longitudinal Data (Vocabulary Measured Over Time) (Lecture 14, p.11)</figcaption>
+</figure>
+<p>โครงสร้างนี้สลับตำแหน่งจากภาพก่อนหน้า: หน่วยที่ "nest" คือเวลาแทนที่จะเป็นนักเรียน — Level 1 กลายเป็นตัวแปรที่<em>เปลี่ยนตามเวลา</em> (Time-Varying) เช่นจำนวนคำศัพท์และอายุ ณ ตอนวัด ส่วน Level 2 คือตัวแปรที่<em>คงที่ตลอดเวลาสำหรับเด็กคนนั้น</em> (Time-Invariant) เช่นคลังคำศัพท์ของแม่และเพศของเด็ก — ค่าคำศัพท์ที่วัดจาก Child 1 ที่ Time 1, 2, …, \(n_1\) ล้วนมาจากเด็กคนเดียวกัน จึงสัมพันธ์กันเอง (เด็กที่เริ่มต้นคำศัพท์เยอะ มักจะคำศัพท์เยอะในทุกครั้งที่วัดต่อ ๆ ไปด้วย) — นี่คือ "correlated error" อีกรูปแบบหนึ่งที่มาจากแกนเวลาแทนที่จะเป็นแกนกลุ่ม</p>
+
+<p>ทั้งสองแกน (กลุ่มและเวลา) ยังซ้อนกันได้อีกชั้นเป็น 3 ระดับ เช่น นักเรียนใน "ห้องเรียน" ที่อยู่ใน "โรงเรียน" อีกที:</p>
+<figure>
+<img src="../assets/slides/as14-p13-three-level-clustered-diagram.png" alt="Diagram: School 1 at Level 3, containing Classroom 1 and Classroom 2 at Level 2, each containing multiple students at Level 1">
+<figcaption>Slide: Three-Level Clustered Data (Students nested in classrooms nested in schools) (Lecture 14, p.13)</figcaption>
+</figure>
+<p>สังเกตว่าตัวแปรแต่ละระดับผูกกับชั้นที่มันคงที่: ตัวแปรระดับ 1 (คะแนนนักเรียน เพศ SES) เปลี่ยนได้ทีละคน, ระดับ 2 (ประสบการณ์ครู ขนาดห้อง) คงที่สำหรับนักเรียนทุกคนในห้องเดียวกันแต่เปลี่ยนได้ระหว่างห้อง, ระดับ 3 (เขตเมือง/ชนบท สัดส่วนรายได้น้อยของโรงเรียน) คงที่สำหรับทั้งโรงเรียน — ยิ่งชั้นสูง ยิ่งมีการซ้ำค่าตัวแปรมากขึ้นในหน่วยย่อย ยิ่งมีโอกาสที่ correlated error จะรุนแรงขึ้นถ้าไม่จัดการโครงสร้างนี้อย่างถูกต้อง (สไลด์ยังมีตัวอย่างผสม 3 ระดับ + เวลา คือ "คะแนนคณิตศาสตร์วัดซ้ำทุกปีของนักเรียนที่ nested ในโรงเรียน" ซึ่งเป็นการรวมสองแกนที่เพิ่งเห็นเข้าด้วยกัน ไม่มีแนวคิดใหม่เพิ่มจากสองภาพนี้)</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>ทำไมต้องมี Mixed Model</span></div>
+  <div class="qtext">ข้อมูลนักเรียน 500 คนจาก 20 โรงเรียน (แต่ละคนสอบครั้งเดียว) ถ้าฟิต <code>lm(score ~ school_type + student_ses)</code> ตรง ๆ โดยไม่จัดการโครงสร้าง "นักเรียน nested ในโรงเรียน" จะละเมิด assumption ข้อใดจาก Lesson 1 โดยตรงที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Error terms มี variance ไม่คงที่ (heteroscedasticity)</button>
+  <button class="opt" data-correct="true">Error terms ไม่เป็นอิสระต่อกัน (independent) — นักเรียนในโรงเรียนเดียวกันมีแนวโน้มคล้ายกันจากปัจจัยร่วมของโรงเรียนที่โมเดลไม่ได้จับไว้</button>
+  <button class="opt" data-correct="false">Error terms มีค่าเฉลี่ยไม่เป็นศูนย์</button>
+  <button class="opt" data-correct="false">Error terms ไม่แจกแจงแบบปกติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>Mixed Model หรือ Ordinary Regression?</span></div>
+  <div class="qtext">นักวิจัยเก็บข้อมูลความดันโลหิตของผู้ป่วย 150 คน จาก 12 คลินิก โดยวัดความดันของผู้ป่วยแต่ละคน<strong>ซ้ำ 4 ครั้ง</strong>ในช่วง 1 ปี (เดือนที่ 0, 4, 8, 12) เพื่อดูผลของยาลดความดันชนิดใหม่ จงตอบว่าควรใช้ ordinary regression (<code>lm()</code>) หรือ linear mixed-effects model และอธิบายเหตุผลโดยระบุว่าโครงสร้างข้อมูลนี้เป็นแบบใด (clustered/longitudinal/clustered-longitudinal) กี่ level</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>ควรใช้ <strong>linear mixed-effects model</strong> ไม่ใช่ <code>lm()</code> ธรรมดา เพราะข้อมูลนี้เป็น <strong>clustered-longitudinal data แบบ 3 ระดับ</strong>: Level 1 = การวัดความดันแต่ละครั้ง (time-varying, 4 ครั้งต่อคน), Level 2 = ผู้ป่วย (การวัดซ้ำ 4 ครั้งของผู้ป่วยคนเดียวกันสัมพันธ์กันเอง — คนที่ความดันสูงตั้งแต่ต้นมักจะสูงต่อเนื่องทุกเดือน), Level 3 = คลินิก (ผู้ป่วยในคลินิกเดียวกันอาจคล้ายกันจากอุปกรณ์วัด/แพทย์/ประชากรแถบนั้น)</p>
+  <p>ถ้าฟิต <code>lm()</code> ตรง ๆ กับข้อมูล 600 แถว (150×4) โดยไม่จับโครงสร้างนี้ไว้ โมเดลจะ<strong>นับความมั่นใจ (effective sample size) เกินจริง</strong> — คิดว่ามี 600 observation อิสระ ทั้งที่จริงมีแค่ 150 คนที่เป็นอิสระต่อกัน (การวัดซ้ำในคนเดียวกันไม่ใช่ข้อมูลใหม่ทั้งหมด) ผลคือ standard error ของสัมประสิทธิ์ยา<strong>ต่ำเกินจริง</strong> p-value ต่ำเกินจริง เสี่ยงสรุปว่ายามีผลทั้งที่จริงไม่มีนัยสำคัญ</p>
+  </div>
+</div>
+
+<h2>2. ปัญหาของการวิเคราะห์แบบ Single-Level (ทำไม lm()/GLM ธรรมดาใช้ไม่ได้)</h2>
+<p>สไลด์สรุป 3 ปัญหาที่เกิดขึ้นถ้าใช้ single-level analysis (OLS, GLM ปกติ) กับข้อมูลแบบ hierarchical:</p>
+<ol>
+<li><strong>Unit of analysis problem</strong> — วิเคราะห์ที่ระดับโรงเรียนหรือระดับเด็ก? ผลสรุปเปลี่ยนไปตามระดับที่เลือก</li>
+<li><strong>Aggregation bias</strong> — ใช้ SES เฉลี่ยของทั้งโรงเรียนแทน SES ของเด็กแต่ละคน จะให้ผลสรุปต่างจากการใช้ SES รายบุคคล (ความสัมพันธ์ระดับกลุ่มไม่จำเป็นต้องเหมือนความสัมพันธ์ระดับบุคคล — ปรากฏการณ์นี้เรียกว่า ecological fallacy ในสาขาสถิติ)</li>
+<li><strong>Incorrectly estimated precision / standard errors</strong> — ตรงกับที่อธิบายในคำถาม 2 ด้านบน: SE ผิด → p-value ผิด → ข้อสรุปผิด</li>
+</ol>
+<p>Linear Mixed-Effects Models (LMM) ถูกออกแบบมาแก้ทั้ง 3 ปัญหานี้พร้อมกัน โดยการใส่โครงสร้างของข้อมูล (ใครอยู่กลุ่มไหน) เข้าไปในตัวโมเดลโดยตรง แทนที่จะเมินเฉยแล้วสมมติว่าทุก observation อิสระต่อกัน</p>
+
+<h2>3. Fixed Effects vs Random Effects — หัวใจของ LMM</h2>
+<p>นี่คือความแตกต่างที่สำคัญที่สุดของบทนี้ สไลด์นิยามไว้ชัดเจน:</p>
+<div class="box">
+<strong>Fixed effect</strong> — ค่าคงที่ที่ไม่รู้ค่า (unknown constant) ที่พยายามประมาณจากข้อมูล (เช่น ค่าเฉลี่ย) — regression และ GLM แบบธรรมดาที่เรียนมาทั้งคอร์สจัดการแค่ fixed effect เท่านั้น<br><br>
+<strong>Random effect</strong> — ตัวแปรสุ่ม (random variable) ที่พยายามประมาณ<em>พารามิเตอร์ของการแจกแจง</em>ของมัน ไม่ใช่ค่าตัวมันเองโดยตรง<br><br>
+<strong>Mixed model</strong> = ผสมทั้ง fixed effect และ random effect เข้าด้วยกันในสมการเดียว
+</div>
+<p>Fixed effects มักเป็นจุดสนใจหลักของการวิเคราะห์ ตีความได้เหมือนตัวแปรอิสระใน regression ทั่วไป มาจากข้อมูลชั้นใดก็ได้ (เช่น อายุ เพศ กลุ่มทดลอง ประสบการณ์การสอน) ส่วน random effects มักไม่ใช่จุดสนใจหลัก แต่ทำหน้าที่ "จับ" ความสัมพันธ์ระหว่าง observation ในกลุ่มเดียวกันไว้ — และช่วยแตกความแปรปรวนรวมของ Y ออกเป็นระดับต่าง ๆ ตามโครงสร้างข้อมูล เช่น ถามได้ว่า "คะแนนคณิตศาสตร์ต่างกันเพราะตัวนักเรียนเอง (level 1) มากแค่ไหน เทียบกับต่างกันเพราะโรงเรียน (level 2) มากแค่ไหน" — <strong>ข้อสำคัญ: random effect ต้องเป็น grouping factor เสมอ</strong> (ตัวแปรที่แบ่งข้อมูลเป็นกลุ่ม เช่น operator, subject, school ไม่ใช่ตัวแปรตัวเลขต่อเนื่องอย่าง age)</p>
+
+<p>สมการทั่วไปของ LMM ที่สไลด์เขียนในรูป matrix:</p>
+<div class="box win">
+\[\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}\boldsymbol{\gamma} + \boldsymbol{\varepsilon}\]<br>
+<span style="font-size:0.9em">(Fixed effect: \(\mathbf{X}\boldsymbol{\beta}\))　(Random effect: \(\mathbf{Z}\boldsymbol{\gamma}\))</span><br><br>
+โดย \(\mathbf{Y}\) = n×1 response matrix, \(\mathbf{X}\) = n×p matrix ของตัวแปรสำหรับ fixed effects, \(\boldsymbol{\beta}\) = p×1 fixed effect parameter,<br>
+\(\mathbf{Z}\) = n×q matrix ของตัวแปรสำหรับ random effects, \(\boldsymbol{\gamma}\) = q×1 random effect parameter, \(\boldsymbol{\varepsilon}\) = n×1 matrix ของ error term
+</div>
+<p>สมมติฐาน (assumption) ของ \(\boldsymbol{\gamma}\) และ \(\boldsymbol{\varepsilon}\):</p>
+<div class="box">
+\(\boldsymbol{\gamma} \sim N(0, \sigma^2\mathbf{D})\), &nbsp; \(\boldsymbol{\varepsilon} \sim N(0, \sigma^2\mathbf{R})\), &nbsp; \(\boldsymbol{\gamma}\) และ \(\boldsymbol{\varepsilon}\) เป็นอิสระต่อกัน<br>
+ดังนั้น: \(\mathbf{Y}|\boldsymbol{\gamma} \sim N(\mathbf{X}\boldsymbol{\beta} + \mathbf{Z}\boldsymbol{\gamma}, \sigma^2\mathbf{R})\) &nbsp;และ&nbsp; \(\mathbf{Y} \sim N(\mathbf{X}\boldsymbol{\beta}, \sigma^2(\mathbf{R} + \mathbf{Z}\mathbf{D}\mathbf{Z}^T))\)
+</div>
+<p>อ่านนัยของสูตรสุดท้าย: variance ของ Y แบบไม่มีเงื่อนไข (marginal) ไม่ใช่แค่ \(\sigma^2\mathbf{R}\) (เหมือน error variance ปกติของ <code>lm()</code>) แต่มีพจน์ \(\mathbf{Z}\mathbf{D}\mathbf{Z}^T\) บวกเพิ่มเข้ามา — พจน์นี้คือแหล่งที่มาของ<strong>ความสัมพันธ์ระหว่าง observation ในกลุ่มเดียวกัน</strong>ที่ <code>lm()</code> ธรรมดาไม่มีทางจับได้เลย เพราะ <code>lm()</code> ไม่มี \(\mathbf{Z}\), \(\boldsymbol{\gamma}\), \(\mathbf{D}\) ในสมการตั้งแต่แรก</p>
+
+<p>รูปแบบทั่วไปนี้ เมื่อเขียนเป็นสมการ "ต่อ observation" (scalar form) แบบที่ใช้ตอบข้อสอบ จะได้ตัวอย่างเช่นโมเดล random intercept สำหรับข้อมูล 2 ระดับ (observation <em>j</em> ในกลุ่ม <em>i</em>):</p>
+<div class="box">
+\[Y_{ij} = \beta_0 + \beta_1 X_{ij} + b_{0i} + \varepsilon_{ij}\]<br>
+โดย \(b_{0i} \sim \text{iid } N(0, \sigma^2_b)\) (random intercept เฉพาะกลุ่ม i), &nbsp;\(\varepsilon_{ij} \sim \text{iid } N(0, \sigma^2)\), &nbsp;\(b_{0i}\) และ \(\varepsilon_{ij}\) เป็นอิสระต่อกัน
+</div>
+<p>\(\beta_0, \beta_1\) เป็น fixed effect เหมือนเดิมทุกประการ (ค่าคงที่ที่ไม่รู้ค่าจริง ต้องประมาณ) ส่วน \(b_{0i}\) คือ random effect ตัวใหม่ — มันคือ "ค่าเบี่ยงเบนของ intercept เฉพาะกลุ่ม i จากค่า intercept เฉลี่ยของประชากร \(\beta_0\)" สุ่มมาจาก \(N(0, \sigma^2_b)\) — ถ้า \(\sigma^2_b = 0\) โมเดลนี้จะยุบกลับไปเป็น <code>lm()</code> ธรรมดาทันที เพราะทุกกลุ่มมี intercept เดียวกันหมด นี่คือเหตุผลที่ mixed model ถูกมองว่าเป็น "regression ที่ทั่วไปกว่า (generalization)" ไม่ใช่เทคนิคคนละสายกับที่เรียนมา</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Fixed vs Random Effect</span></div>
+  <div class="qtext">งานวิจัยศึกษาผลของ "อายุผู้ป่วย" และ "โรงพยาบาลที่รักษา" (สุ่มเลือกมา 15 แห่งจากทั่วประเทศ เพื่อจับผลกระทบของโรงพยาบาลที่มีต่อกันและกัน ไม่ได้สนใจเปรียบเทียบโรงพยาบาลใดโรงพยาบาลหนึ่งโดยเฉพาะ) ต่อระยะเวลาพักฟื้น ข้อใดจัดประเภท fixed/random effect ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ทั้งคู่ต้องเป็น fixed effect เพราะ lm() และ GLM ก็จัดการได้อยู่แล้ว</button>
+  <button class="opt" data-correct="false">อายุผู้ป่วยควรเป็น random effect เพราะเป็นตัวเลขต่อเนื่อง</button>
+  <button class="opt" data-correct="false">ทั้งคู่ต้องเป็น random effect เพราะเป็นข้อมูล multilevel</button>
+  <button class="opt" data-correct="true">อายุผู้ป่วยเป็น fixed effect (ตัวแปรอธิบายที่สนใจโดยตรง) ส่วนโรงพยาบาลเป็น random effect (grouping factor ที่จับความสัมพันธ์ของผู้ป่วยในโรงพยาบาลเดียวกัน ไม่ได้สนใจเปรียบเทียบโรงพยาบาลทีละแห่ง)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response)</span><span>เขียนสมการโมเดล — ทักษะที่ 1</span></div>
+  <div class="qtext">บริษัทหนึ่งวัดคะแนนความพึงพอใจในงาน (job satisfaction score) ของพนักงาน โดยพนักงานแต่ละคนสังกัดแผนกใดแผนกหนึ่ง (มีหลายแผนก) และสนใจผลของ "จำนวนปีที่ทำงาน (tenure)" ต่อคะแนนความพึงพอใจ โดยไม่ได้สนใจเปรียบเทียบแผนกใดแผนกหนึ่งเป็นพิเศษ แค่อยากจับผลของความแตกต่างระหว่างแผนกไว้ในโมเดล จงเขียนสมการ mixed-effects model แบบ scalar (ต่อ observation) พร้อมระบุว่าพจน์ไหนเป็น fixed effect พจน์ไหนเป็น random effect และ assumption ของแต่ละพจน์</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(\text{Satisfaction}_{ij} = \beta_0 + \beta_1\,\text{Tenure}_{ij} + b_{0i} + \varepsilon_{ij}\) สำหรับพนักงาน j ในแผนก i</p>
+  <p><strong>Fixed effects:</strong> \(\beta_0\) (ค่าเฉลี่ยความพึงพอใจเมื่อ tenure=0 ของประชากรทั้งหมด), \(\beta_1\) (ผลของ tenure ต่อความพึงพอใจ — ตัวแปรที่สนใจโดยตรง)</p>
+  <p><strong>Random effect:</strong> \(b_{0i}\) = ค่าเบี่ยงเบนของ intercept เฉพาะแผนก i จาก \(\beta_0\) เพราะแผนกเป็น grouping factor ที่ไม่ได้สนใจเปรียบเทียบทีละแผนก แค่ต้องการจับความสัมพันธ์ของพนักงานในแผนกเดียวกันไว้ — \(b_{0i} \sim \text{iid } N(0, \sigma^2_{dept})\)</p>
+  <p><strong>Error term:</strong> \(\varepsilon_{ij} \sim \text{iid } N(0, \sigma^2)\) เป็นอิสระจาก \(b_{0i}\)</p>
+  </div>
+</div>
+
+<h2>4. การประมาณค่าพารามิเตอร์ — ML vs REML</h2>
+<p>ถ้ารู้ variance-covariance matrix \(\mathbf{R}\) และ \(\mathbf{D}\) อยู่แล้ว จะประมาณ \(\boldsymbol{\beta}\) ได้ด้วย weighted least squares:</p>
+<div class="box">
+\[\hat{\boldsymbol{\beta}} = (\mathbf{X}^T\mathbf{V}^{-1}\mathbf{X})^{-1}\mathbf{X}^T\mathbf{V}^{-1}\mathbf{Y}\] &nbsp;โดย \(\mathbf{V} = \text{Var}(\mathbf{Y}) = \sigma^2(\mathbf{R} + \mathbf{Z}\mathbf{D}\mathbf{Z}^T)\)
+</div>
+<p>แต่ในทางปฏิบัติไม่มีใครรู้ \(\mathbf{R}\), \(\mathbf{D}\) ล่วงหน้า — ต้องประมาณจากข้อมูลเช่นกัน ปัญหาคือ <em>classical likelihood</em> สร้างไม่ได้ตรง ๆ เพราะ random effect \(\boldsymbol{\gamma}\) ไม่ได้ถูกสังเกตจริง (unobserved) การประมาณจึงต้องอาศัย <em>marginal distribution</em> ของ Y แทน และมี 2 วิธีหลัก:</p>
+<ul>
+<li><strong>Maximum Likelihood Estimation (MLE)</strong> — ตรงไปตรงมา แต่เมื่อ variance component ไม่รู้ค่า estimator ของ variance component จาก ML จะ<strong>เอนเอียง (biased)</strong> (ประเมิน variance ต่ำกว่าความจริง เพราะไม่ได้หักลบ degrees of freedom ที่เสียไปกับการประมาณ fixed effects)</li>
+<li><strong>Restricted Maximum-Likelihood Estimation (REML)</strong> — แก้ปัญหา bias ของ ML โดยใช้ log-restricted-likelihood function แทน — <strong>เป็นค่าเริ่มต้น (default) ของ <code>lmer()</code> ในทางปฏิบัติ</strong></li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>ML vs REML</span></div>
+  <div class="qtext">เหตุผลหลักที่ <code>lmer()</code> ตั้งค่าเริ่มต้นเป็น <code>REML=TRUE</code> แทนที่จะใช้ ML ตรง ๆ คืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ML ใช้ได้เฉพาะกับ fixed effect เท่านั้น ไม่รองรับ random effect</button>
+  <button class="opt" data-correct="false">REML คำนวณเร็วกว่า ML เสมอ</button>
+  <button class="opt" data-correct="true">ML estimator ของ variance component จะ biased เมื่อ variance component ไม่รู้ค่าจริง REML แก้ bias นี้ด้วย log-restricted-likelihood</button>
+  <button class="opt" data-correct="false">REML ให้ค่า AIC/BIC ต่ำกว่าเสมอ จึงเลือกโมเดลได้แม่นกว่า</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. Fitting LMM ใน R: <code>lmer()</code></h2>
+<p>ฟิต LMM ด้วยฟังก์ชัน <code>lmer()</code> จาก package <code>lme4</code>:</p>
+<pre><code>lmer(formula, data = NULL, REML = TRUE, control =
+lmerControl(), start = NULL, verbose = 0L, subset,
+weights, na.action, offset, contrasts = NULL,
+devFunOnly = FALSE)</code></pre>
+<p>Formula เขียนแบบ <code>y ~ FEexpr + (REexpr1 | factor1) + (REexpr2 | factor2) + ...</code> โดย <code>FEexpr</code> คือนิพจน์ของ fixed effects (เหมือน <code>lm()</code> ทุกประการ) และ <code>(REexpr | factor)</code> คือนิพจน์ random effect — ส่วนก่อน <code>|</code> บอกว่า "อะไรที่สุ่มได้" (intercept, slope, หรือทั้งคู่) ส่วนหลัง <code>|</code> บอกว่า "สุ่มตาม grouping factor ไหน":</p>
+<figure>
+<img src="../assets/slides/as14-p26-lmer-formula-table.png" alt="Table from Bates et al. 2015 showing lmer() random-effect formula syntax and meanings: (1|g) for random intercept, (1|g1/g2) for nested intercepts, (1|g1)+(1|g2) for crossed intercepts, x+(x|g) for correlated random intercept and slope, x+(x||g) for uncorrelated random intercept and slope">
+<figcaption>Slide: Formula in lmer() — จาก Bates, Mächler, Bolker &amp; Walker (2015) (Lecture 14, p.26)</figcaption>
+</figure>
+<p>สังเกตความต่างที่ข้อสอบชอบถาม: <code>(1|operator)</code> คือ random intercept เดียว — แต่ละ operator มี intercept เป็นของตัวเอง; <code>x + (x|g)</code> (เช่น <code>Days + (Days|Subject)</code>) คือ random intercept<strong>และ</strong>random slope ที่<strong>สัมพันธ์กัน</strong> (correlated — R จะประมาณค่า correlation ระหว่าง intercept กับ slope ของแต่ละ subject ให้ด้วย); ส่วน <code>x + (x||g)</code> (สองขีดคั่น) คือแบบเดียวกันแต่บังคับให้ intercept กับ slope <strong>ไม่สัมพันธ์กัน</strong> (uncorrelated) — และ <code>(1|g1/g2)</code> ใช้กับโครงสร้าง nested (g2 อยู่ใน g1) ต่างจาก <code>(1|g1)+(1|g2)</code> ที่ใช้กับโครงสร้าง crossed (g1, g2 ไม่ได้ nested กัน) — ตัวเลือก syntax นี้ต้อง<strong>เลือกให้ตรงกับโครงสร้างข้อมูลจริง</strong> ไม่ใช่เลือกตามใจ เพราะกำหนดว่า \(\mathbf{D}\) (variance-covariance matrix ของ random effect) มีรูปร่างอย่างไร</p>
+
+<h2>6. ตัวอย่างแรก: Brightness of Paper Pulp — Random Intercept เดี่ยว</h2>
+<p>ข้อมูล <code>pulp</code> มี 20 แถว 2 คอลัมน์ ทดลองวัดความสว่างกระดาษ (<code>bright</code>) จาก operator 4 คน (a,b,c,d) แต่ละคนวัดซ้ำ 5 ครั้ง:</p>
+<pre><code>&gt; library(faraway)
+&gt; data(pulp)
+&gt; head(pulp)
+  bright operator
+1   59.8        a
+2   60.0        a
+3   60.8        a
+4   60.8        a
+5   59.8        a
+6   59.8        b</code></pre>
+<p>โครงสร้างนี้คือ clustered data 2 ระดับ (การวัด nested ใน operator) — สนใจแค่ค่าเฉลี่ยความสว่างโดยรวม (ไม่มีตัวแปรอธิบายอื่น) แต่ต้องการจับผลของ operator ไว้เป็น random effect ฟิตด้วย REML (ค่าเริ่มต้น):</p>
+<pre><code>&gt; library(lme4)
+&gt; lmmmodel&lt;-lmer(bright ~ 1+(1|operator), pulp)
+&gt; summary(lmmmodel)
+Linear mixed model fit by REML ['lmerMod']
+Formula: bright ~ 1 + (1 | operator)
+   Data: pulp
+
+REML criterion at convergence: 18.6
+Scaled residuals:
+    Min      1Q Median       3Q     Max
+-1.4666 -0.7595 -0.1244 0.6281 1.6012
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ operator (Intercept) 0.06808 0.2609
+ Residual             0.10625 0.3260
+Number of obs: 20, groups: operator, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 60.4000      0.1494   404.2</code></pre>
+<p>นี่คือ output ใหม่ที่ <code>lm()</code> ไม่เคยมี: บล็อก <strong>"Random effects"</strong> — แถว <code>operator (Intercept)</code> บอก variance ของ random intercept ระหว่าง operator = 0.06808 (SD = 0.2609) ส่วนแถว <code>Residual</code> คือ variance ของ error ภายใน operator เดียวกัน = 0.10625 (SD = 0.3260) — สองตัวเลขนี้คือการแตกความแปรปรวนรวมของ <code>bright</code> ออกเป็น "ต่างกันเพราะ operator" กับ "ต่างกันเพราะเหตุสุ่มภายใน operator เดียวกัน" ส่วนบล็อก Fixed effects เหลือแค่ <code>(Intercept) = 60.4000</code> ซึ่งตีความเหมือนเดิมทุกประการ: ค่าเฉลี่ยความสว่างกระดาษโดยรวม (ข้าม operator ทั้งหมด) ประมาณได้ 60.4</p>
+<p>ถ้าฟิตด้วย ML แทน (<code>REML=FALSE</code>) จะได้ AIC/BIC/logLik ที่ ML รองรับ (REML ไม่มีค่าเหล่านี้ให้โดยตรงเพราะฟังก์ชัน likelihood ถูกจำกัดไว้) และสังเกตว่า variance ของ operator เปลี่ยนจาก 0.06808 (REML) เหลือ 0.04575 (ML) — ตรงตามที่อธิบายไว้ในหัวข้อ 4 พอดี ว่า ML ให้ variance component ที่ biased ต่ำกว่า REML:</p>
+<pre><code>&gt; lmmMLmodel&lt;-lmer(bright ~ 1+(1|operator), pulp, REML=FALSE)
+&gt; summary(lmmMLmodel)
+Linear mixed model fit by maximum likelihood ['lmerMod']
+Formula: bright ~ 1 + (1 | operator)
+   Data: pulp
+     AIC       BIC  logLik deviance df.resid
+    22.5      25.5    -8.3     16.5       17
+
+Scaled residuals:
+     Min       1Q   Median        3Q       Max
+-1.50554 -0.78116 -0.06353   0.65850   1.56232
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ operator (Intercept) 0.04575 0.2139
+ Residual             0.10625 0.3260
+Number of obs: 20, groups: operator, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 60.4000      0.1294   466.7</code></pre>
+
+<h2>7. Intraclass Correlation Coefficient (ICC) — ทักษะที่ 3 เวอร์ชันใหม่: แปลผล Variance Component</h2>
+<p>ICC วัดว่า<strong>สัดส่วนความแปรปรวนรวม</strong>ของ Y ที่มาจาก "ความแตกต่างระหว่างกลุ่ม" เป็นเท่าไร เทียบกับความแปรปรวนทั้งหมด:</p>
+<div class="box win">
+\[\text{ICC} = \dfrac{\text{Variance due to grouping}}{\text{Total Variance}} = \dfrac{\sigma^2_{group}}{\sigma^2_{group} + \sigma^2_{residual}}\]
+</div>
+<p>ตัวอย่างการตีความจากสไลด์: ถ้าโรงเรียนเป็น random effect และผลลัพธ์คือคะแนนสอบ แล้ว ICC = 25% แปลว่า <strong>25% ของความแปรปรวนในคะแนนสอบมาจากความแตกต่างระหว่างโรงเรียน</strong> ส่วนที่เหลืออีก 75% มาจากความแตกต่างระหว่างนักเรียนภายในโรงเรียนเดียวกัน — นี่คือประโยคแปลผลมาตรฐานที่ต้องเขียนได้ทุกครั้งที่รายงาน ICC</p>
+<p>คำนวณจริงจาก output ของ pulp data (โมเดล ML ด้านบน):</p>
+<figure>
+<img src="../assets/slides/as14-p32-pulp-icc-calculation.png" alt="R output for the pulp ML model with Random effects table showing operator variance 0.04575 and Residual variance 0.10625, annotated with a callout computing ICC = 0.04575 / (0.04575+0.10625) = 0.3">
+<figcaption>Slide: Pulp Dataset — คำนวณ ICC จาก R output จริง (Lecture 14, p.32)</figcaption>
+</figure>
+<p>แทนตัวเลขตรง ๆ จากตาราง Random effects: \(\text{ICC} = \dfrac{0.04575}{0.04575 + 0.10625} = 0.3\) — แปลว่า <strong>30% ของความแปรปรวนทั้งหมดในความสว่างกระดาษมาจากความแตกต่างระหว่าง operator</strong> (คนละคนวัดได้ค่าเฉลี่ยต่างกันเป็นระบบ) ส่วนอีก 70% มาจากความแปรปรวนภายใน operator คนเดียวกัน (ความคลาดเคลื่อนจากการวัดซ้ำ) — ตัวเลขนี้สูงพอสมควร (0.3) บอกว่า "operator" เป็นแหล่งความแปรปรวนที่สำคัญจริง ๆ ไม่ใช่ปัจจัยรบกวนเล็กน้อยที่มองข้ามได้ ถ้า ICC ใกล้ 0 จะแปลว่าโครงสร้างกลุ่มแทบไม่มีผล และ <code>lm()</code> ธรรมดาก็อาจให้ผลใกล้เคียงกับ mixed model อยู่แล้ว</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>แปลผล ICC</span></div>
+  <div class="qtext">โมเดลหนึ่งได้ Random effects: Groups=clinic variance=8, Residual variance=32 จงคำนวณ ICC และเขียนประโยคแปลผลที่ถูกต้อง</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">ICC = 8/(8+32) = 8/40 = <strong>0.2</strong> — "20% ของความแปรปรวนทั้งหมดในตัวแปรผลลัพธ์มาจากความแตกต่างระหว่าง clinic ส่วนอีก 80% มาจากความแตกต่างระหว่าง observation ภายใน clinic เดียวกัน"</div>
+</div>
+
+<h2>8. ตัวอย่างที่สอง: Sleep Study — Random Intercept กับ Random Slope</h2>
+<p>ข้อมูล <code>sleepstudy</code> มี 180 แถว วัดเวลาปฏิกิริยาเฉลี่ย (<code>Reaction</code>, มิลลิวินาที) ของ 18 คนทุกวันระหว่างถูกจำกัดให้นอนแค่ 3 ชั่วโมง/คืน (<code>Days</code> = จำนวนวันที่อดนอน) — ก่อนฟิตโมเดล พล็อตข้อมูลรวมทุกคนก่อนเสมอ (เหมือนกฎ "ต้อง plot ก่อน" จาก Lesson 1):</p>
+<pre><code>&gt; plot(sleepstudy$Days, sleepstudy$Reaction,
++      xlab="Days of sleep deprivation",
++      ylab="Average reaction time (ms)")</code></pre>
+<figure>
+<img src="../assets/slides/as14-p34-sleepstudy-scatter-pooled.png" alt="Scatterplot of Reaction time (200-460ms) against Days of sleep deprivation (0-9), all 18 subjects pooled into one cloud of points, showing an overall upward trend">
+<figcaption>Slide: Example — Sleep Study, scatter plot รวมทุกคน (Lecture 14, p.34)</figcaption>
+</figure>
+<p>ภาพรวมเห็นแนวโน้มขาขึ้นชัดเจน (ยิ่งอดนอนหลายวัน เวลาปฏิกิริยายิ่งช้าลง/มากขึ้น) แต่การพล็อตรวมทุกคนแบบนี้<strong>ซ่อนคำถามสำคัญไว้</strong>: ทุกคนแย่ลงในอัตราเดียวกันหรือไม่? ต้องแยกดูทีละคนด้วย <code>xyplot()</code> จาก package <code>lattice</code> ถึงจะเห็น:</p>
+<pre><code>&gt; library(lattice)
+&gt; xyplot(Reaction ~ Days | Subject, sleepstudy, type = c("g","p","r"),
++        index = function(x,y) coef(lm(y ~ x))[1],
++        xlab = "Days of sleep deprivation",
++        ylab = "Average reaction time (ms)", aspect = "xy")</code></pre>
+<figure>
+<img src="../assets/slides/as14-p36-sleepstudy-lattice-per-subject.png" alt="Lattice plot of 18 panels, one per subject (351, 335, 332, 372, 333, 352, 331, 330, 337, 310, 309, 370, 349, 350, 334, 308, 371, 369), each showing that subject's Reaction vs Days points with its own fitted regression line — lines vary noticeably in both starting height (intercept) and steepness (slope)">
+<figcaption>Slide: Example — Sleep Study, xyplot แยกทีละ subject (Lecture 14, p.36)</figcaption>
+</figure>
+<p>นี่คือภาพที่ตอบคำถามได้ตรง ๆ: subject 308 (แถวล่าง คอลัมน์ที่ 6) เส้นชันมากจาก ~230ms พุ่งขึ้นไปเกือบ 460ms ภายใน 9 วัน ในขณะที่ subject 335 (แถวบน คอลัมน์ที่ 2) เส้นเกือบราบ แทบไม่เปลี่ยนจาก ~270ms เลยตลอด 9 วัน — <strong>ทั้งจุดเริ่มต้น (intercept) และความชัน (slope) ต่างกันอย่างชัดเจนระหว่างคน</strong> ไม่ใช่แค่ intercept อย่างเดียวแบบตัวอย่าง pulp — นี่คือสัญญาณว่าโมเดลควรมี <strong>ทั้ง random intercept และ random slope</strong> ไม่ใช่ random intercept เดี่ยว มิฉะนั้นโมเดลจะบังคับให้ทุกคน "แย่ลงในอัตราเดียวกันทุกคน" ซึ่งขัดกับสิ่งที่เห็นในภาพตรง ๆ</p>
+<p>แนวคิดนี้สรุปเป็นภาพนามธรรม 4 แบบได้ดังนี้ — เทียบ fixed-effect regression ธรรมดา (บนซ้าย) กับ mixed model 3 แบบย่อย:</p>
+<figure>
+<img src="../assets/slides/as14-p37-random-intercept-slope-diagram.png" alt="Four-panel diagram: top-left shows ordinary fixed-effects regression with one line through all points; top-right shows random intercept fixed slope with parallel lines at different heights alpha1, alpha2, alpha3; bottom-left shows fixed intercept random slope with lines fanning out from one point at different angles beta1, beta2, beta3; bottom-right shows random intercept and random slope with lines at different heights and different angles that cross each other">
+<figcaption>Slide: Random Intercept and Slope — 4 รูปแบบ (bookdown.org/steve_midway/BHME) (Lecture 14, p.37)</figcaption>
+</figure>
+<p>อ่านทีละแผง: แผงบนซ้าย (Fixed Effects) คือ SLR ปกติจาก Lesson 1 — เส้นเดียวสำหรับทุกกลุ่ม ไม่มี random effect เลย; แผงบนขวา (Random Intercept, Fixed Slope) — เส้นขนานกัน 3 เส้นที่จุดเริ่มต้น \(\alpha_1\), \(\alpha_2\), \(\alpha_3\) ต่างกัน แต่ความชัน \(\beta\) เท่ากันทุกกลุ่ม (นี่คือโมเดล pulp ในหัวข้อ 6 ขยายให้มี slope ด้วย); แผงล่างซ้าย (Fixed Intercept, Random Slope) — ทุกเส้นเริ่มจากจุดเดียวกัน \(\alpha\) แต่ความชัน \(\beta_1\), \(\beta_2\), \(\beta_3\) แตกต่างกัน (พบน้อยในทางปฏิบัติ เพราะปกติแล้วถ้า slope ต่างกัน intercept ก็มักต่างกันด้วย); แผงล่างขวา (Random Intercept, Random Slope) — ทั้งจุดเริ่มต้น \(\alpha_1\), \(\alpha_2\) และความชัน \(\beta_1\), \(\beta_2\) ต่างกันหมด เส้นตัดกันเองได้ — <strong>นี่คือแบบที่ตรงกับข้อมูล sleep study ในภาพ xyplot ด้านบน</strong> เพราะทั้งจุดเริ่มต้นและอัตราการแย่ลงต่างกันชัดเจนระหว่างคน</p>
+
+<h3>ฟิต Random Intercept อย่างเดียวก่อน</h3>
+<pre><code>&gt; model1 &lt;- lmer(Reaction ~ Days + (1| Subject), sleepstudy)
+&gt; summary(model1)
+
+...
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ Subject (Intercept) 1378.2    37.12
+ Residual              960.5   30.99
+Number of obs: 180, groups: Subject, 18
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 251.4051     9.7467   25.79
+Days         10.4673     0.8042   13.02
+
+Correlation of Fixed Effects:
+     (Intr)
+Days -0.371</code></pre>
+<p>โมเดลนี้ยังบังคับให้ทุกคน "แย่ลงในอัตราเดียวกัน" ที่ 10.4673 ms/วัน (เพราะยังไม่มี random slope) มีแค่จุดเริ่มต้น (intercept) ที่ต่างกันระหว่างคน (variance = 1378.2) — จากภาพ xyplot ที่เพิ่งเห็น รู้อยู่แล้วว่านี่ยังไม่ใช่โมเดลที่ตรงกับข้อมูลที่สุด ต้องขยายเป็น random slope ด้วย:</p>
+<h3>ฟิต Random Intercept และ Random Slope</h3>
+<pre><code>&gt; model2 &lt;- lmer(Reaction ~ Days + (Days | Subject), sleepstudy)
+&gt; summary(model2)
+
+...
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ Subject (Intercept) 612.10    24.741
+          Days         35.07    5.922   0.07
+ Residual             654.94   25.592
+Number of obs: 180, groups: Subject, 18
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 251.405       6.825 36.838
+Days           10.467     1.546 6.771
+
+Correlation of Fixed Effects:
+     (Intr)
+Days -0.138</code></pre>
+<p>บล็อก Random effects ตอนนี้มี 3 บรรทัดแทนที่จะเป็น 2: variance ของ random intercept (612.10), variance ของ random slope สำหรับ Days (35.07), และคอลัมน์ <code>Corr</code> ใหม่ (= 0.07) ที่บอกความสัมพันธ์ระหว่าง random intercept กับ random slope ของแต่ละคน (ใกล้ 0 แปลว่าจุดเริ่มต้นของคนไม่ค่อยสัมพันธ์กับอัตราการแย่ลงของเขา) — สังเกตว่า Fixed effects แทบไม่เปลี่ยนจาก model1 เลย (Days ยังคง ≈10.47) แต่ <strong>Std. Error ของ Days เปลี่ยนจาก 0.8042 เป็น 1.546 (เกือบเท่าตัว)</strong> — นี่คือผลโดยตรงของการยอมรับว่าคนแต่ละคนมีอัตราการแย่ลงต่างกัน (มี "unmodeled heterogeneity" น้อยลง) ทำให้ความไม่แน่นอนของค่าเฉลี่ยประชากรถูกประเมินอย่างซื่อสัตย์มากขึ้น (ไม่ต่ำเกินจริงเหมือน model1)</p>
+
+<div class="box win">
+<div class="label">ทักษะที่ออกสอบหนักที่สุด เวอร์ชัน LMM: แปลผล Fixed Effect + Variance Component</div>
+<p><strong>Fixed effect (Days = 10.467):</strong> ตีความเหมือน slope ปกติจาก Lesson 1 ทุกประการ — "จากข้อมูลนี้ เมื่อจำนวนวันที่อดนอนเพิ่มขึ้น 1 วัน เวลาปฏิกิริยาเฉลี่ยของประชากร (population-average) คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย 10.467 มิลลิวินาที"</p>
+<p><strong>Variance component (ส่วนที่ต้องเพิ่มใหม่):</strong> "ความแปรปรวนของ random intercept ระหว่างคน = 612.10 (SD ≈ 24.74 ms) แปลว่าคนแต่ละคนมี baseline reaction time (ตอน Days=0) ต่างกันมากพอสมควรจากค่าเฉลี่ยประชากร และความแปรปรวนของ random slope = 35.07 (SD ≈ 5.92 ms/วัน) แปลว่าอัตราการแย่ลงต่อวันก็ต่างกันระหว่างคนด้วย ไม่ใช่ทุกคนแย่ลงในอัตรา 10.467 ms/วันเป๊ะตามค่าเฉลี่ย"</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล Fixed Effect + Random Effect Variance</span></div>
+  <div class="qtext">จาก output ของ model2 ด้านบน (Fixed effects: Days=10.467; Random effects: Subject Days variance=35.07) จงเขียนประโยคแปลผลทั้ง (ก) ค่าสัมประสิทธิ์ Days และ (ข) ความหมายของ variance ของ random slope ให้ครบทั้งสองส่วน</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>(ก) "เมื่อจำนวนวันที่อดนอนเพิ่มขึ้น 1 วัน เวลาปฏิกิริยาเฉลี่ย (Reaction) ของประชากรคาดว่าจะเพิ่มขึ้นโดยเฉลี่ย 10.467 มิลลิวินาที" (ตีความเหมือน slope ธรรมดา — นี่คือ "ค่าเฉลี่ยของประชากร" ไม่ใช่ค่าของคนใดคนหนึ่ง)</p>
+  <p>(ข) "ความแปรปรวนของ random slope (Days) = 35.07 (SD ≈ 5.92 ms) บอกว่าอัตราการแย่ลงต่อวันไม่เท่ากันในทุกคน — บางคนแย่ลงเร็วกว่า 10.467 ms/วันมาก บางคนช้ากว่า การมี random slope นี้ทำให้โมเดลยอมรับความแตกต่างระหว่างบุคคล (individual heterogeneity) แทนที่จะบังคับให้ทุกคนมีอัตราแย่ลงเท่ากันหมดแบบ model1"</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Random Slope Variance</span></div>
+  <div class="qtext">ถ้า variance ของ random slope (Days) ในโมเดลข้างต้นเท่ากับ 0 พอดี จะหมายความว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ทุกคนมีอัตราการเปลี่ยนแปลงของ Reaction ต่อ Days เท่ากันหมด (ไม่มีความแตกต่างระหว่างบุคคลในอัตรานี้) โมเดลจึงยุบกลับไปมี fixed slope เดียวเหมือน model1</button>
+  <button class="opt" data-correct="false">ต้องเปลี่ยนจาก REML ไปใช้ ML ทันที</button>
+  <button class="opt" data-correct="false">Days ไม่มีผลต่อ Reaction เลยในทุกคน</button>
+  <button class="opt" data-correct="false">Random intercept ก็ต้องเป็น 0 ไปด้วยโดยอัตโนมัติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>9. ตัวอย่างที่สาม: Exam Data — Random Effects ซ้อนกัน 2 ชั้น</h2>
+<p>ข้อมูลคะแนนสอบมาตรฐาน (<code>normexam</code>) ของนักเรียน 4,059 คน จาก 65 โรงเรียนใน Inner London สนใจผลของเพศ (<code>sex</code>) เป็น fixed effect ส่วน random effect มี<strong>2 ชั้นซ้อนกัน</strong>: นักเรียนแต่ละคน nested ในโรงเรียน (<code>school:student</code>) และโรงเรียนเอง (<code>school</code>):</p>
+<pre><code>&gt; library(mlmRev)
+&gt; data(Exam)
+&gt;
+&gt; model&lt;-lmer(normexam ~ sex+(1|school)+(1|school:student), data=Exam)
+&gt; summary(model)
+
+Random effects:
+ Groups         Name        Variance Std.Dev.
+ school:student (Intercept) 0.006205 0.07877
+ school         (Intercept) 0.164316 0.40536
+ Residual                   0.833451 0.91294
+Number of obs: 4059, groups: school:student, 4055; school, 65
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 0.10003     0.05576   1.794
+sexM        -0.26154    0.04028 -6.493
+
+Correlation of Fixed Effects:
+     (Intr)
+sexM -0.312</code></pre>
+<p>ตอนนี้มี variance component 3 ชั้นให้แตกความแปรปรวนรวมของคะแนนสอบ: <code>school</code> (0.164316, ต่างกันเพราะโรงเรียน), <code>school:student</code> (0.006205, ต่างกันเพราะตัวนักเรียนเองภายในโรงเรียน — เล็กมากเมื่อเทียบกับอีกสองตัว) และ <code>Residual</code> (0.833451, ความแปรปรวนที่เหลือ) — สังเกตว่า <code>groups: school:student, 4055</code> ไม่เท่ากับ 4059 (จำนวนนักเรียนทั้งหมด) พอดี เพราะมีนักเรียนบางคนที่ข้อมูลซ้ำ/ไม่ครบทำให้ R นับกลุ่มได้ไม่เท่าจำนวนแถวเป๊ะ — เป็นเรื่องปกติของข้อมูลจริงที่ไม่สมบูรณ์แบบ ส่วน Fixed effect <code>sexM = -0.26154</code> ตีความว่า "เมื่อเทียบกับเพศหญิง (baseline) นักเรียนชายมีคะแนนสอบมาตรฐานเฉลี่ยต่ำกว่าโดยเฉลี่ย 0.26154 หน่วย (อย่างมีนัยสำคัญ เพราะ t=-6.493 มีขนาดใหญ่)"</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>Nested Random Effects</span></div>
+  <div class="qtext">ทำไมสูตร <code>(1|school)+(1|school:student)</code> ถึงใช้ <code>school:student</code> แทนที่จะเขียนแค่ <code>(1|student)</code> เฉย ๆ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ student อย่างเดียวเป็น fixed effect ไม่ใช่ random effect</button>
+  <button class="opt" data-correct="false">เพราะต้องการลด residual variance ให้เป็น 0</button>
+  <button class="opt" data-correct="false">เพราะ R บังคับให้ต้องเขียนแบบนี้เสมอ ไม่มีเหตุผลทางสถิติ</button>
+  <button class="opt" data-correct="true">เพราะรหัสนักเรียนอาจซ้ำกันข้ามโรงเรียน (เช่น นักเรียน #1 มีอยู่ในหลายโรงเรียน) การเขียน school:student ระบุชัดว่านักเรียนแต่ละคน "nested" อยู่ในโรงเรียนไหน ป้องกันการเอานักเรียนคนละคนที่บังเอิญมีรหัสเดียวกันมาปนกัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>10. Testing Fixed Effects — ทำไมไม่มี p-value ให้ตรง ๆ</h2>
+<p>สังเกตว่าทุก output ของ <code>lmer()</code> ด้านบนมีคอลัมน์ <code>t value</code> แต่<strong>ไม่มีคอลัมน์ <code>Pr(&gt;|t|)</code></strong> เหมือน <code>summary(lm(...))</code> เลย — นี่ไม่ใช่ความบกพร่องของฟังก์ชัน แต่เป็นเพราะ <strong>degrees of freedom ของ mixed model ไม่ชัดเจนแบบ <code>lm()</code></strong> (ไม่รู้ต้องหักลบเท่าไรให้ random effect) ผู้พัฒนา <code>lme4</code> จึงเลือกไม่ใส่ p-value มาให้เอง สไลด์สรุปวิธีคำนวณ p-value ที่ใช้กันจริง 5 แนวทาง พร้อมข้อจำกัดของแต่ละวิธี:</p>
+<ul>
+<li><strong>MCMC</strong> (Baayen et al. 2008) — ใช้ไม่ได้เมื่อมี random slope</li>
+<li><strong>Parametric Bootstrap</strong> — แม่นยำแต่คำนวณหนักมาก</li>
+<li><strong>t-as-z</strong> — ปฏิบัติเหมือน t-statistic เป็น z-statistic ตรง ๆ (df=∞) — <em>Anti-conservative</em> (Luke 2017), คือให้ p-value ต่ำกว่าความจริง เสี่ยง false positive</li>
+<li><strong>Likelihood Ratio Test (LRT)</strong> — <em>Anti-conservative</em> เช่นกัน (Barr et al. 2013)</li>
+<li><strong>t with approximated degree of freedom</strong> — ประมาณ df ด้วย Kenward-Roger หรือ Satterthwaite approximation — เป็นวิธีที่แม่นยำกว่า 2 วิธีข้างต้น</li>
+</ul>
+
+<h3>Likelihood Ratio Test (LRT)</h3>
+<p>ข้อควรระวังสำคัญ: <strong>ถ้าฟิตด้วย REML การเทียบ LRT ระหว่างโมเดลที่มี fixed-effect structure ต่างกันไม่มีความหมาย</strong> เพราะ REML criterion มีพจน์ที่เปลี่ยนไปตาม fixed-effect structure ทำให้เทียบกันไม่ได้ตรง ๆ — ต้องฟิตด้วย <strong>ML</strong> ก่อนถึงจะใช้ LRT เทียบ fixed effect ระหว่างโมเดลได้อย่างถูกต้อง (RE structure เทียบด้วย REML ได้ตามปกติ จะเห็นในหัวข้อ 11):</p>
+<pre><code>&gt; fullmodel&lt;-lmer(Reaction ~ Days + (Days | Subject), sleepstudy,
+REML=FALSE)
+&gt; reducedmodel&lt;-lmer(Reaction ~ 1 + (Days | Subject), sleepstudy,
+REML=FALSE)
+&gt; as.numeric(2*(logLik(fullmodel)-logLik(reducedmodel)))
+[1] 23.53654
+&gt; pchisq(23.53654,df=1,lower=FALSE)
+[1] 1.225638e-06
+
+&gt; anova(fullmodel, reducedmodel)
+Data: sleepstudy
+Models:
+reducedmodel: Reaction ~ 1 + (Days | Subject)
+fullmodel: Reaction ~ Days + (Days | Subject)
+             npar    AIC    BIC logLik deviance Chisq Df Pr(&gt;Chisq)
+reducedmodel    5 1785.5 1801.4 -887.74   1775.5
+fullmodel       6 1763.9 1783.1 -875.97   1751.9 23.537 1 1.226e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<p>อ่าน output: <code>fullmodel</code> มี Days เป็น fixed effect ส่วน <code>reducedmodel</code> ตัด Days ออก (เหลือแค่ intercept) — สถิติทดสอบ LRT = \(2\times(\log\text{Lik(full)} - \log\text{Lik(reduced)}) = 23.537\) เทียบกับ \(\chi^2(df=1)\) ได้ p-value = \(1.226\times10^{-6}\) ต่ำมาก จึงปฏิเสธ \(H_0\) ว่า Days ไม่มีผล — <code>npar</code> ต่างกัน 1 (6 กับ 5) ตรงกับ <code>Df=1</code> ในตาราง <code>anova()</code> พอดี (เสีย 1 parameter ให้กับ fixed-effect Days ที่ถูกตัดออก)</p>
+
+<h3>t-as-z</h3>
+<pre><code>&gt; summary(fullmodel)
+
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ Subject (Intercept) 565.48    23.780
+          Days         32.68    5.717   0.08
+ Residual             654.95   25.592
+Number of obs: 180, groups: Subject, 18
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) 251.405       6.632 37.907
+Days          10.467      1.502   6.968</code></pre>
+<p>วิธี t-as-z คือเอา t value = 6.968 ไปเทียบกับ standard normal distribution ตรง ๆ (เหมือนไม่มี df จำกัด) — ได้ p-value ต่ำมากเกือบแน่นอนเมื่อ |t| ใหญ่ขนาดนี้ แต่ตามที่ Luke (2017) เตือนไว้ วิธีนี้ anti-conservative โดยเฉพาะเมื่อจำนวน subject น้อย</p>
+
+<h3>Kenward-Roger / Satterthwaite Approximation</h3>
+<pre><code>&gt; library(lmerTest)
+&gt; model&lt;-lmer(Reaction ~ Days + (Days | Subject), sleepstudy, REML=TRUE)
+&gt; summary(model, ddf = "Kenward-Roger")
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ Subject (Intercept) 612.10    24.741
+          Days         35.07    5.922   0.07
+ Residual             654.94   25.592
+Number of obs: 180, groups: Subject, 18
+
+Fixed effects:
+            Estimate Std. Error     df t value Pr(&gt;|t|)
+(Intercept) 251.405       6.825 17.000 36.838 &lt; 2e-16 ***
+Days           10.467     1.546 17.000   6.771 3.26e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<p>ต้องใช้ package <code>lmerTest</code> เสริม <code>lme4</code> ถึงจะได้คอลัมน์ <code>df</code> และ <code>Pr(&gt;|t|)</code> เพิ่มมาแบบนี้ — <code>df=17.000</code> ที่นี่ไม่ใช่ \(n-p\) ธรรมดา แต่มาจากสูตรประมาณของ Kenward-Roger ที่คำนึงถึงโครงสร้าง random effect ด้วย ได้ p-value = \(3.26\times10^{-6}\) ซึ่งใกล้เคียงกับ LRT (\(1.226\times10^{-6}\)) และ t-as-z แต่คำนวณมาอย่างระมัดระวังกว่า — ตัวเลือก <code>ddf="Satterthwaite"</code> ในตัวอย่างนี้ให้ตัวเลขทุกตัวเหมือนกันเป๊ะกับ Kenward-Roger (df=17.000, p=3.26e-06) เพราะข้อมูล sleep study มีโครงสร้างสมดุล (แต่ละ subject มี 10 observation เท่ากัน) — ในข้อมูลที่ไม่สมดุล (unbalanced) สองวิธีนี้อาจให้ df ต่างกันได้</p>
+
+<p>ทำไมต้องระวังเลือกวิธีให้เหมาะกับขนาดข้อมูล — สไลด์อ้างงานของ Luke (2017) ที่จำลองข้อมูลหลายขนาด (จำนวน subject × จำนวน item) แล้ววัด Type I Error Rate ของแต่ละวิธี (เส้นดำ = ระดับที่ควรจะเป็นพอดี 0.05):</p>
+<figure>
+<img src="../assets/slides/as14-p48-df-approximation-type1-error.png" alt="Faceted plot of Type 1 Error Rate against Number of Items (Level 2) for combinations of 12, 24, 36 subjects, comparing six methods: ML t-as-z, REML t-as-z, ML Likelihood Ratio Test, ML Satterthwaite, REML Satterthwaite, REML Kenward-Roger. The triangle markers (t-as-z, ML LRT) sit well above the 0.05 reference line especially at small sample sizes, while the square and diamond markers (Satterthwaite, Kenward-Roger) sit much closer to 0.05 across all sample sizes">
+<figcaption>Slide: Type I Error Rate เทียบ 6 วิธี ตามขนาดตัวอย่าง (Luke, 2017) (Lecture 14, p.48)</figcaption>
+</figure>
+<p>อ่านภาพ: ที่ panel ซ้ายสุด (12 subjects, 12 items — ตัวอย่างเล็ก) จุดสามเหลี่ยม (ML t-as-z, REML t-as-z) และวงกลม (ML LRT) อยู่<strong>สูงกว่าเส้น 0.05 อย่างชัดเจน</strong> (ประมาณ 0.06-0.09) แปลว่าวิธีเหล่านี้ปฏิเสธ \(H_0\) บ่อยเกินจริงเมื่อ \(H_0\) เป็นจริง (ยืนยัน "anti-conservative" ตามที่ Luke (2017) และ Barr et al. (2013) เตือนไว้) ในขณะที่จุดสี่เหลี่ยม/เพชร (Satterthwaite, Kenward-Roger) อยู่<strong>ใกล้เส้น 0.05 มาก</strong>ในทุกขนาดตัวอย่าง รวมถึงตัวอย่างเล็ก — สรุปเชิงปฏิบัติ: ถ้าจำนวน subject/item น้อย ควรเลือก Kenward-Roger หรือ Satterthwaite เป็นค่าเริ่มต้น ไม่ใช่ t-as-z หรือ LRT</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>ทำไมไม่มี p-value ใน lmer() เริ่มต้น</span></div>
+  <div class="qtext"><code>summary(lmer(...))</code> ให้ t value แต่ไม่ให้ p-value มาโดยตรง เพราะเหตุผลใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะ degrees of freedom ที่เหมาะสมสำหรับ fixed effect ใน mixed model ไม่ชัดเจนแบบ lm() (ไม่รู้จะหักลบเท่าไรให้โครงสร้าง random effect) จึงต้องเลือกวิธีประมาณ p-value เอง เช่น Kenward-Roger</button>
+  <button class="opt" data-correct="false">เพราะ p-value ใช้ไม่ได้กับข้อมูลที่มีมากกว่า 100 observation</button>
+  <button class="opt" data-correct="false">เพราะ R บั๊ก ต้องอัปเดตเวอร์ชันใหม่</button>
+  <button class="opt" data-correct="false">เพราะ mixed model ไม่มี hypothesis testing แนวคิดนี้เลย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 11</span><span>LRT ต้องใช้ ML</span></div>
+  <div class="qtext">ทำไมการเทียบ 2 โมเดลที่มี fixed-effect structure ต่างกันด้วย Likelihood Ratio Test ต้องฟิตทั้งคู่ด้วย <code>REML=FALSE</code> (ML) ไม่ใช่ REML?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ ML คำนวณเร็วกว่า REML เสมอในทุกกรณี</button>
+  <button class="opt" data-correct="true">เพราะ REML criterion มีพจน์ที่ขึ้นกับ fixed-effect structure ทำให้การเทียบ likelihood ระหว่างโมเดลที่มี fixed effect ต่างกันไม่มีความหมายทางคณิตศาสตร์ ต้องใช้ ML ที่ไม่มีพจน์นี้แทน</button>
+  <button class="opt" data-correct="false">เพราะ REML ทำงานได้เฉพาะกับ random intercept เท่านั้น</button>
+  <button class="opt" data-correct="false">เพราะ pchisq() ใช้ได้กับผลจาก ML เท่านั้นตามข้อกำหนดของฟังก์ชัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>11. Testing Random Effects — ทดสอบว่า Random Effect จำเป็นหรือไม่</h2>
+<p>บางครั้งอยากรู้ว่า random effect ที่ใส่ไปจำเป็นจริงหรือไม่ (เช่น "operator" มีผลจริงหรือแค่ noise) ตั้งสมมติฐาน:</p>
+<div class="box">
+\(H_0: \sigma^2_D = 0\) &nbsp;vs&nbsp; \(H_1: \sigma^2_D > 0\)
+</div>
+<p>ปัญหาคือ \(\sigma^2_D = 0\) อยู่ที่<strong>ขอบเขตของพารามิเตอร์ (boundary)</strong> (variance ติดลบไม่ได้) ทำให้การแจกแจงของ LRT ภายใต้ \(H_0\) <strong>ไม่ใช่ \(\chi^2\) มาตรฐานแบบปกติ</strong> แต่เป็นส่วนผสม (mixture) ของ \(\chi^2_0\) กับ \(\chi^2_1\) (Liang and Self, 1996) — Crainiceanu and Ruppert (2004) แสดงว่าการใช้ mixture นี้เป็น<strong>การประมาณแบบระมัดระวังเกินไป (conservative)</strong> ต่อ finite-sample distribution จริง คำแนะนำคือใช้ <strong>parametric bootstrap</strong> แทนเพื่อ p-value ที่แม่นยำกว่า</p>
+<p>ตัวอย่าง pulp data: ทดสอบว่า operator (random intercept) จำเป็นหรือไม่ เทียบกับโมเดลว่าง (ไม่มี random effect เลย, ใช้ <code>lm()</code> ธรรมดา):</p>
+<pre><code>&gt; lmmmodel&lt;-lmer(bright ~ 1+(1|operator), pulp, REML=FALSE)
+&gt; nullmodel&lt;-lm(bright ~ 1, pulp)
+&gt; LRT&lt;-as.numeric(2*(logLik(lmmmodel)-logLik(nullmodel)))
+&gt; LRT
+[1] 2.568371
+&gt;
+&gt; # Perform parametric bootstrap
+&gt; lrstat&lt;-numeric(1000)
+&gt; for(i in 1:1000){
++ y &lt;- unlist(simulate(nullmodel))
++ bnull &lt;- lm(y ~ 1)
++ bootpulp&lt;-cbind(pulp, y)
++ balt &lt;- lmer(y ~ 1+(1|operator), bootpulp, REML=FALSE)
++ lrstat[i] &lt;- as.numeric(2*(logLik(balt)-logLik(bnull)))
++ }
+&gt; pvalue&lt;-sum(lrstat&gt;=LRT)/1000
+&gt; pvalue
+[1] 0.019</code></pre>
+<p>แนวคิดของ parametric bootstrap: จำลองข้อมูลใหม่ 1,000 ชุดภายใต้สมมติฐานว่า \(H_0\) เป็นจริง (ไม่มี operator effect เลย, มาจาก <code>nullmodel</code>) แล้วคำนวณค่า LRT ของแต่ละชุดจำลอง (<code>lrstat</code>) — ได้การแจกแจงของ LRT ภายใต้ \(H_0\) จริง ๆ แบบ empirical แทนที่จะพึ่งทฤษฎี \(\chi^2\) ที่รู้อยู่แล้วว่าไม่แม่นตรง ๆ:</p>
+<figure>
+<img src="../assets/slides/as14-p52-lrstat-bootstrap-histogram.png" alt="Histogram of the bootstrapped lrstat values, heavily right-skewed with about 700 values near 0, dropping sharply to under 200 for values around 0.5-1, and a long thin tail extending out to around 5">
+<figcaption>Slide: Distribution of lrstat จาก parametric bootstrap 1,000 รอบ (Lecture 14, p.52)</figcaption>
+</figure>
+<p>ฮิสโตแกรมนี้เบ้ขวาอย่างรุนแรง — ค่า <code>lrstat</code> ส่วนใหญ่ (~700 จาก 1,000 รอบ) กระจุกอยู่ใกล้ 0 พอดี ตรงตามที่คาดไว้ว่า mixture ของ \(\chi^2_0\) (มวลก้อนที่ 0) กับ \(\chi^2_1\) ควรมีรูปร่างแบบนี้ — <strong>ไม่ใช่รูประฆังแบบ \(\chi^2\) ธรรมดา</strong> ซึ่งยืนยันเหตุผลที่ต้องใช้ bootstrap แทนการอ่านตาราง \(\chi^2\) มาตรฐานตรง ๆ p-value ที่ได้คือสัดส่วนของ 1,000 ค่านี้ที่ \(\geq \text{LRT}\) ที่สังเกตได้จริง (2.568) = 19/1000 = <strong>0.019</strong> — น้อยกว่า 0.05 จึงสรุปได้ว่า <strong>random effect ของ operator จำเป็นต้องมีในโมเดล</strong> (ปฏิเสธ \(H_0: \sigma^2_D=0\))</p>
+<p>วิธีเดียวกันนี้ยังใช้สร้าง confidence interval แบบ bootstrap ให้กับพารามิเตอร์ variance component ได้ด้วย (ผ่าน <code>confint(..., method="boot")</code>):</p>
+<pre><code>&gt; confint(lmmmodel, method="boot", nsim=1000)
+Computing bootstrap confidence intervals ...
+
+117 message(s): boundary (singular) fit: see
+help('isSingular')
+
+                 2.5 %     97.5 %
+.sig01       0.0000000 0.5139118
+.sigma       0.2159882 0.4278643
+(Intercept) 60.0912278 60.6986412</code></pre>
+<p>สังเกต 2 จุด: (1) <code>.sig01</code> (SD ของ random intercept operator) มี CI = (0, 0.514) — ขอบล่างชนที่ 0 พอดี สอดคล้องกับธรรมชาติของ variance ที่ติดลบไม่ได้ (2) มีคำเตือน "117 message(s): boundary (singular) fit" แปลว่าใน 117 จาก 1,000 รอบ bootstrap โมเดลประมาณ variance ของ operator ได้ = 0 พอดี (ชนขอบเขต) — ธรรมชาติของปัญหานี้ (boundary problem) คือสาเหตุที่การทดสอบ random effect ต้องระวังเป็นพิเศษ ตรงตามที่อธิบายไว้ข้างต้น</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>ทดสอบ Random Effect</span></div>
+  <div class="qtext">ทำไมการทดสอบ \(H_0: \sigma^2_D = 0\) (variance ของ random effect เป็นศูนย์) ถึงใช้ตาราง \(\chi^2\) มาตรฐานตรง ๆ ไม่ได้ ต้องใช้ mixture distribution หรือ parametric bootstrap แทน?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะ \(\sigma^2_D=0\) อยู่ที่ขอบเขตของพารามิเตอร์ (variance ติดลบไม่ได้) ทำให้การแจกแจงของ LRT ภายใต้ \(H_0\) ไม่ใช่ \(\chi^2\) มาตรฐาน แต่เป็น mixture ของ \(\chi^2_0\) กับ \(\chi^2_1\) ซึ่งยังconservative เกินไปเทียบกับ finite-sample จริง</button>
+  <button class="opt" data-correct="false">เพราะ \(\chi^2\) ใช้ได้เฉพาะกับ fixed effect เท่านั้นตามนิยาม</button>
+  <button class="opt" data-correct="false">เพราะ lmer() ไม่รองรับการทดสอบสมมติฐานใด ๆ เกี่ยวกับ random effect เลย</button>
+  <button class="opt" data-correct="false">เพราะจำนวนกลุ่ม (operator) ต้องมีอย่างน้อย 30 กลุ่มขึ้นไปก่อนถึงจะใช้ \(\chi^2\) ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>12. \(R^2\) สำหรับ Mixed Model — Marginal vs Conditional</h2>
+<p>\(R^2\) แบบเดิมจาก Lesson 1 (\(SSR/SST\)) ไม่มีนิยามตรงไปตรงมาสำหรับ mixed model เพราะความแปรปรวนถูกแตกเป็นหลายชั้น สไลด์อ้างวิธีของ Nakagawa et al. (2017) ที่แยกเป็น 2 ค่า:</p>
+<div class="box">
+<strong>Marginal \(R^2\)</strong> — สัดส่วนความแปรปรวนที่อธิบายได้จาก <strong>fixed effects เท่านั้น</strong><br>
+<strong>Conditional \(R^2\)</strong> — สัดส่วนความแปรปรวนที่อธิบายได้จาก<strong>ทั้ง fixed effects และ random effects รวมกัน</strong>
+</div>
+<pre><code>&gt; model&lt;-lmer(Reaction ~ Days + (Days | Subject), sleepstudy, REML=TRUE)
+&gt; library(performance)
+&gt; r2(model)
+# R2 for Mixed Models
+
+ Conditional R2: 0.799
+    Marginal R2: 0.279</code></pre>
+<p>ตัวเลขจริง: Marginal \(R^2\) = 0.279 หมายความว่า <strong>Days ตัวแปรเดียว (fixed effect) อธิบายความแปรปรวนของ Reaction ได้แค่ 27.9%</strong> — แต่ Conditional \(R^2\) = 0.799 หมายความว่าเมื่อ<strong>รวม random effect (ความแตกต่างเฉพาะบุคคลของ intercept และ slope) เข้าไปด้วย โมเดลอธิบายได้ถึง 79.9%</strong> — ส่วนต่างระหว่างสองค่านี้ (0.799 − 0.279 = 0.52) คือสัดส่วนความแปรปรวนที่มาจาก<strong>ความแตกต่างระหว่างบุคคล</strong>ล้วน ๆ ซึ่งใหญ่กว่าผลของตัวแปร Days เองเสียอีก — สะท้อนสิ่งที่เห็นในภาพ xyplot ของหัวข้อ 8: คนต่างกันมากทั้ง baseline และอัตราการแย่ลง</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 13 (Free response)</span><span>Marginal vs Conditional \(R^2\)</span></div>
+  <div class="qtext">จาก Marginal \(R^2\)=0.279 และ Conditional \(R^2\)=0.799 ของโมเดล sleep study จงอธิบายว่าตัวเลขทั้งสองต่างกันอย่างไร และช่องว่างระหว่างสองค่านี้บอกอะไรเกี่ยวกับโครงสร้างข้อมูล</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">Marginal \(R^2\) (0.279) วัดสัดส่วนความแปรปรวนของ Reaction ที่อธิบายได้จาก fixed effect (Days) เพียงอย่างเดียว ส่วน Conditional \(R^2\) (0.799) วัดสัดส่วนที่อธิบายได้เมื่อรวม random effects (ความแตกต่างเฉพาะบุคคลของ intercept และ slope) เข้าไปด้วย — ช่องว่างที่กว้างมาก (0.52) บอกว่า<strong>ความแตกต่างระหว่างบุคคล (individual heterogeneity) เป็นแหล่งความแปรปรวนที่สำคัญกว่าตัวแปร Days เอง</strong> ถ้าไม่ใส่ random effect (เช่น ใช้ lm() ธรรมดา) โมเดลจะอธิบายข้อมูลได้แค่ระดับ Marginal \(R^2\) เท่านั้น ทิ้งความแปรปรวนก้อนใหญ่ที่มาจากตัวบุคคลไว้ในกอง unexplained error ทั้งหมด</div>
+</div>
+
+<h2>13. Prediction — BLUP และการทำนายค่าใหม่</h2>
+<p>ดึงค่าประมาณ fixed effect และ random effect ออกมาแยกกันได้ด้วย <code>fixef()</code> และ <code>ranef()</code>:</p>
+<pre><code>&gt; fixef(model)
+(Intercept)        Days
+  251.40510    10.46729
+&gt; ranef(model)
+$Subject
+    (Intercept)         Days
+308   2.2585509   9.1989758
+309 -40.3987381 -8.6196806
+310 -38.9604090 -5.4488565
+330 23.6906196 -4.8143503
+331 22.2603126 -3.0699116
+332   9.0395679 -0.2721770
+333 16.8405086 -0.2236361
+334 -7.2326151    1.0745816
+335 -0.3336684 -10.7521652
+…</code></pre>
+<p><code>ranef()</code> ให้ค่าประมาณของ \(b_{0i}, b_{1i}\) แต่ละคน (เรียกว่า <em class="term">BLUP</em> — Best Linear Unbiased Predictor ซึ่งมาจากมุมมอง empirical Bayes: หาค่าเฉลี่ยภายหลัง (posterior mean) \(E[\boldsymbol{\gamma}|\mathbf{Y}]\) โดยที่ \(f(\boldsymbol{\gamma}|\mathbf{Y}) \propto f(\mathbf{Y}|\boldsymbol{\gamma})f(\boldsymbol{\gamma})\)) — อ่านตัวเลขจริง: subject 308 มี random intercept = +2.26 (เริ่มต้นสูงกว่าค่าเฉลี่ยประชากรเล็กน้อย) แต่ random slope = +9.20 (แย่ลงเร็วกว่าค่าเฉลี่ยประชากรมาก) รวมกับ fixed effect แล้ว intercept จริงของ subject 308 คือ \(251.405+2.26=253.67\) และ slope จริงคือ \(10.467+9.20=19.67\) ms/วัน — เกือบเท่าตัวของอัตราเฉลี่ยประชากร ตรงกับที่เห็นในภาพ xyplot หัวข้อ 8 (subject 308 เป็นเส้นที่ชันที่สุดเส้นหนึ่ง) ในทางกลับกัน subject 309 มี intercept=-40.40 และ slope=-8.62 (เริ่มต้นต่ำกว่าเฉลี่ยมาก และแทบไม่แย่ลงเลย/ดีขึ้นด้วยซ้ำ) — ตรงกับเส้นเกือบราบของ subject 309 (ป้ายชื่อ 335 ในภาพเดิมของสไลด์ใช้ subject คนละตัวอย่าง แต่หลักการอ่านเดียวกัน)</p>
+<p>ตรวจสอบข้อมูลดิบของ subject 308 ก่อนทำนาย:</p>
+<pre><code>&gt; sleepstudy[sleepstudy$Subject=="308",]
+   Reaction Days Subject
+1 249.5600     0     308
+2 258.7047     1     308
+3 250.8006     2     308
+4 321.4398     3     308
+5 356.8519     4     308
+6 414.6901     5     308
+7 382.2038     6     308
+8 290.1486     7     308
+9 430.5853     8     308
+10 466.3535    9     308</code></pre>
+<p>ข้อมูลมีแค่ Days=0 ถึง 9 ต่อคน — ถ้าอยากทำนาย Reaction ของ subject 308 ที่ Days=10,11,12 (นอกช่วงข้อมูลจริงที่สังเกตมา — extrapolation เหมือนที่เตือนไว้ตั้งแต่ Lesson 1) ใช้ <code>predict()</code> โดยระบุทั้ง <code>Days</code> และ <code>Subject</code> (เพราะโมเดลต้องรู้ว่าจะใช้ BLUP ของคนไหน):</p>
+<pre><code>&gt; Days&lt;-10:12
+&gt; Subject&lt;-factor(rep("308",3), levels=levels(sleepstudy$Subject))
+&gt; newdata&lt;-data.frame(Days=Days, Subject=Subject)
+&gt; predict(model, newdata)
+       1        2        3
+450.3263 469.9925 489.6588</code></pre>
+<p>ตรวจตัวเลข: ที่ Days=10, \(\text{ค่าทำนาย} = (251.405+2.26) + (10.467+9.20)\times10 = 253.67+196.67=450.3\) ตรงกับ 450.3263 ที่ได้จริง (คลาดเคลื่อนจากการปัดเศษ BLUP) — สังเกตว่า<strong>ค่าทำนายนี้เฉพาะเจาะจงสำหรับ subject 308 คนนี้เท่านั้น</strong> ใช้ทั้ง fixed effect (ค่าเฉลี่ยประชากร) และ random effect (ค่าเบี่ยงเบนเฉพาะบุคคลของ 308) รวมกัน — ต่างจาก <code>lm()</code> ที่ทำนายได้แค่ระดับ "ค่าเฉลี่ยประชากร" อย่างเดียว ไม่มีทางทำนายเฉพาะเจาะจงรายบุคคลแบบนี้ได้เลย</p>
+
+<p>โครงสร้างเดียวกันใช้กับ exam data (nested random effect) ได้เช่นกัน:</p>
+<pre><code>&gt; model&lt;-lmer(normexam ~ sex+(1|school)+(1|school:student), data=Exam)
+&gt; fixef(model)
+(Intercept)         sexM
+  0.1000294 -0.2615396
+&gt; ranef(model)
+$`school:student`
+          (Intercept)
+1:1      6.507669e-03
+1:4     -8.726344e-03
+…
+$school
+     (Intercept)
+1   0.525610407
+2   0.625004161
+…</code></pre>
+<p>ทำนายคะแนนของนักเรียนคนที่ 1 ในโรงเรียนที่ 1 (แถวที่ 47 ของข้อมูล):</p>
+<pre><code>&gt; newdata&lt;-Exam[47,]
+&gt; predict(model, newdata)
+       47
+0.6321475
+&gt; fitted(model)[47]
+       47
+0.6321475</code></pre>
+<p><code>predict()</code> กับ <code>fitted()</code> ให้ค่าตรงกันเป๊ะ (0.6321475) เพราะแถว 47 เป็นข้อมูลที่ใช้ฟิตโมเดลอยู่แล้ว (ไม่ใช่ observation ใหม่) — ต่างจากตัวอย่าง sleep study ก่อนหน้าที่ Days=10-12 เป็นค่าที่ไม่เคยมีในข้อมูลจริง (extrapolation) จึงต้องใช้ <code>predict()</code> เพราะ <code>fitted()</code> จะให้แค่ค่าทำนายของข้อมูลเดิมที่มีอยู่แล้วเท่านั้น</p>
+<p>สุดท้าย ถ้าต้องการ prediction interval (ไม่ใช่แค่ point estimate) สำหรับค่าทำนายใหม่ ใช้ package <code>merTools</code>:</p>
+<pre><code>&gt; library(merTools)
+&gt; preds &lt;- predictInterval(model, newdata, n.sims = 1000, level=0.95)
+&gt; preds
+        fit     upr      lwr
+1 0.617028 2.364232 -1.17294</code></pre>
+<p><code>predictInterval()</code> ใช้การจำลอง (simulation, n.sims=1000) แทนสูตรปิด (closed-form) เพราะความไม่แน่นอนของ prediction ใน mixed model มาจากหลายแหล่งพร้อมกัน (ความไม่แน่นอนของ fixed effect + ของ random effect ของกลุ่มนั้น + ของ residual) ทำให้หาสูตร SE ตรง ๆ แบบ Lesson 1 ยากกว่ามาก — 95% prediction interval ที่ได้ (−1.17, 2.36) กว้างกว่าความไม่แน่นอนของแค่ point estimate มาก ตรงตามหลักการเดียวกับ "prediction กว้างกว่า mean response เสมอ" ที่เรียนมาตั้งแต่ Lesson 1 หัวข้อ 11 เพียงแต่ตอนนี้มีแหล่งความไม่แน่นอนเพิ่มมาจากโครงสร้าง random effect ด้วย</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 14</span><span>BLUP / ranef()</span></div>
+  <div class="qtext">จาก <code>ranef(model)</code> ของ sleep study, subject 309 มี random intercept = −40.40 และ random slope = −8.62 ข้อใดตีความถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Subject 309 มีค่า Reaction ติดลบจริง ๆ ในข้อมูล</button>
+  <button class="opt" data-correct="false">Fixed effect ของ Days ใช้ไม่ได้กับ subject 309</button>
+  <button class="opt" data-correct="true">Subject 309 มี baseline reaction time (ตอน Days=0) ต่ำกว่าค่าเฉลี่ยประชากรมาก และแทบไม่แย่ลงเลยเมื่ออดนอนเพิ่มขึ้น (อัตราแย่ลงต่ำกว่าค่าเฉลี่ยประชากรมาก อาจถึงขั้นดีขึ้น)</button>
+  <button class="opt" data-correct="false">ต้องตัด subject 309 ออกจากข้อมูลเพราะ random effect ติดลบผิดปกติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้ — และของทั้งคอร์ส</div>
+ตอนนี้คุณควรเขียนสมการ LMM ทั้งแบบ matrix (\(\mathbf{Y}=\mathbf{X}\boldsymbol{\beta}+\mathbf{Z}\boldsymbol{\gamma}+\boldsymbol{\varepsilon}\)) และแบบ scalar ต่อ observation (\(Y_{ij}=\beta_0+\beta_1 X_{ij}+b_{0i}+\varepsilon_{ij}\)) พร้อมแยก fixed effect กับ random effect ได้ถูกต้อง, ตัดสินใจได้ว่าข้อมูลแบบไหนต้องใช้ mixed model แทน ordinary regression (เชื่อมกับ assumption ข้อ 2 จาก Lesson 1), อ่าน <code>summary(lmer(...))</code> ได้ครบทั้งบล็อก Random effects (variance component, ICC) และ Fixed effects, เลือกวิธีทดสอบ p-value ที่เหมาะกับขนาดข้อมูล, และแปลผลทั้งสัมประสิทธิ์ fixed effect (แบบเดิมจาก Lesson 1) และ variance component (แบบใหม่) — ทักษะทั้งหมดนี้คือการรวมทุกอย่างที่เรียนมาตลอด 14 Lecture เข้าด้วยกัน ตั้งแต่การเขียนสมการ การเช็ค assumption การอ่าน R output จนถึงการแปลผล
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (61 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture14.pdf</code> ตั้งแต่หน้า 1 ถึง 61 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่น/เนื้อหาที่ซ้ำกับหน้าอื่นที่ใช้แทนแล้ว</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 14: Introduction to Linear Mixed-Effects Models"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Linear Mixed-Effects Models (LMM) — นิยามเปิด</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Clustered Data — นิยาม</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>4</td><td>Longitudinal Data — นิยาม</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>5</td><td>Clustered-Longitudinal Data — นิยาม</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>6</td><td>Repeated Measures Data — นิยาม</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>7</td><td>Multilevel Data — นิยาม Level 1,2,3</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>8</td><td>Two-Level Clustered Data Example — โจทย์โรงเรียน/นักเรียน</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>9</td><td>Two-Level Clustered Data — ภาพ School/Student</td><td>✓ หัวข้อ 1 (มีรูป)</td></tr>
+<tr><td>10</td><td>Two-Level Longitudinal Data Example — โจทย์คำศัพท์เด็ก</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>11</td><td>Longitudinal Data — ภาพ Child/Vocab over Time</td><td>✓ หัวข้อ 1 (มีรูป)</td></tr>
+<tr><td>12</td><td>Three-Level Clustered Data Example — โจทย์โรงเรียน/ห้อง/นักเรียน</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>13</td><td>Three-Level Clustered Data — ภาพ School/Classroom/Student</td><td>✓ หัวข้อ 1 (มีรูป)</td></tr>
+<tr><td>14</td><td>Three-Level Clustered-Longitudinal Data Example — โจทย์คะแนนคณิตศาสตร์</td><td>etc — รวมแนวคิด 2 แกน (กลุ่ม+เวลา) ที่ p9/p11/p13 อธิบายแยกไว้แล้ว ไม่มีโครงสร้างใหม่</td></tr>
+<tr><td>15</td><td>Three-Level Clustered-Longitudinal Data — ภาพ School/Student/Math Score over Grade</td><td>etc — ภาพผสมของ p11+p13 ไม่มีแนวคิดใหม่เพิ่ม</td></tr>
+<tr><td>16</td><td>Models for Multilevel Data — unit of analysis, aggregation bias, SE ผิด</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>17</td><td>Fixed and Random Effects — นิยามคู่</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>18</td><td>Fixed Effects in a LMM</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>19</td><td>Random Effects in a LMM</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>20</td><td>Linear Mixed-Effects Model (LMM) — สมการ \(\mathbf{Y}=\mathbf{X}\boldsymbol{\beta}+\mathbf{Z}\boldsymbol{\gamma}+\boldsymbol{\varepsilon}\) และนิยามตัวแปร</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>21</td><td>Linear Mixed-Effects Model (LMM) — assumption ของ \(\boldsymbol{\gamma}\), \(\boldsymbol{\varepsilon}\)</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>22</td><td>Parameter Estimation — weighted least squares \(\hat{\boldsymbol{\beta}}\)</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>23</td><td>Parameter Estimation — likelihood, \(\boldsymbol{\gamma}\) ไม่ observed, marginal distribution</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>24</td><td>MLE and REML — bias ของ ML, REML แก้ bias</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>25</td><td>Fitting LMMs in R — lmer() syntax และ formula</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>26</td><td>Formula in lmer() — ตาราง syntax (Bates et al. 2015)</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>27</td><td>Example - Brightness of paper pulp — head(pulp)</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>28</td><td>Fitting Model with REML — summary() เต็ม</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>29</td><td>Fitting Model with ML — summary() เต็ม</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>30</td><td>Intraclass Correlation Coefficient (ICC) — นิยามและสูตร</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>31</td><td>Interpretation of ICC — ตัวอย่างโรงเรียน/คะแนนสอบ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>32</td><td>Pulp Dataset — คำนวณ ICC จาก R output จริง</td><td>✓ หัวข้อ 7 (มีรูป)</td></tr>
+<tr><td>33</td><td>Example – Sleep Study — โจทย์และตัวแปร</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>34</td><td>Example – Sleep Study — plot() รวมทุกคน</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>35</td><td>Example – Sleep Study — โค้ด xyplot() แยกทีละ subject</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>36</td><td>Example – Sleep Study — ผล xyplot() แยกทีละ subject</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>37</td><td>Random Intercept and slope — ภาพ 4 แผงเปรียบเทียบ</td><td>✓ หัวข้อ 8 (มีรูป)</td></tr>
+<tr><td>38</td><td>Fitting Random Intercept — model1 summary()</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>39</td><td>Fitting Random Intercept and Slope — model2 summary()</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>40</td><td>Example – Exam scores relate to gender? — lmer() nested random effects</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>41</td><td>Testing Fixed Effects — 5 แนวทางคำนวณ p-value</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>42</td><td>Likelihood Ratio Test (LRT) — เหตุผลที่ต้องใช้ ML ไม่ใช่ REML</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>43</td><td>Example – Sleep Study — LRT + anova() เทียบ full/reduced model</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>44</td><td>t-as-z — summary(fullmodel)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>45</td><td>Kenward-Roger approximation — summary(model, ddf="Kenward-Roger")</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>46</td><td>Satterthwaite approximation — summary(model, ddf="Satterthwaite")</td><td>✓ หัวข้อ 10 (สรุปว่าค่าเหมือน Kenward-Roger ในตัวอย่างนี้ ไม่ยกภาพซ้ำ)</td></tr>
+<tr><td>47</td><td>Number of Subjects/Items — ภาพ Type I Error 4 วิธี (Luke 2017)</td><td>etc — เวอร์ชันย่อยของภาพ p48 ที่มี 6 วิธีครบกว่าและใช้แทนแล้ว</td></tr>
+<tr><td>48</td><td>Number of Subjects/Items — ภาพ Type I Error 6 วิธี (Luke 2017)</td><td>✓ หัวข้อ 10 (มีรูป)</td></tr>
+<tr><td>49</td><td>Testing Random Effects — \(H_0: \sigma^2_D=0\), mixture \(\chi^2\) distribution</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>50</td><td>หน้าคั่น (หมายเลขหน้าเปล่า ไม่มีเนื้อหา)</td><td>etc — หน้าคั่นเปล่า</td></tr>
+<tr><td>51</td><td>Example - Brightness of paper pulp — LRT + parametric bootstrap loop</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>52</td><td>Distribution of lrstat — histogram ผลจาก bootstrap</td><td>✓ หัวข้อ 11 (มีรูป)</td></tr>
+<tr><td>53</td><td>Example - Brightness of paper pulp — confint() bootstrap CI</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>54</td><td>\(R^2\) for Mixed Model — Marginal/Conditional \(R^2\), r2() output</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>55</td><td>Prediction – Sleep Study — fixef()/ranef() output (BLUP)</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>56</td><td>Prediction – Sleep Study — fitted(model) output เต็มชุด</td><td>✓ หัวข้อ 13 (สรุปแนวคิดโดยไม่ยกตารางตัวเลขทั้งหมดซ้ำ)</td></tr>
+<tr><td>57</td><td>Prediction – Sleep Study — ข้อมูลดิบ subject 308</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>58</td><td>Prediction – Sleep Study — predict() ที่ Days 10-12</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>59</td><td>Prediction – Exam Data — fixef()/ranef() output (nested BLUP)</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>60</td><td>Prediction – Exam Data — predict() vs fitted() แถว 47</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>61</td><td>Prediction Interval — predictInterval() จาก merTools</td><td>✓ หัวข้อ 13</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ นี่คือ Lecture สุดท้ายของคอร์สแล้ว ยินดีด้วยที่มาถึงจุดนี้</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0013-other-glms.html">← Lesson 13: Other GLMs</a></span>
+  <span>จบคอร์ส 14 บท — กลับไปทบทวนบทไหนก็ได้จากลิงก์ด้านบน →</span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

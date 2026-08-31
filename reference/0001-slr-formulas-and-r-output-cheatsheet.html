@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: SLR Formulas + R Output Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 1</span>
+  <span><a href="../lessons/0001-simple-linear-regression.html">← Lesson 1: Simple Linear Regression</a></span>
+</nav>
+
+<p class="kicker">Lecture 1 — Simple Linear Regression</p>
+<h1>SLR Formulas + Reading <code>summary(lm(...))</code> — Cheat Sheet</h1>
+
+<p>สรุปสูตรและ template แปลผลที่ต้องใช้ซ้ำทุกครั้งที่ fit regression — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. โมเดลและ Assumption</h2>
+<div class="box source">
+\(Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i\), &nbsp;\(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\)
+<p>Assumption 4 ข้อของ ε: (1) mean zero (2) independent (3) constant variance (homoscedasticity) (4) normally distributed</p>
+</div>
+
+<h2>2. OLS Estimators</h2>
+<div class="box">
+\[\hat{\beta}_1 = \dfrac{\sum (X_i-\bar{X})(Y_i-\bar{Y})}{\sum (X_i-\bar{X})^2} = \dfrac{\text{COV}_{xy}}{S_x^2} = r_{xy} \times \dfrac{S_y}{S_x}\]<br>
+\[\hat{\beta}_0 = \bar{Y} - \hat{\beta}_1 \bar{X}\]<br>
+\(SSE = \sum (Y_i-\hat{Y}_i)^2\), &nbsp;\(s^2 = MSE = \dfrac{SSE}{n-2}\), &nbsp;\(s = \sqrt{MSE}\)
+</div>
+
+<h2>3. Hypothesis Test / CI สำหรับ β</h2>
+<div class="box">
+\[t = \dfrac{\hat{\beta}-\beta}{SE[\hat{\beta}]} \sim t_{n-2}\]<br>
+\(SE[\hat{\beta}_1] = \sqrt{\dfrac{s^2}{\sum (X_i-\bar{X})^2}}\), &nbsp;\(SE[\hat{\beta}_0] = \sqrt{s^2\left(\dfrac{1}{n} + \dfrac{\bar{X}^2}{\sum (X_i-\bar{X})^2}\right)}\)<br>
+\[(1-\alpha)\% \text{ CI: } \hat{\beta} \pm t_{(1-\alpha/2,\, n-2)} \times SE[\hat{\beta}]\]
+</div>
+<p><strong>กฎ:</strong> CI ไม่ครอบคลุม 0 ⟺ ปฏิเสธ H₀:β=0 ที่ระดับ α เดียวกัน (ให้ข้อสรุปตรงกับ p-value เสมอ)</p>
+
+<h2>4. R² และ ANOVA</h2>
+<div class="box">
+\(SST = SSE + SSR\), &nbsp;\(R^2 = \dfrac{SSR}{SST} = 1-\dfrac{SSE}{SST}\) (SLR: \(R^2 = r_{xy}^2\))<br>
+\(F = \dfrac{MSR}{MSE} \sim F_{(1,\,n-2)}\), &nbsp;\(t_{n-2}^2 = F_{(1,\,n-2)}\) (SLR เท่านั้น)
+</div>
+<p><strong>3 ข้อควรระวังเรื่อง R²:</strong> สูงไม่ใช่ = ทำนายแม่น, สูงไม่ใช่ = ฟิตดีเสมอ, ต่ำไม่ใช่ = ไม่สัมพันธ์กันเลย (อาจสัมพันธ์แบบไม่เชิงเส้น)</p>
+
+<h2>5. Mean Response vs Prediction ที่ X=X₀</h2>
+<table>
+<tr><th></th><th>Mean response (CI)</th><th>Prediction (PI)</th></tr>
+<tr><td>ถามอะไร</td><td>ค่าเฉลี่ยทฤษฎีที่ X₀</td><td>ค่าสังเกตใหม่ 1 ตัวที่ X₀</td></tr>
+<tr><td>Point estimate</td><td colspan="2">\(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_0\) (เท่ากัน)</td></tr>
+<tr><td>SE</td><td>\(s\sqrt{\dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)</td><td>\(s\sqrt{1 + \dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)</td></tr>
+<tr><td>กว้างกว่ากัน</td><td colspan="2">Prediction กว้างกว่าเสมอ (มีพจน์ "+1" เพิ่ม = ความแปรปรวนของค่าสังเกตใหม่)</td></tr>
+</table>
+
+<h2>6. อ่าน <code>summary(lm(...))</code> — Field Glossary</h2>
+<pre><code>Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   β̂₀       SE[β̂₀]   t stat   p-value ของ H0:β0=0
+x             β̂₁       SE[β̂₁]   t stat   p-value ของ H0:β1=0
+
+Residual standard error: s (= √MSE), df = n-2
+Multiple R-squared: R² (SLR เท่านั้น: = r_xy²)
+Adjusted R-squared: R² ปรับด้วยจำนวนตัวแปร (ใช้เทียบโมเดลที่มี p ต่างกัน)
+F-statistic: F=MSR/MSE, df=(1,n-2), p-value (SLR: เท่ากับ p-value ของ x พอดี)</code></pre>
+
+<h2>7. Template ประโยคแปลผล (ใช้ตอบข้อสอบ)</h2>
+<div class="box win">
+<p><strong>Slope (\(\hat{\beta}_1\)):</strong> "จากข้อมูลนี้ เมื่อ [ตัวแปร X] เพิ่มขึ้น 1 [หน่วยของ X] [ตัวแปร Y] คาดว่าจะเพิ่มขึ้น/ลดลงโดยเฉลี่ย [|\(\hat{\beta}_1\)|] [หน่วยของ Y] (อย่างมีนัยสำคัญทางสถิติที่ p=[p-value])"</p>
+<p><strong>Intercept (\(\hat{\beta}_0\)):</strong> "เมื่อ [X] = 0 [Y] ที่คาดไว้คือ [\(\hat{\beta}_0\)] [หน่วยของ Y]" — เช็คก่อนว่า X=0 อยู่ในช่วงข้อมูลจริงหรือไม่ ถ้าไม่อยู่ ระวัง extrapolation</p>
+<p><strong>ห้ามใช้:</strong> คำว่า "ทำให้" / "เป็นสาเหตุของ" กับข้อมูล observational — ใช้ "สัมพันธ์กับ" / "คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย" แทนเสมอ เว้นแต่ข้อมูลมาจาก randomized experiment</p>
+<p><strong>Confidence interval ของ β:</strong> "มั่นใจ [1−α]% ว่าค่าจริงของ β อยู่ระหว่าง [lower] ถึง [upper]"</p>
+</div>
+
+<h2>8. R Syntax อ้างอิงเร็ว</h2>
+<table>
+<tr><th>งาน</th><th>โค้ด</th></tr>
+<tr><td>Scatter plot</td><td><code>plot(x, y, xlab=, ylab=)</code></td></tr>
+<tr><td>Fit โมเดล</td><td><code>model &lt;- lm(y ~ x, data=data)</code></td></tr>
+<tr><td>ผลวิเคราะห์เต็ม</td><td><code>summary(model)</code></td></tr>
+<tr><td>ตาราง ANOVA</td><td><code>anova(model)</code></td></tr>
+<tr><td>CI ของ β</td><td><code>confint(model, level=0.95)</code></td></tr>
+<tr><td>ทำนายค่าใหม่</td><td><code>predict(model, newdata, interval="confidence"|"prediction")</code></td></tr>
+<tr><td>จุดชนิดพล็อต (pch)</td><td>0=□ 1=○ 2=△ 3=+ 4=× 16=● 17=▲ 19=●(ทึบ)</td></tr>
+<tr><td>เส้นชนิด (lty)</td><td>1=ทึบ 2=ประ 3=จุด 4=จุด-ขีด</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

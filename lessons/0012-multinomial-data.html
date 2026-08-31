@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 12: Multinomial Data — Baseline-Category Logit และ Proportional Odds Model</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 12 / 14 · Multinomial Data</span>
+  <span><a href="../reference/0012-multinomial-cheatsheet.html">Reference: สูตร + Interpretation Template →</a></span>
+</nav>
+
+<p class="kicker">Lecture 12 — Multinomial Data</p>
+<h1>Multinomial Data: Baseline-Category Logit และ Proportional Odds Model</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก Binary Logistic Regression (Lecture 9) ไปสู่ response ที่มีมากกว่า 2 category สไลด์แบ่งเป็น 2 เรื่องใหญ่ตาม<strong>ชนิดของ scale</strong>: <strong>Nominal response</strong> (หมวดหมู่ไม่มีลำดับ เช่น สีที่ชอบ, พรรคที่สังกัด) ใช้ <em class="term">baseline-category logistic model</em>, และ <strong>Ordinal response</strong> (หมวดหมู่มีลำดับ เช่น อายุกลุ่ม, Likert scale) ใช้ <em class="term">proportional odds model</em> — โมเดลทั้งสองมีสมการคนละแบบ และ<strong>เขียนสมการผิดชนิดจะผิดทั้งข้อสอบ</strong> จึงเป็นเรื่องแรกที่ต้องแยกให้ออกก่อนเริ่ม. เป้าหมาย 4 อย่างของบทนี้: (1) เขียนสมการโมเดลทั้งสองแบบได้ถูกต้อง ทั้งที่ baseline-category logit ต้องเขียน<strong>หลายสมการพร้อมกัน</strong> (2) เช็ค assumption ของ proportional odds ได้ด้วย Brant Test จาก R output จริง (3) เขียนประโยคแปลผล coefficient ที่<strong>ระบุ baseline category เสมอ</strong> — จุดที่ต่างจาก binary logistic regression ชัดเจน (4) อ่าน output จาก <code>multinom()</code> และ <code>polr()</code> ได้ครบ</p>
+
+<h2>1. Nominal vs Ordinal Response — จุดแยกก่อนเขียนสมการ</h2>
+<p>สไลด์เปิดเรื่องด้วยการแบ่ง response ที่มีมากกว่า 2 category ออกเป็น 2 กลุ่มตามว่ามี "ลำดับ" หรือไม่:</p>
+<figure>
+<img src="../assets/slides/as12-p02-nominal-ordinal-overview.png" alt="Slide listing Nominal Responses examples (favorite color: Red/Green/Blue; party: Democrat/Republican/Independent) pointing to the baseline-category logistic model, and Ordinal Responses examples (age: young/middle-aged/old; Likert scale) pointing to the proportional odds model">
+<figcaption>Slide: Multinomial Responses — Nominal vs Ordinal (Lecture 12, p.2)</figcaption>
+</figure>
+<p>สังเกตตัวอย่างในภาพ: "สีที่ชอบ (แดง/เขียว/น้ำเงิน)" ไม่มีทางเรียงลำดับได้อย่างมีความหมาย — สลับตำแหน่งแดงกับน้ำเงินก็ไม่ทำให้อะไรเปลี่ยน จึงเป็น<strong>nominal</strong> ในทางกลับกัน "อายุ: young < middle-aged < old" มีลำดับที่ตายตัว สลับไม่ได้ จึงเป็น<strong>ordinal</strong> — กฎการเลือกโมเดล: nominal ไปทาง baseline-category logistic model (หัวข้อ 3 เป็นต้นไป), ส่วน ordinal ไปทาง proportional odds model (หัวข้อ 10 เป็นต้นไป) ถึงแม้ทั้งคู่จะเป็น response ที่มีมากกว่า 2 category เหมือนกัน แต่<strong>สมการคนละสูตร คนละจำนวนพารามิเตอร์</strong> — จะเห็นความต่างชัดเจนในหัวข้อ 10.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Nominal vs Ordinal</span></div>
+  <div class="qtext">งานวิจัยเก็บข้อมูลระดับความพึงพอใจ (ไม่พอใจมาก, ไม่พอใจ, เฉยๆ, พอใจ, พอใจมาก) ควรใช้โมเดลใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Baseline-category logistic model เพราะมี 5 category</button>
+  <button class="opt" data-correct="false">ใช้ linear regression ธรรมดาเพราะมีมากกว่า 2 category</button>
+  <button class="opt" data-correct="true">Proportional odds model เพราะระดับความพึงพอใจมีลำดับ (ordinal) ชัดเจน</button>
+  <button class="opt" data-correct="false">เลือกโมเดลไหนก็ได้ เพราะทั้งสองแบบให้ผลเหมือนกันเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. Multinomial Distribution — นิยามและข้อจำกัด J−1</h2>
+<p><strong>Binomial data</strong>: response มี 2 category, \(\pi = P(\text{Category 1}) = 1 - P(\text{Category 2})\). <strong>Multinomial data</strong>: response มี J category (J&gt;2):</p>
+<div class="box">
+\(\pi_j = P(\text{Category } j) \geq 0\), &nbsp; \(\sum \pi_j = 1\) (รวม j=1 ถึง J)
+</div>
+<p>ข้อสังเกตสำคัญที่ใช้คำนวณ degrees of freedom ทั่วทั้งบทนี้: <strong>รู้แค่ J−1 probability ก็เพียงพอ</strong> เพราะตัวสุดท้ายคำนวณได้จาก \(\pi_J = 1 - \pi_1 - \pi_2 - \cdots - \pi_{J-1}\) — นี่คือเหตุผลที่โมเดลทุกแบบในบทนี้ (ทั้ง baseline-category logit และ proportional odds) มีแค่ <strong>J−1 สมการ</strong> ไม่ใช่ J สมการ.</p>
+<p>ตัวอย่างคลาสสิกสองแบบที่สไลด์ยกมาเทียบ: (1) โยนเหรียญ n ครั้ง (binomial: Head/Tail, sum=n) — เมื่อ n=1 เรียก "Binary Classification" (2) ทอยลูกเต๋า n ครั้ง (multinomial: หน้า 1-6, sum=n) — เมื่อ n=1 เรียก "Multi-class Classification" ซึ่งโมเดล machine learning หลายตัว (decision tree, SVM, neural network) ทำได้ทั้งสองแบบ.</p>
+<p>ในทางทฤษฎี Multinomial distribution เป็นสมาชิกของ exponential family distribution เช่นเดียวกับ Binomial (ที่ใช้ปูทางสู่ logistic regression ใน Lecture 9) — พิสูจน์ได้โดยจัดรูป pmf \(P(Y_1=y_1,\ldots,Y_J=y_J) = \dfrac{n!}{y_1!\cdots y_J!} \times \pi_1^{y_1}\cdots \pi_J^{y_J}\) ใหม่เป็นรูป exponential family พร้อม canonical parameter vector \(\theta_i = \left(\log(\pi_2/\pi_1), \ldots, \log(\pi_J/\pi_1)\right)^T\) — จุดสำคัญที่ได้จากการพิสูจน์นี้คือ <strong>canonical link ของ multinomial คือ \(\log(\pi_j/\pi_1)\)</strong> ซึ่งจะกลายเป็นสมการ baseline-category logit ในหัวข้อถัดไปพอดี (รายละเอียดพีชคณิตเต็มอยู่ในสไลด์หน้า 7-9 แต่ไม่ใช่จุดที่ข้อสอบเน้น — จำผลลัพธ์ "canonical link = log(π_j/π₁)" พอ).</p>
+
+<h2>3. Baseline-Category Logistic Model — ทักษะที่ 1: เขียนสมการหลายตัวพร้อมกัน</h2>
+<p>เพราะ canonical link คือ \(\log(\pi_j/\pi_1)\) โมเดลจึง<strong>เลือก category หนึ่งเป็น baseline</strong> (โดยทั่วไปคือ category แรก) แล้วจับคู่ทุก category ที่เหลือกับ baseline สร้างเป็นสมการ logistic แยกกัน:</p>
+<div class="box win">
+\[\log\left[\dfrac{\pi_j(x_i)}{\pi_1(x_i)}\right] = \beta_{0j} + \beta_{1j}\cdot x_{i1} + \cdots + \beta_{pj}\cdot x_{i,p}\] &nbsp; สำหรับ j = 2, 3, …, J
+</div>
+<p>อ่านสมการนี้ให้ถูก: นี่<strong>ไม่ใช่สมการเดียว</strong> — ถ้ามี J=3 category จะได้ <strong>2 สมการพร้อมกัน</strong> (j=2 กับ j=3) แต่ละสมการมีชุด β ของตัวเอง (\(\beta_{0j}, \beta_{1j}, \ldots, \beta_{pj}\) — สังเกต subscript j ที่ติดอยู่กับทุก β) นี่คือจุดที่ต่างจาก binary logistic regression ที่มีสมการเดียว: <strong>baseline-category logit ต้องเขียน J−1 สมการพร้อมกัน โดยแต่ละสมการเทียบ category นั้นกับ baseline ตัวเดียวกันเสมอ</strong> — และ "effect ของตัวแปร x จะเปลี่ยนไปถ้าเลือก baseline category ต่างกัน" (ตามที่สไลด์เน้นไว้ตรงๆ) เพราะสัมประสิทธิ์ทุกตัวถูกนิยามเทียบกับ baseline ที่เลือก ไม่ใช่ค่าสัมบูรณ์.</p>
+<p>ในทางปฏิบัติ แม้ทฤษฎีจะใช้ IRLS ประมาณค่าได้เหมือน logistic regression ทั่วไป แต่ <code>glm()</code> ของ R <strong>ไม่รองรับ</strong> โมเดลนี้ — สไลด์ชี้ให้เห็นว่า baseline-category logistic model มองเป็น single-hidden-layer neural network ได้ จึงมีการ implement ไว้ในแพ็กเกจ <code>nnet</code> ผ่านฟังก์ชัน <code>multinom()</code> แทน (ไม่ใช่ <code>glm(family=...)</code> เหมือน Lecture 9).</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>เขียนสมการ Baseline-Category Logit</span></div>
+  <div class="qtext">งานวิจัยศึกษาพรรคที่เลือก (Democrat, Republican, Independent — nominal, ไม่มีลำดับ) จากตัวแปร Income หนึ่งตัว โดยกำหนด Democrat เป็น baseline category จงเขียนสมการ baseline-category logistic model ที่ครบทุกสมการ พร้อมระบุว่ามีกี่สมการ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>J=3 category → มี <strong>J−1 = 2 สมการ</strong> พร้อมกัน (Republican vs Democrat, และ Independent vs Democrat):</p>
+  <p>\(\log\left[\dfrac{\pi_{\text{Republican}}(x)}{\pi_{\text{Democrat}}(x)}\right] = \beta_{0,\text{Rep}} + \beta_{1,\text{Rep}} \cdot \text{Income}\)</p>
+  <p>\(\log\left[\dfrac{\pi_{\text{Independent}}(x)}{\pi_{\text{Democrat}}(x)}\right] = \beta_{0,\text{Ind}} + \beta_{1,\text{Ind}} \cdot \text{Income}\)</p>
+  <p>ทั้งสองสมการเทียบกับ Democrat (baseline) เสมอ และมีชุดสัมประสิทธิ์ \((\beta_0, \beta_1)\) เป็นของตัวเอง <strong>คนละชุดกัน</strong> — ไม่ใช่ใช้ β ตัวเดียวกันทั้งสองสมการ</p>
+  </div>
+</div>
+
+<h2>4. Worked Example: The Contraceptive Use Data</h2>
+<p>ข้อมูลจริงจาก Demographic and Health Survey ที่เอลซัลวาดอร์ปี 1985 สำรวจผู้หญิงแต่งงานแล้ว 3,165 คน แบ่งการใช้คุมกำเนิดเป็น 3 กลุ่ม (sterilization, other methods, no method) พร้อมช่วงอายุ (grouped ทุก 5 ปี) เป้าหมาย: อายุมีผลต่อการเลือกวิธีคุมกำเนิดหรือไม่?</p>
+<figure>
+<img src="../assets/slides/as12-p12-contraceptive-data-table.png" alt="Table of contraceptive use data by age group: Age 15-19 to 45-49, columns Ster, Other, None, All — e.g. 15-19: Ster=3, Other=61, None=232, All=296; 45-49: Ster=91, Other=10, None=183, All=284">
+<figcaption>Slide: Example — The Contraceptive Use Data (Lecture 12, p.12)</figcaption>
+</figure>
+<p>อ่านแนวโน้มในตาราง: กลุ่มอายุ 15-19 มี Ster=3 คนเท่านั้นจาก 296 คน (~1%) แต่กลุ่มอายุ 30-34 มี Ster=268 จาก 547 คน (~49%) — สัดส่วนการทำหมันเพิ่มขึ้นชัดเจนตามอายุ ในขณะที่ Other methods กลับมีสัดส่วนสูงสุดที่อายุ 20-24 (137/617 ≈ 22%) แล้วลดลงเรื่อยๆ จนเหลือ 10/284 ≈ 3.5% ที่อายุ 45-49 — ความสัมพันธ์ระหว่างอายุกับแต่ละ category จึง<strong>ไม่ใช่เส้นตรงแบบเดียวกันทั้งหมด</strong> (Ster เพิ่มขึ้นตลอด, Other ขึ้นแล้วลง) นี่คือเหตุผลที่โค้ดข้างล่างต้องใส่ทั้ง <code>age10</code>, \(\text{age10}^2\), และ \(\text{age10}^3\) เข้าไปในโมเดล ไม่ใช่แค่ age10 ตัวเดียว.</p>
+<p>ก่อนฟิตโมเดล สไลด์ให้พล็อต log-odds เทียบกับ baseline (Ster) ก่อนเพื่อดูรูปแบบความสัมพันธ์ — \(\log(\text{Other}/\text{Ster})\) และ \(\log(\text{None}/\text{Ster})\) เทียบกับ agemidpoint:</p>
+<figure>
+<img src="../assets/slides/as12-p13-contraceptive-logodds-plot.png" alt="R code setting up the contraceptive data frame and plotting log(Other/Ster) in red and log(None/Ster) in blue against agemidpoint, showing both declining curved trends from age 15 to 49">
+<figcaption>Slide: Example — R code + log-odds plot (Lecture 12, p.13)</figcaption>
+</figure>
+<p>อ่านพล็อต: ทั้งจุดแดง (\(\log(\text{Other}/\text{Ster})\)) และจุดน้ำเงิน (\(\log(\text{None}/\text{Ster})\)) เริ่มต้นสูง (~3-4) ที่อายุน้อย แล้ว<strong>ลดลงแบบโค้ง</strong> (ไม่ใช่เส้นตรง) จนติดลบที่อายุมาก — ค่า log-odds สูงแปลว่า Ster (baseline) มีโอกาสน้อยกว่าเทียบกับอีกสอง category ที่อายุน้อย ซึ่งตรงกับตารางข้างต้นพอดี (Ster=3 ที่อายุ 15-19 น้อยมาก) รูปทรงโค้งนี้คือเหตุผลเชิงประจักษ์ที่สนับสนุนการใส่พจน์ \(\text{age10}^2\) และ \(\text{age10}^3\) เข้าไปในโมเดล ไม่ใช่ตัดสินใจแบบสุ่ม.</p>
+<p>ฟิตด้วย <code>multinom()</code> จากแพ็กเกจ <code>nnet</code> (baseline=Ster โดยอัตโนมัติเพราะเป็น category แรกในลำดับ):</p>
+<pre><code>> contra$age10<-contra$agemidpoint/10
+> library(nnet)
+> model<-multinom(cbind(Ster,Other,None)~age10+I(age10^2)+I(age10^3), data=contra)</code></pre>
+<figure>
+<img src="../assets/slides/as12-p14-multinom-summary-output.png" alt="R summary(model) output: Coefficients table with rows Other and None, columns Intercept/age10/age10^2/age10^3, e.g. Other row 25.06,-28.60,10.12,-1.12; Std. Errors table similarly; Residual Deviance 170.9356; AIC 186.9356">
+<figcaption>Slide: Example — multinom() summary() output (Lecture 12, p.14)</figcaption>
+</figure>
+<p>อ่าน output ทีละส่วน: <code>summary(model)</code> ของ <code>multinom()</code> ให้ตาราง <strong>Coefficients สองแถว</strong> (Other, None) — นี่คือหลักฐานที่จับต้องได้ว่ามี <strong>2 สมการพร้อมกัน</strong> ตามที่อธิบายในหัวข้อ 3 จริงๆ แต่ละแถวมีค่า Estimate ของตัวเอง (Intercept, age10, age10², age10³) พร้อม <strong>Std. Errors</strong> แยกตาราง — ต่างจาก <code>summary(lm())</code>/<code>summary(glm())</code> ที่รวม estimate/SE/t-value/p-value ไว้ตารางเดียว <code>multinom()</code> ไม่พิมพ์ p-value ให้อัตโนมัติ (ต้องคำนวณ Wald test เองจาก Estimate/Std.Error หรือใช้ LRT แทน — ดูหัวข้อ 6) ส่วน <code>Residual Deviance: 170.9356</code> และ <code>AIC: 186.9356</code> ใช้เปรียบเทียบโมเดล เหมือน <code>glm()</code> ทุกประการ.</p>
+<p>เขียนสมการฟิตแล้วให้ครบ (ให้ \(\hat{\pi}_1=P(\text{Ster})\), \(\hat{\pi}_2=P(\text{Other})\), \(\hat{\pi}_3=P(\text{None})\)):</p>
+<div class="box win">
+\[\log(\hat{\pi}_2/\hat{\pi}_1) = 25.06 - 28.60\cdot \text{Age10} + 10.12\cdot \text{Age10}^2 - 1.12\cdot \text{Age10}^3\]<br>
+\[\log(\hat{\pi}_3/\hat{\pi}_1) = 0.46 - 1.27\cdot \text{Age10} + 0.82\cdot \text{Age10}^2 - 0.13\cdot \text{Age10}^3\]
+</div>
+<p>การแปลผล (ตามสไลด์): <strong>intercept</strong> แทนความน่าจะเป็นของแต่ละวิธีคุมกำเนิดเมื่อ Age=0 (ต้องระวัง extrapolation เหมือนกับ intercept ใน SLR — Age=0 ไม่มีอยู่จริงในข้อมูลตัวอย่างนี้ ดังนั้นค่าตัวเลขนี้ไม่ควรตีความตรงๆ ในทางปฏิบัติ) ส่วน<strong>slope terms</strong> แทน log-odds ของการย้ายจาก baseline category (sterilization) ไปยัง other methods และ none ตามลำดับ ต่อการเปลี่ยนอายุ 1 หน่วยของ <code>age10</code> (=10 ปี).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>อ่าน multinom() Output</span></div>
+  <div class="qtext">จาก summary(model) ของข้อมูล Contraceptive Use ทำไมตาราง Coefficients จึงมี 2 แถว (Other, None) ไม่ใช่แถวเดียว?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะ baseline-category logit model มี J−1=2 สมการพร้อมกัน (J=3 category: Ster, Other, None) แต่ละแถวคือสมการเทียบ category นั้นกับ baseline (Ster)</button>
+  <button class="opt" data-correct="false">เป็น bug ของฟังก์ชัน multinom() ที่พิมพ์ผลซ้ำ</button>
+  <button class="opt" data-correct="false">เพราะใส่ age10 สองพจน์ (age10 กับ \(\text{age10}^2\)) เข้าไปในโมเดล</button>
+  <button class="opt" data-correct="false">เพราะข้อมูลมี 2 กลุ่มอายุ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. คำนวณ Logit ระหว่าง Category ที่ไม่ใช่ Baseline</h2>
+<p>สมการหัวข้อ 3 ให้เฉพาะ log-odds เทียบกับ baseline แต่บางครั้งอยากรู้ log-odds ระหว่างสอง category ที่ไม่ใช่ baseline เลย เช่น "Other vs None" (ไม่ใช่ Ster) — คำนวณได้จากการลบสมการ:</p>
+<div class="box">
+\(\log[\pi_j(x)/\pi_k(x)] = \log[\pi_j(x)/\pi_1(x)] - \log[\pi_k(x)/\pi_1(x)] = x(\beta_j - \beta_k)\)
+</div>
+<p>นั่นคือเอาสัมประสิทธิ์ของ 2 สมการที่ฟิตไว้แล้วมา<strong>ลบกันตรงๆ</strong> ไม่ต้องฟิตโมเดลใหม่ — ตัวอย่าง: log-odds ของ Other vs None จากโมเดล Contraceptive คือ \((25.06-0.46) + (-28.60-(-1.27))\cdot \text{Age10} + \cdots = 24.60 - 27.33\cdot \text{Age10} + \cdots\) และเพราะ \(\sum \pi_j(x_i)=1\) จึงไขว่ได้สูตร softmax ย้อนกลับมาเป็นความน่าจะเป็นแต่ละ category:</p>
+<div class="box">
+\[\pi_1(x_i) = \dfrac{1}{1 + \sum_{k=2}^{J} \exp(x_i \beta_k)}\] &nbsp; (ความน่าจะเป็นของ baseline)<br>
+\[\pi_j(x_i) = \dfrac{\exp(x_i \beta_j)}{1 + \sum_{k=2}^{J} \exp(x_i \beta_k)}\], &nbsp; j=2,…,J
+</div>
+<p>สูตรนี้คือที่มาของฟังก์ชัน <code>predict(model, newdata, type="prob")</code> ที่จะเห็นในหัวข้อ 7 — ไม่ต้องคำนวณมือ R ทำให้อัตโนมัติ แต่ต้องรู้ที่มาว่ามันมาจาก log-odds เทียบ baseline ทั้ง J−1 สมการพร้อมกัน.</p>
+
+<h2>6. Inference: Wald Test กับ LRT — ทำไม LRT ถึงเป็นตัวหลัก</h2>
+<p>วิธีทดสอบสมมติฐานของ baseline-category logit ใช้แนวทางเดียวกับ logistic regression ทั่วไปได้ (Lecture 9): (1) <strong>Wald's test</strong> จาก Estimate/Std.Error ในตาราง <code>summary()</code> — ทดสอบ β ตัวเดียว (2) <strong>LRT (Likelihood Ratio Test)</strong> — เทียบ nested models. สไลด์เน้นว่า<strong>การทดสอบ β ทีละตัวไม่ค่อยนิยม</strong> เพราะเมื่อตัดตัวแปร x หนึ่งตัวออกจากโมเดล จะกระทบสัมประสิทธิ์ของ x ตัวนั้น<strong>ทั้ง J−1 สมการพร้อมกัน</strong> — LRT จึงเหมาะกว่าเพราะทดสอบผลรวมของการตัดตัวแปรทั้งหมดในครั้งเดียว ไม่ใช่ทดสอบทีละสมการแยกกัน.</p>
+<p>ตัวอย่าง: ทดสอบนัยสำคัญของพจน์ \(\text{age10}^3\) ด้วย LRT — เทียบโมเดลเต็ม (มี age10³) กับโมเดลย่อ (ไม่มี age10³):</p>
+<pre><code>> model2<-multinom(cbind(Ster,Other,None)~age10+I(age10^2), data=contra)
+> pchisq(deviance(model2)-deviance(model), model$edf-model2$edf, lower=F)
+[1] 0.0003335562
+
+# หรือใช้ anova() แทนก็ได้:
+> anova(model2, model, test="Chisq")
+                            Model Resid. df Resid. Dev   Test   Df LR stat.     Pr(Chi)
+1              age10 + I(age10^2)         8   5766.273          NA       NA          NA
+2 age10 + I(age10^2) + I(age10^3)         6   5750.261 1 vs 2    2 16.0114 0.0003335562</code></pre>
+<p>อ่าน output: <code>pchisq(deviance(model2)-deviance(model), model$edf-model2$edf, lower=F)</code> คือสูตร LRT ที่คุ้นเคยจาก logistic regression — เอา deviance ของโมเดลย่อ ลบ deviance ของโมเดลเต็ม แล้วเทียบกับ chi-square ที่ df = ผลต่างจำนวนพารามิเตอร์ (<code>model$edf−model2$edf</code>) ผลลัพธ์ <code>p = 0.0003</code> น้อยกว่า 0.05 มาก → <strong>ปฏิเสธ \(H_0\)</strong> สรุปว่าพจน์ \(\text{age10}^3\) มีนัยสำคัญ ควรเก็บไว้ในโมเดล — ยืนยันตรงกันด้วย <code>anova()</code> ที่ให้ <code>LR stat. = 16.0114</code>, <code>Pr(Chi) = 0.0003335562</code> ตัวเลขเดียวกันเป๊ะ.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Wald Test vs LRT</span></div>
+  <div class="qtext">ทำไมการทดสอบนัยสำคัญของตัวแปร x หนึ่งตัวใน baseline-category logistic model จึงนิยมใช้ LRT มากกว่า Wald test ทีละสัมประสิทธิ์?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะตัวแปร x หนึ่งตัวมีสัมประสิทธิ์ปรากฏใน J−1 สมการพร้อมกัน การตัดตัวแปรออกกระทบทุกสมการพร้อมกัน LRT จึงทดสอบผลรวมได้ในครั้งเดียว</button>
+  <button class="opt" data-correct="false">เพราะ Wald test ใช้กับ multinom() ไม่ได้เลยในทางเทคนิค</button>
+  <button class="opt" data-correct="false">เพราะ Wald testใช้ได้เฉพาะกับ ordinal response เท่านั้น</button>
+  <button class="opt" data-correct="false">เพราะ LRT ให้ p-value ที่น้อยกว่า Wald test เสมอ ทำให้ปฏิเสธ H0 ได้ง่ายกว่า</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>7. Prediction และ Goodness-of-fit Test</h2>
+<p>ทำนายความน่าจะเป็นแต่ละ category ด้วย <code>predict(..., type="prob")</code> หรือทำนาย category ที่น่าจะเป็นที่สุดด้วย <code>type="class"</code> (default):</p>
+<pre><code>> predict(model, data.frame(age10=3), type="prob")
+     Ster     Other      None
+0.2678515 0.3251770 0.4069715
+> predict(model, data.frame(age10=3))
+[1] None
+Levels: Ster Other None</code></pre>
+<p>ที่ Age10=3 (อายุ 30 ปี): ความน่าจะเป็นของ None (40.7%) สูงกว่า Other (32.5%) และ Ster (26.8%) เล็กน้อย — <code>predict()</code> แบบไม่ระบุ <code>type</code> จึงเลือกตอบ <strong>"None"</strong> เพราะเป็น category ที่มีความน่าจะเป็นสูงสุด (ไม่ใช่ threshold 0.5 แบบ binary logistic — ในโมเดลหลาย category กฎคือ "เลือกความน่าจะเป็นสูงสุด" ไม่ใช่ "เกินครึ่ง").</p>
+<p>Goodness-of-fit test เช็คว่าโมเดลโดยรวม fit กับข้อมูลดีแค่ไหน — วิธีต่างกันตามชนิดข้อมูล:</p>
+<ul>
+<li><strong>Grouped data</strong> (เหมือน Contraceptive: ข้อมูลนับจำนวนต่อกลุ่มอายุ): ใช้ residual deviance เทียบ chi-square โดย df = จำนวนพารามิเตอร์อิสระทั้งหมด (\(n\times(J-1)\)) ลบจำนวนพารามิเตอร์ในโมเดล</li>
+<li><strong>Ungrouped data</strong> (ข้อมูลรายบุคคล): ใช้ extension ของ Hosmer-Lemeshow test ผ่านแพ็กเกจ <code>generalhoslem</code> ฟังก์ชัน <code>logitgof()</code></li>
+</ul>
+<pre><code># Grouped:
+> 1-pchisq(deviance(model2), nrow(contra)*2-model2$edf)
+[1] 0
+
+# Ungrouped (ตัวอย่าง syntax):
+library(generalhoslem)
+mod <- multinom(gear ~ mpg + cyl, data = mtcars)
+logitgof(mtcars$gear, fitted(mod), ord = FALSE)</code></pre>
+<p>ผลลัพธ์ grouped-data GOF ของ <code>model2</code> (ไม่มี age10³) ได้ <code>p = 0</code> พอดี — ปฏิเสธ \(H_0\) ของ goodness-of-fit อย่างชัดเจน (โมเดลนี้ fit ข้อมูลได้ไม่ดี) ซึ่งสอดคล้องกับผล LRT ในหัวข้อ 6 ที่บอกว่าควรใส่ \(\text{age10}^3\) กลับเข้าไป — GOF ตัวนี้เป็นอีกหลักฐานที่ชี้ไปทางเดียวกัน: โมเดลไม่มี cubic term ยังไม่พอ.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>เลือก GOF Test ให้ถูกชนิดข้อมูล</span></div>
+  <div class="qtext">ข้อมูล 3,165 ตัวอย่างถูกจัดกลุ่มเป็น 7 ช่วงอายุแล้วนับจำนวนแต่ละ category (grouped) เทียบกับข้อมูลแบบสำรวจรายบุคคล 944 คนไม่มีการจัดกลุ่ม (ungrouped) — ใช้ GOF test แบบใดกับแต่ละกรณี และเพราะเหตุใด</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">ข้อมูล grouped (7 ช่วงอายุ) ใช้ residual deviance เทียบ chi-square ได้ตรงๆ เพราะมีจำนวนสังเกตซ้ำในแต่ละกลุ่มมากพอ (n ต่อกลุ่มไม่เล็กเกินไป) ส่วนข้อมูล ungrouped (รายบุคคล 944 คน ไม่มีการนับซ้ำในแต่ละ combination ของ x) ใช้ residual deviance ตรงๆ ไม่ได้ (asymptotic assumption ของ chi-square approximation ไม่ดีเมื่อแต่ละ "cell" มีข้อมูลน้อยมากหรือมีค่าเดียว) จึงต้องใช้ extension ของ Hosmer-Lemeshow test ผ่าน <code>logitgof()</code> แทน</div>
+</div>
+
+<h2>8. Interpretation Template — ทักษะที่ออกสอบหนักที่สุด: ต้องระบุ Baseline เสมอ</h2>
+<div class="box win">
+<div class="label">Interpretation Template สำหรับ Baseline-Category Coefficient</div>
+<p><strong>สำหรับสัมประสิทธิ์ \(\hat{\beta}_{pj}\) (ตัวแปร \(X_p\) ในสมการของ category j):</strong></p>
+<p>"\(\exp(\hat{\beta}_{pj})\) คือตัวคูณ (multiplicative factor) ของการเปลี่ยนแปลง odds ของ <strong>category j เทียบกับ baseline category</strong> เมื่อ \(X_p\) เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่"</p>
+<p><strong>ต้องระบุชื่อ baseline category ทุกครั้งที่แปลผล</strong> — เพราะสัมประสิทธิ์ตัวเดียวกันจะมีความหมายเปลี่ยนไปทันทีถ้าเลือก baseline คนละตัว (แตกต่างจาก binary logistic regression ใน Lecture 9 ที่มีแค่ 2 category ไม่ต้องพูดถึง "เทียบกับอะไร" เพราะมีทางเลือกเดียว — nominal ที่มี J&gt;2 category ไม่มี "the" reference โดยธรรมชาติ ต้องประกาศเองเสมอว่าเทียบกับ category ไหน)</p>
+</div>
+<p>ตัวอย่างการแปลผลแบบเต็มจากโมเดล Contraceptive: สัมประสิทธิ์ของ <code>age10</code> ในสมการ None (=−1.27) แปลว่า <em>"เมื่ออายุเพิ่มขึ้น 10 ปี odds ของการไม่ใช้วิธีคุมกำเนิด (None) เทียบกับการทำหมัน (Ster, baseline) เปลี่ยนไปเป็น \(\exp(-1.27) \approx 0.28\) เท่าของเดิม (ลดลง) โดยคุมตัวแปรอื่นให้คงที่"</em> — สังเกตว่าต้องพูดคำว่า <strong>"เทียบกับการทำหมัน (baseline)"</strong> เสมอ ถ้าตัดคำนี้ออกประโยคจะไม่สมบูรณ์และข้อสอบจะไม่ให้คะแนนเต็ม.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response — รูปแบบข้อสอบจริง)</span><span>เขียนประโยคแปลผล ระบุ Baseline</span></div>
+  <div class="qtext">จากโมเดล Contraceptive Use สัมประสิทธิ์ของ <code>age10</code> ในสมการ Other (=−28.60, มาจากพจน์ age10 ก่อนคุม \(\text{age10}^2\) และ \(\text{age10}^3\) — สมมติพิจารณาแค่ผลของ age10 เดี่ยวๆ เพื่อฝึกโครงสร้างประโยค) จงเขียนประโยคแปลผลที่ถูกต้องครบองค์ประกอบ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"เมื่ออายุ (age10) เพิ่มขึ้น 1 หน่วย (10 ปี) odds ของการใช้วิธีคุมกำเนิดแบบอื่น (Other) <strong>เทียบกับการทำหมัน (Sterilization, baseline category)</strong> เปลี่ยนไปเป็น \(\exp(-28.60)\) เท่าของเดิม โดยควบคุมตัวแปรอื่นให้คงที่" — องค์ประกอบที่ขาดไม่ได้: (1) หน่วยของ X ที่เปลี่ยน (2) ชื่อ category ที่กำลังพูดถึง (Other) (3) <strong>ชื่อ baseline category ระบุชัดเจน (Sterilization)</strong> (4) คำว่า "multiplicative" ไม่ใช่ "increase/decrease" ตรงๆ เพราะเป็น odds ratio ไม่ใช่ค่าเชิงเส้น</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>ทำไม Baseline สำคัญกับการแปลผล</span></div>
+  <div class="qtext">ข้อใดอธิบายผลของการเปลี่ยน baseline category ในโมเดล baseline-category logistic ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เปลี่ยน baseline แล้ว residual deviance และ AIC ของโมเดลจะเปลี่ยนไป ทำให้เทียบโมเดลกันไม่ได้อีกต่อไป</button>
+  <button class="opt" data-correct="false">เปลี่ยน baseline แล้ว fitted probabilities \(\hat{\pi}_j(x)\) ของแต่ละ observation จะเปลี่ยนไปด้วย เพราะโมเดลคำนวณใหม่ทั้งหมด</button>
+  <button class="opt" data-correct="true">เปลี่ยน baseline แล้วค่าตัวเลขสัมประสิทธิ์ \(\hat{\beta}\) (และการแปลผล) เปลี่ยนไป แต่ fitted probabilities \(\hat{\pi}_j(x)\) และค่าทำนาย (prediction) ของแต่ละ observation ไม่เปลี่ยน เพราะเป็นโมเดลเดียวกันเขียนคนละมุมมอง</button>
+  <button class="opt" data-correct="false">เปลี่ยน baseline ทำให้จำนวนสมการ (J−1) เปลี่ยนไปด้วย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+<hr>
+
+<h2>9. Ordinal Response: Cumulative Logistic Model (Proportional Odds Model)</h2>
+<p>เปลี่ยนมาที่ response แบบมีลำดับ (ordinal) — แทนที่จะสนใจ \(\pi_j = P(Y=j)\) ตรงๆ เหมือน nominal สไลด์ให้ทำงานกับ<strong>ความน่าจะเป็นสะสม (cumulative probability)</strong> แทน เพราะใช้ประโยชน์จากลำดับได้:</p>
+<div class="box">
+\(\gamma_j = P(Y \leq j) = \sum P(Y=k)\) สำหรับ k ≤ j
+</div>
+<p>โมเดล <em class="term">Cumulative Logistic Model</em> หรือชื่อที่นิยมกว่าคือ <em class="term">Proportional Odds Model</em>:</p>
+<div class="box win">
+\[\log\left[\dfrac{\gamma_j(x_i)}{1 - \gamma_j(x_i)}\right] = \theta_j - \beta\cdot x_i\], &nbsp; สำหรับ j = 1, …, J−1
+</div>
+<p>เทียบกับสมการ baseline-category logit ในหัวข้อ 3 มีข้อต่างสำคัญที่ข้อสอบชอบถามมาก 2 ข้อ: (1) <strong>\(\beta\) ไม่มี subscript j</strong> — มีชุดสัมประสิทธิ์ slope <strong>ชุดเดียว</strong> ใช้ร่วมกันทุก j (ต่างจาก baseline-category ที่แต่ละ j มี \(\beta_j\) ของตัวเอง) (2) <strong>มีแค่ intercept \(\theta_j\) เท่านั้นที่เปลี่ยนไปตาม level j</strong> — นี่คือที่มาของชื่อ "proportional odds": slope เดียวกันสำหรับทุกคู่เปรียบเทียบ มีแค่จุดตัด (threshold) ที่ต่างกัน. จำนวนพารามิเตอร์จึงน้อยกว่า baseline-category logit มาก: proportional odds มี \((J-1) + p\) พารามิเตอร์ ในขณะที่ baseline-category logit มี \((J-1)\times(p+1)\) พารามิเตอร์ (ทุก j มีทั้ง intercept และ slope ของตัวเอง).</p>
+
+<h3>ที่มา: Latent Variable Motivation</h3>
+<p>สไลด์อธิบายที่มาของสมการนี้ผ่านแนวคิด<strong>ตัวแปรแฝง (latent variable)</strong> — สมมติว่ามีตัวแปรต่อเนื่อง \(Z_i\) ที่สังเกตไม่ได้อยู่เบื้องหลัง สิ่งที่สังเกตได้จริงคือ Y_i ที่เป็นการ "ตัดช่วง" Z_i ด้วยจุดตัด (cutpoint) \(c_1 < c_2 < c_3\):</p>
+<figure>
+<img src="../assets/slides/as12-p25-latent-variable-diagram.png" alt="Diagram of a bell curve over latent variable Zi divided by cutpoints c1, c2, c3 into four regions labeled Yi=1, Yi=2, Yi=3, Yi=4">
+<figcaption>Slide: Latent Variable Motivation — J=4 ตัวอย่าง (Lecture 12, p.25)</figcaption>
+</figure>
+<p>อ่านภาพ: ระฆังคว่ำทั้งลูกคือการแจกแจงของ \(Z_i\) ที่มองไม่เห็นจริง — เราสังเกตได้แค่ว่า \(Z_i\) ตกอยู่ในช่วงไหนจาก 4 ช่วงที่แบ่งด้วย \(c_1, c_2, c_3\) แล้วบันทึกเป็น Y_i=1,2,3,4 ตามลำดับ เช่น ในแบบสำรวจความพึงพอใจ "พอใจมาก" อาจจะแปลว่า "ความรู้สึกจริง (Z) สูงกว่าจุดตัด \(c_3\)" — Z ต่อเนื่องแต่เรา<strong>วัดได้แค่ช่วงหยาบๆ</strong> ผ่านแบบสอบถาม. ด้วยแนวคิดนี้ พิสูจน์ได้ว่าถ้า \(\varepsilon_i\) (ส่วนสุ่มของ \(Z_i\)) มีการแจกแจงแบบ logistic (cdf = \(e^x/(1+e^x)\)) จะได้สมการ proportional odds พอดี — ตรงกับที่มาของสมการ baseline-category logit ในหัวข้อ 2 ที่มาจาก exponential family เช่นกัน แต่คนละที่มา คนละโมเดล.</p>
+
+<p>ในทาง R ใช้ฟังก์ชัน <code>polr()</code> จากแพ็กเกจ <code>MASS</code> (ไม่ใช่ <code>multinom()</code> จาก <code>nnet</code> เหมือนโมเดล nominal):</p>
+<pre><code>> library(MASS)
+> polr(formula, data, weights, start, ..., subset, na.action,
++   contrasts = NULL, Hess = FALSE, model = TRUE,
++   method = c("logistic", "probit", "cloglog", "cauchit"))</code></pre>
+<p>ฟังก์ชันมาตรฐานที่ใช้กับ object จาก <code>polr()</code> คล้ายกับ <code>lm</code>/<code>glm</code>: <code>predict</code>, <code>summary</code>, <code>anova</code>, <code>vcov</code>, <code>confint</code>, <code>extractAIC</code> — argument <code>method</code> เลือกได้ว่าจะใช้ link แบบไหน (default <code>"logistic"</code> ให้ proportional odds model ตามที่อธิบายมา; <code>"probit"</code> ให้โมเดลแบบอื่นที่ไม่ครอบคลุมในบทนี้).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Baseline-Category Logit vs Proportional Odds</span></div>
+  <div class="qtext">ข้อใดสรุปความต่างระหว่าง baseline-category logistic model กับ proportional odds model ได้ถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Baseline-category logit ใช้กับ ordinal response เท่านั้น ส่วน proportional odds ใช้กับ nominal response เท่านั้น</button>
+  <button class="opt" data-correct="true">Baseline-category logit ให้แต่ละ category มีสัมประสิทธิ์ slope ของตัวเอง (\(\beta_j\)) ส่วน proportional odds ใช้ slope \(\beta\) ชุดเดียวร่วมกันทุก level มีแค่ intercept \(\theta_j\) ที่ต่างกัน — proportional odds จึงมีพารามิเตอร์น้อยกว่า</button>
+  <button class="opt" data-correct="false">ทั้งสองโมเดลมีจำนวนพารามิเตอร์เท่ากันเสมอ เพราะทั้งคู่มี J−1 สมการ</button>
+  <button class="opt" data-correct="false">ทั้งสองโมเดลฟิตด้วยฟังก์ชัน glm() ของ R เหมือนกัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>10. Worked Example: US 1996 National Election Study</h2>
+<p>ข้อมูลย่อยของ 1996 American National Election Study (944 observation, 10 ตัวแปร) สนใจ 4 ตัวแปร: <code>PID</code> (party identification, ordered factor: strDem &lt; weakDem &lt; indDem &lt; indind &lt; indRep &lt; weakRep &lt; strRep), <code>age</code>, <code>educ</code> (ordered factor), <code>income</code> (ordered factor) เป้าหมาย: อายุ การศึกษา และรายได้ มีผลต่อ party identification อย่างไร?</p>
+<p>เตรียมข้อมูล — รวม PID 7 ระดับเป็น 3 กลุ่ม (Democrat/Independent/Republican) และแปลง income/education เป็นตัวเลข:</p>
+<pre><code>> library(faraway); data(nes96)
+> sPID<-nes96$PID
+> levels(sPID)<-c("Democrat","Democrat","Independent","Independent",
++   "Independent","Republican","Republican")
+> summary(sPID)
+Democrat Independent Republican
+     380         239         325
+> inca<-c(1.5,4,6,8,9.5,10.5,11.5,12.5,13.5,14.5,16,18.5,21,23.5,27.5,
++   32.5,37.5,42.5,47.5,55,67.5,82.5,97.5,115)
+> nincome<-inca[unclass(nes96$income)]
+> educ_ordered<-as.numeric(nes96$educ)
+> nes96<-cbind(nes96,sPID,nincome,data=educ_ordered)</code></pre>
+<p>ฟิตโมเดลด้วย <code>polr()</code> — response <code>sPID</code> มี 3 ระดับเรียงลำดับ Democrat &lt; Independent &lt; Republican:</p>
+<figure>
+<img src="../assets/slides/as12-p32-polr-summary-output.png" alt="R summary(model) output from polr: Coefficients table with age, educ_ordered, nincome rows and Value/Std.Error/t value columns; Intercepts table with Democrat|Independent and Independent|Republican rows; Residual Deviance 1994.303; AIC 2004.303">
+<figcaption>Slide: Example — polr() summary() output (Lecture 12, p.32)</figcaption>
+</figure>
+<p>อ่าน output: ต่างจาก <code>multinom()</code> ชัดเจน — ตาราง <strong>Coefficients มีแค่แถวเดียวต่อตัวแปร</strong> (age, educ_ordered, nincome) ไม่ใช่หลายแถวตาม category เพราะ \(\beta\) ใช้ร่วมกันทุก level (proportional odds!) ส่วนตาราง <strong>Intercepts</strong> มี 2 แถว (<code>Democrat|Independent</code>, <code>Independent|Republican</code>) ตรงกับ J−1=2 threshold ที่แบ่ง 3 category — สังเกตว่า <code>nincome</code> มี <code>t value = 5.9464</code> สูงกว่า age (0.8162) และ educ_ordered (0.7262) มาก บอกใบ้ว่า income น่าจะเป็นตัวแปรสำคัญที่สุด (ยืนยันด้วย LRT/AIC ในหัวข้อ 11).</p>
+<p>เขียนสมการให้ครบ — ให้ \(\gamma_1 = P(Y\leq 1) = P(\text{Democrat})\), \(\gamma_2 = P(Y\leq 2) = P(\text{Democrat})+P(\text{Independent})\), \(\gamma_3 = P(Y\leq 3) = 1\):</p>
+<div class="box win">
+\[\log\left[\dfrac{\hat{\gamma}_1}{1-\hat{\gamma}_1}\right] = 0.47 - 0.003\cdot \text{Age} - 0.030\cdot \text{Educ} - 0.013\cdot \text{Income}\]<br>
+\[\log\left[\dfrac{\hat{\gamma}_2}{1-\hat{\gamma}_2}\right] = 1.55 - 0.003\cdot \text{Age} - 0.030\cdot \text{Educ} - 0.013\cdot \text{Income}\]
+</div>
+<p>สังเกตว่า<strong>สัมประสิทธิ์ของ Age, Educ, Income เหมือนกันทุกตัวอักษรในทั้งสองสมการ</strong> — มีแค่ intercept (0.47 vs 1.55) ที่ต่างกัน นี่คือภาพที่จับต้องได้ของ "proportional odds" (\(\beta\) ชุดเดียว, \(\theta_j\) เปลี่ยนตาม j) ตรงข้ามกับตัวอย่าง Contraceptive ในหัวข้อ 4 ที่สัมประสิทธิ์ของ age10 ต่างกันโดยสิ้นเชิงระหว่างสมการ Other กับ None.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 9 (Free response)</span><span>เปรียบเทียบ 2 สมการ Election Study</span></div>
+  <div class="qtext">จากสมการ \(\hat{\gamma}_1\) และ \(\hat{\gamma}_2\) ของ election study ข้างบน อธิบายว่าทำไมสัมประสิทธิ์ของ Age, Educ, Income จึงเหมือนกันทุกตัวในทั้งสองสมการ ทั้งที่เป็นคนละสมการ (ต่างจากตัวอย่าง Contraceptive ในหัวข้อ 4 ที่สัมประสิทธิ์ต่างกันสิ้นเชิง)</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">เพราะ election study ใช้ proportional odds model ซึ่งมีสมมติฐานว่า slope \(\beta\) ของแต่ละตัวแปรเป็น<strong>ค่าเดียวกันทุก cumulative logit</strong> (ไม่ขึ้นกับ j) มีแค่ intercept \(\theta_j\) ที่ต่างกันตามจำนวน threshold — ในขณะที่ Contraceptive ใช้ baseline-category logit ซึ่งแต่ละสมการ (แต่ละ category เทียบ baseline) มีชุด β เป็นของตัวเองอิสระจากกัน ไม่มีสมมติฐานว่าต้องเท่ากัน — เป็นข้อจำกัด (constraint) ที่ proportional odds model กำหนดไว้ตั้งแต่ตอนสร้างโมเดล ซึ่งต้องตรวจสอบว่า assumption นี้เป็นจริงหรือไม่ (ดูหัวข้อ 12 เรื่อง Brant Test)</div>
+</div>
+
+<h2>11. Testing Nested Models และ AIC-based Variable Selection</h2>
+<p>ทดสอบว่าตัวแปรบางตัว "ไม่จำเป็น" ด้วย LRT เหมือนหัวข้อ 6 — ทดสอบโมเดลเต็ม (age+educ_ordered+nincome) กับโมเดลที่ตัด nincome ออก:</p>
+<pre><code>> pchisq(deviance(model2)-deviance(model), model$edf-model2$edf, lower=F)
+[1] 0.5888053
+
+> model2<-step(model)
+> summary(model2)
+Coefficients:
+          Value Std. Error t value
+nincome 0.01312   0.001971   6.657
+
+Intercepts:
+                       Value  Std. Error t value
+Democrat|Independent   0.2091 0.1123     1.8627
+Independent|Republican 1.2916 0.1201    10.7526
+
+Residual Deviance: 1995.363
+AIC: 2001.363</code></pre>
+<p>อ่าน output: <code>step(model)</code> ใช้ AIC เป็นเกณฑ์เลือกตัวแปรอัตโนมัติแบบ stepwise — ผลลัพธ์คือ<strong>โมเดลที่เหลือแค่ nincome</strong> ตัวแปรเดียว (ตัด age และ educ_ordered ออกไปทั้งคู่) เพราะ AIC ของโมเดลย่อ (2001.363) <strong>ต่ำกว่า</strong> AIC ของโมเดลเต็ม (2004.303 จากหัวข้อ 10) — สอดคล้องกับสัญญาณจาก t-value ในหัวข้อ 10 ที่ nincome สูงกว่าตัวแปรอื่นมาก. ข้อควรระวัง: AIC ต่ำกว่าไม่ได้แปลว่า "ดีกว่าทุกด้าน" เสมอไป — โมเดลที่ตัด age/educ ออกอาจจะสูญเสียข้อมูลบางแง่มุมที่นักวิจัยสนใจ (เช่น ผลของอายุต่อ party identification) แม้ทางสถิติจะไม่ significant ก็ตาม — ต้องชั่งน้ำหนักกับเป้าหมายของงานวิจัยด้วย ไม่ใช่ยึด AIC อย่างเดียว.</p>
+
+<h2>12. Assessing the Proportional Odds Assumption — Brant Test</h2>
+<p>ทักษะที่ 2 ของบทนี้: proportional odds model มี<strong>assumption ที่ต้องเช็คทุกครั้ง</strong> ต่างจาก baseline-category logit ที่ไม่มี assumption เรื่องความเท่ากันของ slope (เพราะมันไม่ได้ตั้งสมมติฐานนั้นตั้งแต่แรก) — assumption นี้คือ<strong>proportional odds (parallel regression) assumption</strong>: สัมประสิทธิ์ β ต้องเท่ากันจริงในทุก cumulative logit ตรวจสอบด้วย <strong>Brant Test</strong> (Brant, 1990):</p>
+<div class="box">
+\(H_0\): Proportional odds (parallel regression) assumption holds — สัมประสิทธิ์เท่ากันในทุก cumulative logit<br>
+\(H_1\): มีตัวแปรอย่างน้อยหนึ่งตัวละเมิด proportionality — สัมประสิทธิ์ต่างกันระหว่าง cutpoint
+</div>
+<p>รันกับโมเดลเต็ม (age+educ_ordered+nincome) จากหัวข้อ 10:</p>
+<figure>
+<img src="../assets/slides/as12-p39-brant-test-full-model.png" alt="Brant test R output on full model: Omnibus X2=8.94 df=3 probability=0.03; age X2=0.19 df=1 p=0.67; educ_ordered X2=0.17 df=1 p=0.68; nincome X2=8.07 df=1 p=0">
+<figcaption>Slide: Brant Test in R — โมเดลเต็ม (Lecture 12, p.39)</figcaption>
+</figure>
+<p>อ่าน output: แถว <strong>Omnibus</strong> คือการทดสอบ assumption โดยรวมทั้งโมเดล — \(X^2 = 8.94, df = 3, p = 0.03\) น้อยกว่า 0.05 → <strong>ปฏิเสธ \(H_0\)</strong> สรุปว่า proportional odds assumption <strong>ถูกละเมิด</strong>ในโมเดลนี้ ดูรายตัวแปรว่าใครเป็นสาเหตุ: <code>age</code> (p=0.67) และ <code>educ_ordered</code> (p=0.68) แต่ละตัวไม่ได้ละเมิดเลย (p สูงมาก) แต่ <code>nincome</code> มี \(p \approx 0\) — สรุปได้ว่า<strong>nincome คือตัวการที่ทำให้ assumption ล้มเหลว</strong> ไม่ใช่ age หรือ educ_ordered.</p>
+<p>ทางแก้ที่สไลด์แสดง: ตัด nincome ออกแล้วเช็คซ้ำกับโมเดล age+educ_ordered เท่านั้น:</p>
+<figure>
+<img src="../assets/slides/as12-p40-brant-test-reduced-model.png" alt="Brant test R output on reduced model (age + educ_ordered only): Omnibus X2=0.73 df=2 probability=0.69; age X2=0.23 df=1 p=0.63; educ_ordered X2=0.38 df=1 p=0.54">
+<figcaption>Slide: Brant Test in R — โมเดลย่อ ตัด nincome ออก (Lecture 12, p.40)</figcaption>
+</figure>
+<p>อ่านผล: หลังตัด nincome ออก Omnibus เปลี่ยนจาก <code>p=0.03</code> เป็น <code>p=0.69</code> — <strong>ไม่ปฏิเสธ \(H_0\)</strong> อีกต่อไป assumption กลับมาเป็นจริงสำหรับ age และ educ_ordered เท่านั้น นี่คือรูปแบบ "diagnostic → remedy" ที่คุ้นเคยจาก assumption checking ใน SLR/MLR: <strong>เจอปัญหา (p&lt;0.05 ใน Brant test) → หาตัวการ (ดู p-value รายตัวแปร) → ตัดตัวแปรที่เป็นปัญหาออก → เช็คซ้ำ</strong> แต่มีข้อแลกเปลี่ยนสำคัญที่ต้องชั่งน้ำหนัก: <code>nincome</code> คือตัวแปรที่มี t-value สูงที่สุดและมีนัยสำคัญที่สุดในหัวข้อ 10-11 การตัดออกทำให้ assumption ผ่าน แต่<strong>สูญเสียตัวแปรที่ทำนายได้ดีที่สุดไปด้วย</strong> — นักวิเคราะห์ต้องตัดสินใจว่าจะยอมรับโมเดลที่ผิด assumption เล็กน้อยแต่ทำนายดี หรือโมเดลที่ assumption ผ่านแต่ทำนายได้แย่ลง (อาจพิจารณาโมเดลอื่น เช่น baseline-category logit ที่ไม่มี assumption นี้ตั้งแต่แรก แทนที่จะตัดตัวแปรทิ้ง).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>อ่าน Brant Test</span></div>
+  <div class="qtext">จาก Brant test ของโมเดลเต็ม (Omnibus p=0.03, nincome p≈0, age p=0.67, educ_ordered p=0.68) ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ผล Brant test ไม่เกี่ยวข้องกับการเลือกตัวแปรเข้าโมเดล เป็นแค่ค่าที่รายงานประกอบเฉยๆ</button>
+  <button class="opt" data-correct="true">Omnibus p=0.03 บ่งชี้ว่า proportional odds assumption ถูกละเมิดในภาพรวม และเมื่อดูรายตัวแปรพบว่า nincome (p≈0) เป็นตัวการหลัก ในขณะที่ age และ educ_ordered แต่ละตัวไม่ได้ละเมิด assumption นี้</button>
+  <button class="opt" data-correct="false">Omnibus p=0.03 มากกว่า 0.05 จึงไม่ปฏิเสธ H0 สรุปว่า assumption ผ่าน</button>
+  <button class="opt" data-correct="false">ปฏิเสธ H0 ของทุกตัวแปร เพราะ Omnibus test ปฏิเสธ H0 แล้วต้องปฏิเสธทุกตัวแปรย่อยด้วย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>13. Interpretation และ Prediction สำหรับ Proportional Odds Model</h2>
+<p>ตัวอย่างการแปลผลสัมประสิทธิ์ของ <code>nincome</code> จากโมเดลย่อ (นิ่งแล้วหลัง <code>step()</code> ในหัวข้อ 11, \(\hat{\beta}=0.01312\)):</p>
+<div class="box win">
+"The odds of moving from Democrat to Independent/Republican category (or from Democrat/Independent to Republican) decrease by a multiplicative factor of \(\exp(-0.01312) = 0.99\) as income increases by one unit ($1000)."
+</div>
+<p>สังเกตโครงสร้างประโยค: proportional odds model<strong>ไม่ต้องระบุ "baseline category"</strong> แบบ nominal model เพราะไม่มี baseline — แต่ต้องพูดถึง<strong>ทิศทางของการเปรียบเทียบตามลำดับ</strong> แทน ("moving from lower category to higher category") เพราะทุกคู่เปรียบเทียบ (Democrat|Independent และ Independent|Republican) ใช้ β ตัวเดียวกัน จึงพูดรวมเป็นประโยคเดียวครอบคลุมทุก threshold ได้เลย — นี่คือความต่างสำคัญจาก nominal model ในหัวข้อ 8 ที่ต้องระบุ baseline category ชัดเจนเสมอ.</p>
+<p>ทำนายความน่าจะเป็นด้วย <code>ilogit()</code> (inverse logit) จาก intercept โดยตรง — ตัวอย่างที่ income=$0:</p>
+<pre><code>> ilogit(0.2091)
+[1] 0.5520854
+> ilogit(1.2916)-ilogit(0.2091)
+[1] 0.2323325</code></pre>
+<p>อ่านการคำนวณ: \(\text{ilogit}(0.2091) = \hat{\gamma}_1 = P(Y\leq \text{Democrat}) = 0.552\) คือความน่าจะเป็นสะสมถึง Democrat โดยตรง (=P(Democrat) เพราะเป็น category แรก) ส่วน P(Independent) ต้อง<strong>ลบสองค่าสะสม</strong>: \(\hat{\gamma}_2 - \hat{\gamma}_1 = P(Y\leq \text{Independent}) - P(Y\leq \text{Democrat}) = \text{ilogit}(1.2916)-\text{ilogit}(0.2091) = 0.232\) — วิธีคิดนี้ (ลบ cumulative probability ที่ติดกัน) เป็นวิธีมาตรฐานในการดึงความน่าจะเป็นของ category เดี่ยวๆ ออกจากโมเดล cumulative logit ต่างจาก baseline-category logit ที่ softmax formula ให้ π_j ตรงๆ อยู่แล้ว.</p>
+<p>ทำนายด้วยฟังก์ชัน <code>predict()</code> โดยตรง (ไม่ต้องคำนวณมือ) — ให้ทั้ง prob และ class:</p>
+<pre><code>> predict(model, newdata=data.frame(age=50, educ_ordered=4,
++ nincome=50), type="prob")
+   Democrat Independent Republican
+  0.3921499   0.2637804   0.3440697
+> predict(model, newdata=data.frame(age=50, educ_ordered=4,
++ nincome=50), type="class")
+[1] Democrat
+Levels: Democrat Independent Republican</code></pre>
+<p>คนอายุ 50 ปี การศึกษาระดับ 4 รายได้ $50,000 มีโอกาส Democrat สูงสุด (39.2%) แม้จะไม่ถึงครึ่ง (ไม่เกิน 50%) แต่<strong>สูงกว่า</strong>อีกสอง category ที่เหลือ (26.4% และ 34.4%) — <code>type="class"</code> จึงตอบ Democrat ตามกฎ "เลือกความน่าจะเป็นสูงสุด" เหมือนกับ <code>multinom()</code> ในหัวข้อ 7.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 11 (Free response)</span><span>คำนวณ P(Independent) จาก Cumulative Probability</span></div>
+  <div class="qtext">สมมติโมเดล proportional odds ให้ \(\hat{\gamma}_1=P(Y\leq \text{Democrat})=0.40\) และ \(\hat{\gamma}_2=P(Y\leq \text{Independent})=0.75\) จงหา P(Independent) และอธิบายวิธีคิด</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">P(Independent) = \(\hat{\gamma}_2 - \hat{\gamma}_1\) = 0.75 − 0.40 = <strong>0.35</strong> เพราะ \(\hat{\gamma}_2 = P(Y\leq \text{Independent}) = P(\text{Democrat}) + P(\text{Independent})\) รวมกัน ในขณะที่ \(\hat{\gamma}_1 = P(Y\leq \text{Democrat}) = P(\text{Democrat})\) เพียงอย่างเดียว การลบสองค่าสะสมที่ติดกันจึงดึงความน่าจะเป็นของ category กลาง (Independent) ออกมาได้โดยตรง</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>สรุปรวม: เลือกโมเดลให้ถูก</span></div>
+  <div class="qtext">นักวิเคราะห์มีตัวแปร response 2 แบบ: (A) แผนกที่ลูกค้าติดต่อ (บัญชี/การตลาด/ไอที/HR — ไม่มีลำดับ) และ (B) ระดับความเสี่ยงเครดิต (ต่ำ/ปานกลาง/สูง/สูงมาก — มีลำดับ) ควรใช้โมเดลและฟังก์ชัน R ใดกับแต่ละกรณี</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ทั้ง (A) และ (B) ใช้ glm(family=binomial) ได้เหมือนกันเพราะเป็น logistic regression ทั้งคู่</button>
+  <button class="opt" data-correct="false">ทั้ง (A) และ (B) ต้องใช้ proportional odds model เพราะมีมากกว่า 2 category เหมือนกัน</button>
+  <button class="opt" data-correct="false">(A) Proportional odds model ด้วย polr(); (B) Baseline-category logistic model ด้วย multinom() — สลับกับข้อบน</button>
+  <button class="opt" data-correct="true">(A) Baseline-category logistic model ด้วย multinom() เพราะ nominal ไม่มีลำดับ; (B) Proportional odds model ด้วย polr() เพราะ ordinal มีลำดับ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรแยก nominal กับ ordinal response ได้ทันที และเลือกโมเดลถูกชนิด (baseline-category logit ด้วย <code>multinom()</code> vs proportional odds ด้วย <code>polr()</code>), เขียนสมการ baseline-category logit ที่มี J−1 สมการพร้อมกันได้ (คนละ β ต่อ category), เขียนสมการ proportional odds ที่ β ชุดเดียวแต่ θ_j เปลี่ยนตาม level ได้, แปลผลสัมประสิทธิ์ baseline-category logit โดยระบุ baseline category เสมอ, อ่าน Brant test เพื่อเช็ค proportional odds assumption และรู้ทางแก้เมื่อ assumption ล้มเหลว, และอ่าน output จาก <code>summary()</code>/<code>predict()</code>/LRT/GOF ของทั้งสองโมเดลได้ครบ — ทักษะเหล่านี้จะขยายผลต่อไปใน Lecture 13 (Other GLMs)
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (40 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture12.pdf</code> ตั้งแต่หน้า 1 ถึง 40 (นับตามลำดับหน้าจริงของไฟล์ PDF — ไม่ใช่เลขหน้าที่พิมพ์กำกับไว้ในสไลด์ ซึ่งกระโดดจาก 22 ไป 31 เพราะเป็นเลขหน้าเดิมจากสไลด์ต้นฉบับที่ถูกตัดบางส่วนออกก่อนทำเป็นเอกสารนี้) หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่น/หน้าว่างที่ไม่มีเนื้อหาทฤษฎีใหม่ให้ทำ quiz เพิ่ม</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 12: Multinomial Data"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Multinomial Responses — ภาพรวม Nominal vs Ordinal + ตัวอย่าง</td><td>✓ หัวข้อ 1 (มีรูป)</td></tr>
+<tr><td>3</td><td>หน้าคั่น "Nominal Response"</td><td>etc — หน้าคั่น</td></tr>
+<tr><td>4</td><td>Multinomial Responses — นิยาม \(\pi_j\), \(\sum \pi_j=1\), J−1 พอ</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>5</td><td>Classic Examples — Binomial: โยนเหรียญ n ครั้ง</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>6</td><td>Classic Examples — Multinomial: ทอยลูกเต๋า n ครั้ง</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>7</td><td>Multinomial Distribution — รูป exponential family</td><td>✓ หัวข้อ 2 (สรุปย่อ)</td></tr>
+<tr><td>8</td><td>Multinomial Distribution — pmf และการจัดรูป</td><td>✓ หัวข้อ 2 (สรุปย่อ)</td></tr>
+<tr><td>9</td><td>Multinomial Distribution — redefine \(\theta_i\), canonical parameter</td><td>✓ หัวข้อ 2 (สรุปย่อ)</td></tr>
+<tr><td>10</td><td>Multinomial Regression — canonical link, baseline-category logistic model, multinom() ใน nnet</td><td>✓ หัวข้อ 2-3</td></tr>
+<tr><td>11</td><td>Nominal Responses: Baseline-Category Logistic Models — สมการหลัก</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>12</td><td>Example: The Contraceptive Use Data — ตารางข้อมูล</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>13</td><td>Example: Contraceptive Use — โค้ด R + log-odds plot</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>14</td><td>Example: Contraceptive Use — multinom() summary() output</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>15</td><td>Example: Contraceptive Use — Fitted Model equations + interpret</td><td>✓ หัวข้อ 4</td></tr>
+<tr><td>16</td><td>หน้าว่าง (ไม่มีเนื้อหา)</td><td>etc — หน้าว่าง</td></tr>
+<tr><td>17</td><td>Baseline-Category Logistic Models — สูตร logit คู่ใดๆ + softmax formula</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>18</td><td>Inference approaches — Wald's test vs LRT</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>19</td><td>Example: Contraceptive Use — LRT test สำหรับ cube term</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>20</td><td>Example: Contraceptive Use — Prediction predict()</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>21</td><td>Goodness-of-fit Test — Grouped data</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>22</td><td>Goodness-of-fit Test — Ungrouped data (Hosmer-Lemeshow extension)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>23</td><td>หน้าคั่น "Ordinal Response"</td><td>etc — หน้าคั่น</td></tr>
+<tr><td>24</td><td>Ordinal Responses: Cumulative Logistic Models — \(\gamma_j\), สมการ proportional odds</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>25</td><td>Latent Variable Motivation — ภาพระฆังกับ cutpoints c1,c2,c3</td><td>✓ หัวข้อ 9 (มีรูป)</td></tr>
+<tr><td>26</td><td>Latent Variable Motivation (cont.) — ที่มาสมการ logit link</td><td>✓ หัวข้อ 9 (สรุปย่อ)</td></tr>
+<tr><td>27</td><td>Proportional Odds Model — สมการสุดท้าย + ที่มาชื่อ</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>28</td><td>Proportional Odds Model in R — polr() ในแพ็กเกจ MASS</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>29</td><td>Example: US 1996 National Election Study — แนะนำตัวแปร</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>30</td><td>Example: US 1996 — โค้ด R เตรียมข้อมูล (head, sPID)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>31</td><td>Example: US 1996 — โค้ด R เตรียมข้อมูล (educ table)</td><td>✓ หัวข้อ 10 (สรุปย่อ)</td></tr>
+<tr><td>32</td><td>Example: US 1996 — polr() summary() output</td><td>✓ หัวข้อ 10 (มีรูป)</td></tr>
+<tr><td>33</td><td>Example: US 1996 — Response variable Y levels + model equations</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>34</td><td>Example: US 1996 — Testing nested models + AIC step() selection</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>35</td><td>Goodness-of-fit Test — grouped/ungrouped, Hosmer-Lemeshow ordinal output</td><td>✓ หัวข้อ 7 (อ้างอิงรูปแบบเดียวกัน)</td></tr>
+<tr><td>36</td><td>Example: US 1996 — Interpretation (odds ratio income, predicted prob)</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>37</td><td>Example: US 1996 — Prediction predict() type=prob/class</td><td>✓ หัวข้อ 13</td></tr>
+<tr><td>38</td><td>Assessing the Proportional Odds Assumption — Brant Test นิยาม H0/H1</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>39</td><td>Brant Test in R — โมเดลเต็ม (age+educ_ordered+nincome)</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+<tr><td>40</td><td>Brant Test in R — โมเดลย่อ (ตัด nincome ออก)</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0011-count-regression.html">← Lesson 11: Count Regression</a></span>
+  <span><a href="0013-other-glms.html">Lesson 13: Other GLMs →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

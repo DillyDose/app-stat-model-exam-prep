@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>คลังข้อสอบจำลอง — Applied Statistical Modeling</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="../lessons/0001-simple-linear-regression.html">← กลับไปบทเรียน</a></span>
+  <span>คลังข้อสอบจำลอง</span>
+</nav>
+
+<p class="kicker">2603645 APP STAT MODEL · Vitara Pungpapong</p>
+<h1>คลังข้อสอบจำลอง</h1>
+
+<p>สร้างจากการวิเคราะห์ pattern ของ <strong>assignment solution ทั้ง 10 ชุด</strong>ที่อาจารย์เฉลยเอง + แนวข้อสอบที่เคยเจอจริง โจทย์ทุกข้อใช้ <strong>R output และ plot ของจริง</strong>จากเฉลยของอาจารย์ ไม่มีตัวเลขที่แต่งขึ้นเอง</p>
+
+<div class="box source">
+<div class="label">ข้อสอบวิชานี้หน้าตาเป็นอย่างไร</div>
+<p><strong>ไม่ต้องเขียน R</strong> — ข้อสอบให้ output กับ plot มา แล้วให้อ่าน/วินิจฉัย/ตีความ ดังนั้นทักษะที่ต้องฝึกคือ 6 อย่างนี้ ซึ่งตรงกับ 6 drill ด้านล่างพอดี:</p>
+<ol style="margin:0.5em 0">
+<li>เขียนสมการโมเดลจาก output ให้ถูก</li>
+<li>แปลผลสัมประสิทธิ์เป็นภาษาคน (ออกหนักที่สุด)</li>
+<li>ทดสอบสมมติฐานให้ครบพิธีกรรม 4 ท่อน</li>
+<li>ดู plot แล้วบอกว่า assumption ไหนพัง</li>
+<li>เลือกเครื่องมือ/วิธีแก้ให้ถูกกับอาการ</li>
+<li>ทำนายค่า แล้วอธิบายว่าค่านั้นแปลว่าอะไร</li>
+</ol>
+</div>
+
+<h2>ขั้นที่ 1 — Drill แยกทักษะ</h2>
+<p>ฝึกทีละ archetype จนคล่อง ทำไม่ต้องจับเวลา เน้นความถูกต้องก่อน แต่ละชุดมีปุ่มเฉลยรายข้อ + เกณฑ์คะแนน + จุดที่โดนหักบ่อย</p>
+
+<table>
+<tr><th>ชุด</th><th>ฝึกอะไร</th><th>ข้อ/คะแนน</th><th>ครอบคลุม</th></tr>
+<tr>
+  <td><a href="drill-01-write-the-equation.html"><strong>Drill 1</strong></a></td>
+  <td>เขียนสมการโมเดล — OLS ถึง GLM ถึง mixed model</td>
+  <td>16 ข้อ / 32</td><td>L1–L14</td>
+</tr>
+<tr>
+  <td><a href="drill-02-interpretation.html"><strong>Drill 2</strong></a></td>
+  <td>แปลผลสัมประสิทธิ์ — slope, dummy, R², CI, odds ratio, rate ratio <em>(ออกหนักสุด)</em></td>
+  <td>16 ข้อ / 32</td><td>L1–L14</td>
+</tr>
+<tr>
+  <td><a href="drill-03-hypothesis-testing.html"><strong>Drill 3</strong></a></td>
+  <td>ทดสอบสมมติฐาน — t, F, extra-SS, LRT, GOF, Brant, Kenward-Roger</td>
+  <td>14 ข้อ / 30</td><td>L1–L14</td>
+</tr>
+<tr>
+  <td><a href="drill-04-diagnose-from-plots.html"><strong>Drill 4</strong></a></td>
+  <td>ดู plot แล้ววินิจฉัยว่า assumption ไหนพัง</td>
+  <td>15 ข้อ / 30</td><td>L3–L4 เป็นหลัก</td>
+</tr>
+<tr>
+  <td><a href="drill-05-choose-the-tool.html"><strong>Drill 5</strong></a></td>
+  <td>เลือกเครื่องมือให้ถูกกับอาการ — transform, WLS, ridge, quasi-, NB, LMM</td>
+  <td>15 ข้อ / 32</td><td>L3–L14</td>
+</tr>
+<tr>
+  <td><a href="drill-06-predict-and-explain.html"><strong>Drill 6</strong></a></td>
+  <td>ทำนายค่าด้วยมือ + back-transform + ตีความ</td>
+  <td>14 ข้อ / 30</td><td>L1–L14</td>
+</tr>
+</table>
+
+<h2>ขั้นที่ 2 — Mock exam เต็มชุด</h2>
+<p>ทำหลัง drill ครบแล้ว <strong>จับเวลาจริง ห้ามเปิดเฉลยระหว่างทำ</strong> — โครงสร้างเลียนแบบข้อสอบจริง คือ 1 dataset ต่อ 1 ข้อใหญ่ แล้วแตกเป็นข้อย่อย (a)(b)(c)… เหมือน assignment ของอาจารย์เป๊ะ</p>
+
+<table>
+<tr><th>ชุด</th><th>ขอบเขต</th><th>เวลา</th></tr>
+<tr><td><a href="mock-exam-a.html"><strong>Mock Exam A</strong></a></td><td>Comprehensive ทั้ง 14 บท</td><td>90 นาที</td></tr>
+<tr><td><a href="mock-exam-b.html"><strong>Mock Exam B</strong></a></td><td>Comprehensive ทั้ง 14 บท (ชุดที่สอง คนละ dataset)</td><td>90 นาที</td></tr>
+</table>
+
+<div class="box win">
+<div class="label">วิธีใช้ให้ได้ผลที่สุด</div>
+<p><strong>1. อย่าเปิดเฉลยก่อนเขียน</strong> — พิมพ์คำตอบลงช่องก่อนเสมอ แม้จะไม่มั่นใจ การพยายามดึงความจำออกมา (retrieval) สร้างความจำระยะยาวได้ดีกว่าการอ่านเฉลยเฉย ๆ มาก</p>
+<p><strong>2. ให้คะแนนตัวเองแบบโหด</strong> — ถ้าลืมคำว่า "holding other variables constant" หรือลืมบริบทในประโยคสรุป ให้กดแค่ "ถูกบางส่วน" เพราะอาจารย์หักจริงตรงนั้น</p>
+<p><strong>3. เว้นระยะแล้วทำซ้ำ</strong> — ข้อที่ยังไม่เต็ม ทิ้งไว้ 2–3 วันแล้วกลับมาทำใหม่ ดีกว่าทำซ้ำติด ๆ กันในวันเดียว</p>
+<p><strong>4. Drill 2 กับ Drill 6 คือตัวทำคะแนน</strong> — สองชุดนี้คือการแปลผลและการทำนาย ซึ่งอาจารย์ให้น้ำหนักมากที่สุด ถ้าเวลาน้อยให้ทำสองชุดนี้ก่อน</p>
+</div>
+
+<h2>เชื่อมกับบทเรียน</h2>
+<p>ข้อไหนทำไม่ได้ ให้ดู tag มุมขวาของข้อนั้น (เช่น "L9") แล้วกลับไปอ่านบทที่ตรงกัน:</p>
+<ul>
+<li><a href="../lessons/0001-simple-linear-regression.html">L1 SLR</a> · <a href="../lessons/0002-multiple-linear-regression.html">L2 MLR</a> · <a href="../lessons/0003-regression-diagnostics-and-remedies.html">L3 Diagnostics</a> · <a href="../lessons/0004-regression-diagnostics-part-2.html">L4 Diagnostics II</a> · <a href="../lessons/0005-model-selection.html">L5 Model Selection</a></li>
+<li><a href="../lessons/0006-single-factor-anova.html">L6 ANOVA</a> · <a href="../lessons/0007-penalized-regression.html">L7 Penalized</a> · <a href="../lessons/0008-exponential-family-and-glms.html">L8 GLM Framework</a></li>
+<li><a href="../lessons/0009-binary-data.html">L9 Binary</a> · <a href="../lessons/0010-binomial-counts.html">L10 Binomial</a> · <a href="../lessons/0011-count-regression.html">L11 Count</a> · <a href="../lessons/0012-multinomial-data.html">L12 Multinomial</a> · <a href="../lessons/0013-other-glms.html">L13 Other GLMs</a> · <a href="../lessons/0014-linear-mixed-effects-models.html">L14 Mixed Models</a></li>
+</ul>
+<p>หรือเปิด <a href="../reference/0001-slr-formulas-and-r-output-cheatsheet.html">cheat sheet</a> ทั้ง 14 แผ่นในโฟลเดอร์ <code>reference/</code> ซึ่งมี template ประโยคแปลผลให้เติมช่องว่างอยู่แล้ว</p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ</p>
+
+</body>
+</html>

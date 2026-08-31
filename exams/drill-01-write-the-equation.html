@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 1: เขียนสมการโมเดล — ครบทุกตระกูล</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 1 / 6 · เขียนสมการ</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 1 — Write down the estimated regression function</p>
+<h1>Drill 1: เขียนสมการโมเดลให้ถูก (ครบทุกตระกูล L1–L14)</h1>
+
+<p>archetype นี้โผล่ใน<strong>ทุก</strong> assignment ที่อาจารย์ให้มา (10/10 ชุด) และเป็นท่อนแรกของแทบทุกข้อสอบ — ถ้าเขียนสมการผิดตั้งแต่ต้น ข้อย่อยที่เหลือ (แปลผล/ทำนาย) พังตามหมด. ชุดนี้ให้ R output มาแบบเดียวกับที่ข้อสอบให้ แล้วให้คุณเขียนสมการที่ fit ได้ออกมา</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>16 ข้อ · 32 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~35 นาที (ข้อละ ~2 นาที — ข้อสอบจริงให้เวลาน้อยกว่านี้)</dd>
+  <dt>ครอบคลุม</dt><dd>Lecture 1–14 ทุกบท</dd>
+  <dt>วิธีทำ</dt><dd>เขียนคำตอบในช่องก่อน แล้วค่อยกดเฉลย → ให้คะแนนตัวเองตามเกณฑ์ที่แสดง</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">กติกาการเขียนสมการที่อาจารย์ยึด (ดูจากเฉลยทุกชุด)</div>
+<p><strong>1. ใส่หมวกให้ถูก</strong> — ค่าที่ประมาณจากข้อมูลต้องมีหมวกเสมอ: \(\hat{Y}\), \(\widehat{\log(\mu)}\), \(\text{logit}(\hat{\pi})\) ไม่ใช่ \(Y\), \(\mu\), \(\pi\) เปล่า ๆ</p>
+<p><strong>2. GLM ต้องนิยามพารามิเตอร์ก่อน</strong> — อาจารย์ขึ้นต้นด้วย "Let \(\pi\) be the probability of benign." / "Let \(\mu\) be the average number of revertant colonies" <strong>ทุกครั้ง</strong> ก่อนเขียนสมการ ถ้าไม่นิยามจะไม่รู้ว่า \(\pi\) คือความน่าจะเป็นของอะไร</p>
+<p><strong>3. ใช้ชื่อตัวแปรจริง</strong> ไม่ใช่ \(X_1, X_2\) เปล่า ๆ ถ้าโจทย์บอกชื่อมา (อาจารย์เขียน \(0.44673\,\text{Miles}\) ไม่ใช่ \(0.44673 X\))</p>
+<p><strong>4. ฝั่งซ้ายต้องตรงกับ link function</strong> — Poisson เขียน \(\log(\hat{\mu})\), logistic เขียน \(\text{logit}(\hat{\pi})\), OLS ที่ transform Y เขียน \(\widehat{\ln(Y)}\) ห้ามเขียน \(\hat{Y}\) เฉย ๆ</p>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — Linear models (L1–L5)</h2>
+<div class="sec-note">SLR, MLR, dummy, polynomial, interaction, transformed response</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">SLR · L1</span></div>
+  <div class="exq-body">
+    <p>บริษัทรถโดยสารในอังกฤษเก็บค่าใช้จ่ายรวม (Cost, หน่วย £100,000) และระยะทางรถวิ่ง (Miles, หน่วยล้านไมล์) จาก 33 ช่วงเวลา จาก output ด้านล่าง จงเขียน <strong>estimated regression function</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 0.64963    0.06636    9.79 5.31e-11 ***
+Miles       0.44673    0.01909   23.40  < 2e-16 ***
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+Multiple R-squared: 0.9464,     Adjusted R-squared: 0.9447
+F-statistic: 547.7 on 1 and 31 DF,  p-value: < 2.2e-16</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y} = 0.64963 + 0.44673\,\text{Miles}\]</p>
+      <p>หรือเขียนชื่อตัวแปรตามเต็ม: \(\widehat{\text{Cost}} = 0.64963 + 0.44673\,\text{Miles}\)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: หยิบ Estimate ทั้งสองตัวมาถูก (0.64963, 0.44673) และวางถูกตำแหน่ง</li>
+      <li>1 คะแนน: ใส่หมวกบน Y และไม่มีพจน์ \(\varepsilon\) ต่อท้าย</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียน \(Y = 0.64963 + 0.44673X + \varepsilon\) — <strong>ผิด 2 จุด</strong>: (1) สมการที่ fit แล้วไม่มี \(\varepsilon\) (error term อยู่ในโมเดลทฤษฎีเท่านั้น ไม่ใช่สมการที่ประมาณได้) (2) ไม่มีหมวก — \(Y\) เปล่าคือค่าจริงที่สังเกต ไม่ใช่ค่าทำนาย</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">MLR + dummy · L2</span></div>
+  <div class="exq-body">
+    <p>ร้านค้าปลีกเก็บข้อมูลรายสัปดาห์: จำนวนกล่องที่ส่ง (X1), ต้นทุนแรงงานทางอ้อมเป็น % (X2), ตัวแปรบอกว่าสัปดาห์นั้นมีวันหยุดหรือไม่ (X3 = 1 ถ้ามี, 0 ถ้าไม่มี), และชั่วโมงแรงงานรวม (Y) จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  < 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***
+
+Residual standard error: 143.3 on 48 degrees of freedom
+Multiple R-squared: 0.6883,     Adjusted R-squared: 0.6689</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y} = 4150 + 0.0007871 X_1 - 13.17 X_2 + 623.6 X_3\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: แปลง scientific notation ถูกทุกตัว (7.871e-04 = 0.0007871, 6.236e+02 = 623.6)</li>
+      <li>1 คะแนน: <strong>ใส่เครื่องหมายลบของ X2 ให้ถูก</strong> และใส่ X3 เข้าสมการด้วย (ไม่ตัดทิ้งเพราะเป็น dummy)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ตัด X2 ทิ้งเพราะ p=0.5712 ไม่มีนัยสำคัญ — <strong>ผิด</strong>: โจทย์สั่งให้เขียนสมการของโมเดลที่ fit มา ไม่ได้สั่งให้เลือกตัวแปร ต้องเขียนครบทุกตัวที่อยู่ใน output</p>
+      <p>อ่าน <code>e+03</code>/<code>e-04</code> พลาด — เจอบ่อยมาก เพราะ R พิมพ์ scientific notation เมื่อค่าต่างกันมาก ๆ ต้องคำนวณช้า ๆ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Polynomial · L2</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผลผลิตข้าวโพด (YIELD) กับปริมาณน้ำฝน (RAINFALL) จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = YIELD ~ RAINFALL + I(RAINFALL^2), data = corn)
+
+Coefficients:
+                Estimate Std. Error t value Pr(>|t|)
+(Intercept)     -5.01467   11.44158  -0.438  0.66387
+RAINFALL         6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2)   -0.22936    0.08864  -2.588  0.01397 *
+
+Residual standard error: 3.763 on 35 degrees of freedom
+Multiple R-squared: 0.2967,     Adjusted R-squared: 0.2565</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\widehat{\text{YIELD}} = -5.01467 + 6.00428\,\text{RAINFALL} - 0.22936\,\text{RAINFALL}^2\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: มีพจน์กำลังสองและเครื่องหมายลบถูก</li>
+      <li>1 คะแนน: เขียน \(\text{RAINFALL}^2\) ไม่ใช่ \(\text{I(RAINFALL^2)}\) (นั่นคือ R syntax ไม่ใช่สัญกรณ์คณิตศาสตร์)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ลอก <code>I(RAINFALL^2)</code> ลงไปในสมการตรง ๆ — ข้อสอบต้องการ<strong>สมการคณิตศาสตร์</strong> ไม่ใช่โค้ด R ฟังก์ชัน <code>I()</code> มีไว้บอก R ว่า <code>^2</code> คือการยกกำลังจริง ไม่ใช่ operator ของ formula</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Interaction · L2</span></div>
+  <div class="exq-body">
+    <p>ศึกษาความดันหลอดเลือดแดงในปอด (Y) กับตัวแปรจากภาพรังสี X1 (อัตราการไหลเข้า) และ X2 (อัตราการสูบออก) โมเดลใส่พจน์ปฏิสัมพันธ์ด้วย จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = Y ~ X1 * X2, data = lungpressure)
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 134.399866  15.981599   8.410 4.63e-07 ***
+X1           -2.133022   0.522157  -4.085 0.000975 ***
+X2           -1.699330   0.363669  -4.673 0.000300 ***
+X1:X2         0.033347   0.009283   3.592 0.002667 **
+
+Residual standard error: 10.58 on 15 degrees of freedom
+Multiple R-squared: 0.7922,     Adjusted R-squared: 0.7507</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y} = 134.4 - 2.13 X_1 - 1.70 X_2 + 0.033 X_1 X_2\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: พจน์เดี่ยว X1, X2 ครบพร้อมเครื่องหมายลบทั้งคู่</li>
+      <li>1 คะแนน: พจน์ interaction เขียนเป็น \(X_1 X_2\) (คูณกัน) ไม่ใช่ \(X_1{:}X_2\)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ลอก <code>X1:X2</code> ลงสมการ — <code>:</code> คือ operator ของ R formula สมการคณิตศาสตร์ต้องเขียนเป็นผลคูณ \(X_1 X_2\)</p>
+      <p><strong>ลืมพจน์เดี่ยว</strong> เมื่อมี interaction — โมเดล <code>Y~X1*X2</code> ใน R กาง<strong>อัตโนมัติ</strong>เป็น X1 + X2 + X1:X2 (marginality) ต้องเขียนครบ 3 พจน์ ไม่ใช่แค่พจน์ interaction</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Transformed Y · L3</span></div>
+  <div class="exq-body">
+    <p>นักเคมีศึกษาความเข้มข้นของสารละลาย (Y) ตามเวลา (X) โมเดลเดิมละเมิด assumption จึงแปลง Y ด้วย log จงเขียนสมการที่ fit ได้จากข้อมูลที่แปลงแล้ว</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = log(Y) ~ X, data = solution)
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  1.50792    0.06028   25.01 2.22e-12 ***
+X           -0.44993    0.01049  -42.88 2.19e-15 ***
+
+Residual standard error: 0.115 on 13 degrees of freedom
+Multiple R-squared: 0.993,      Adjusted R-squared: 0.9924</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\widehat{\ln(Y)} = 1.5079 - 0.4499 X\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ตัวเลขถูกและเครื่องหมายลบถูก</li>
+      <li>1 คะแนน: <strong>ฝั่งซ้ายเป็น \(\ln(Y)\) ไม่ใช่ \(Y\)</strong> — นี่คือจุดตัดสินของข้อนี้</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียน \(\hat{Y} = 1.5079 - 0.4499X\) — <strong>ผิดหลัก</strong>: โมเดลนี้ทำนาย log ของ Y ไม่ใช่ Y ถ้าอยากได้ \(\hat{Y}\) ต้อง exponentiate กลับ: \(\hat{Y} = e^{1.5079 - 0.4499X}\) (ซึ่งอาจารย์ถามแยกเป็นข้อ "express in the original units")</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Model selection · L5</span></div>
+  <div class="exq-body">
+    <p>ศึกษาอัตราการตาย (MORT) กับปัจจัยสภาพอากาศ/เศรษฐกิจสังคมใน 60 เมือง หลังรัน stepwise BIC ได้ผลดังนี้ จงเขียนสมการของโมเดลที่ถูกเลือก</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+lm(formula = MORT ~ PRECIP + EDUC + NONWHITE + lSO2, data = mortality)
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 944.8448    93.7916  10.074 4.28e-14 ***
+PRECIP        1.6410     0.6134   2.675  0.00982 **
+EDUC        -13.9637     6.8838  -2.028  0.04736 *
+NONWHITE      3.3212     0.5850   5.678 5.31e-07 ***
+lSO2         15.0134     3.4333   4.373 5.50e-05 ***
+
+Residual standard error: 36.24 on 55 degrees of freedom
+Multiple R-squared: 0.6835,     Adjusted R-squared: 0.6605</div>
+    <p style="font-size:0.85rem;color:var(--ink-soft)">หมายเหตุ: <code>lSO2</code> คือ <code>log(SO2)</code> ที่สร้างไว้ก่อนหน้า</p>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\widehat{\text{MORT}} = 944.84 + 1.64\,\text{PRECIP} - 13.96\,\text{EDUC} + 3.32\,\text{NONWHITE} + 15.01\log(\text{SO2})\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ตัวแปรครบ 4 ตัวพร้อมเครื่องหมายถูกทุกตัว (EDUC ติดลบ)</li>
+      <li>1 คะแนน: เขียน \(\log(\text{SO2})\) กลับเป็นรูปเดิม ไม่ใช่ทิ้งไว้เป็นชื่อตัวแปร <code>lSO2</code></li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใส่ <code>lNOX</code> เข้าไปด้วย — โมเดลที่ stepwise เลือกมา<strong>ตัด lNOX ออกแล้ว</strong> ต้องอ่านบรรทัด <code>Call:</code> ให้ดีว่าโมเดลสุดท้ายมีตัวแปรอะไรบ้าง อย่าเขียนจาก full model ที่โจทย์ให้ตอนต้น</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — ANOVA และ Penalized (L6–L7)</h2>
+<div class="sec-note">cell means model, factor effects model, ridge</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Cell means model · L6</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผลของอายุเจ้าของรถ (young / middle / elderly) ต่อราคาเสนอซื้อรถมือสอง (หน่วยร้อยดอลลาร์) จาก 36 ดีลเลอร์ จงเขียน <strong>cell means model</strong> ที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>> print(model.tables(aovmodel, "means"))
+Tables of means
+Grand mean
+
+23.55556
+
+ AgeGroup
+AgeGroup
+Elderly Middle  Young
+ 21.417 27.750 21.500</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y}_{1j} = 21.417, \quad \hat{Y}_{2j} = 27.750, \quad \hat{Y}_{3j} = 21.5\]</p>
+      <p>(กลุ่ม 1 = Elderly, 2 = Middle, 3 = Young ตามลำดับที่ R เรียง)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ใช้<strong>ค่าเฉลี่ยรายกลุ่ม</strong>เป็นค่าทำนาย (ไม่ใช่ grand mean)</li>
+      <li>1 คะแนน: เขียนสัญกรณ์ 2 ตัวห้อย \(\hat{Y}_{ij}\) — i คือกลุ่ม, j คือหน่วยในกลุ่ม</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สับสน cell means กับ factor effects — <strong>cell means model</strong> ทำนายด้วยค่าเฉลี่ยกลุ่มตรง ๆ (\(\mu_i\)) ส่วน <strong>factor effects model</strong> เขียนเป็น grand mean + ส่วนต่าง (\(\mu + \tau_i\)) อาจารย์ถามแยกเป็นคนละข้อ (ดูข้อ 8) ต้องแยกให้ออก</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Factor effects model · L6</span></div>
+  <div class="exq-body">
+    <p>จากข้อมูลชุดเดียวกับข้อ 7 จงเขียน <strong>factor effects model</strong> ที่ fit ได้ พร้อมระบุค่าพารามิเตอร์</p>
+    <div class="rout"><span class="rout-label">R output</span>> print(model.tables(aovmodel, "effect"))
+Tables of effects
+
+ AgeGroup
+AgeGroup
+Elderly Middle  Young
+ -2.139  4.194 -2.056
+
+Grand mean = 23.55556</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\[\hat{Y}_{ij} = \mu + \tau_i \,;\quad i = 1,2,3\]</p>
+      <p>โดย \(\mu = 23.56\), \(\tau_1 = -2.139\), \(\tau_2 = 4.194\), \(\tau_3 = -2.056\)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เขียนโครงสมการ \(\hat{Y}_{ij} = \mu + \tau_i\) ถูก</li>
+      <li>1 คะแนน: ระบุค่า \(\mu\) (grand mean) และ \(\tau_i\) ครบทั้ง 3 กลุ่มพร้อมเครื่องหมาย</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ลืมระบุว่า \(\mu\) คือเท่าไร — เขียนแค่ \(\hat{Y}_{ij}=\mu+\tau_i\) ลอย ๆ ได้ไม่เต็ม ต้องแทนค่าตัวเลขให้ครบ</p>
+      <p>ตรวจง่าย ๆ: \(\mu + \tau_i\) ต้องเท่ากับค่าเฉลี่ยกลุ่มในข้อ 7 เป๊ะ เช่น \(23.56 + 4.194 = 27.75\) ✓</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน C — GLM (L8–L13)</h2>
+<div class="sec-note">binary, binomial counts, Poisson, offset, negative binomial, multinomial, ordinal</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Logistic · L9</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลมะเร็งเต้านมจากรัฐวิสคอนซิน 681 เคส ตัวแปรตาม <code>Class</code> = 1 ถ้าเนื้องอกเป็น <em>benign</em> (ไม่ร้ายแรง) จงเขียนสมการที่ fit ได้ <strong>(อย่าลืมนิยามพารามิเตอร์ก่อน)</strong></p>
+    <div class="rout"><span class="rout-label">R output (ตัดมาบางส่วน)</span>Call:
+glm(formula = Class ~ ., family = binomial, data = wbca)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.16678    1.41491   7.892 2.97e-15 ***
+Adhes       -0.39681    0.13384  -2.965  0.00303 **
+BNucl       -0.41478    0.10230  -4.055 5.02e-05 ***
+Chrom       -0.56456    0.18728  -3.014  0.00257 **
+Thick       -0.62675    0.15890  -3.944 8.01e-05 ***
+   (ตัวแปรอื่น ๆ ตัดออกเพื่อความกระชับ)
+
+    Null deviance: 881.388  on 680  degrees of freedom
+Residual deviance:  89.464  on 671  degrees of freedom
+AIC: 109.46</div>
+    <p style="font-size:0.85rem;color:var(--ink-soft)">เขียนเฉพาะ 4 ตัวแปรที่แสดงก็พอ</p>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>Let \(\pi\) be the probability of benign.</strong></p>
+      <p>\[\text{logit}(\hat{\pi}) = 11.17 - 0.40\,\text{Adhes} - 0.41\,\text{BNucl} - 0.56\,\text{Chrom} - 0.63\,\text{Thick}\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: <strong>นิยาม \(\pi\) ก่อน</strong> ว่าเป็นความน่าจะเป็นของอะไร — อาจารย์เขียนบรรทัดนี้ทุกครั้งในเฉลย GLM</li>
+      <li>1 คะแนน: ฝั่งซ้ายเป็น \(\text{logit}(\hat{\pi})\) พร้อมสัมประสิทธิ์ถูกต้อง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียน \(\hat{\pi} = 11.17 - 0.40\,\text{Adhes} - \ldots\) — <strong>ผิดหนัก</strong>: ฝั่งขวาเป็นค่าอะไรก็ได้ตั้งแต่ \(-\infty\) ถึง \(\infty\) แต่ \(\pi\) เป็นความน่าจะเป็นต้องอยู่ระหว่าง 0–1 เท่านั้น สองฝั่งไม่มีทางเท่ากันได้ ต้องมี link function <code>logit</code> คั่น</p>
+      <p>ไม่นิยาม \(\pi\) — โดนหักเพราะไม่รู้ว่าโมเดลทำนายความน่าจะเป็นของ benign หรือ malignant (ทิศทางเครื่องหมายกลับกันเลย)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Binomial counts · L10</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผีเสื้อกลางคืนใกล้ลิเวอร์พูล นับจำนวนผีเสื้อสีอ่อนที่ถูกล่า (light_removed) จากผีเสื้อที่ถูกล่าทั้งหมด ที่ระยะทางต่าง ๆ จากเมือง จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = cbind(light_removed, dark_removed) ~ distance,
+    family = binomial, data = newdata)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.28048    0.23090   1.215  0.22447
+distance    -0.01872    0.00675  -2.773  0.00556 **
+
+    Null deviance: 9.8997  on 6  degrees of freedom
+Residual deviance: 2.0741  on 5  degrees of freedom
+AIC: 35.105</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>Let \(\pi\) be the probability that the removed moth is a light moth.</strong></p>
+      <p>\[\text{logit}(\hat{\pi}) = 0.28 - 0.02\,\text{distance}\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: นิยาม \(\pi\) ให้ตรงกับ "สัดส่วนของอะไรในอะไร"</li>
+      <li>1 คะแนน: สมการ logit ถูกต้อง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>คิดว่า <code>cbind(light, dark)</code> ทำให้สมการเปลี่ยนรูป — <strong>ไม่เปลี่ยน</strong>: binomial counts กับ binary logistic เขียนสมการ<strong>เหมือนกันทุกประการ</strong> ต่างแค่รูปแบบข้อมูลที่ป้อนเข้า R เท่านั้น การตีความสัมประสิทธิ์ก็เหมือนกัน</p>
+      <p>นิยาม \(\pi\) เป็น "ความน่าจะเป็นที่ผีเสื้อถูกล่า" — <strong>ผิด</strong>: ตัวส่วนคือผีเสื้อที่ถูกล่าไปแล้วทั้งหมด ดังนั้น \(\pi\) คือ "ในบรรดาตัวที่ถูกล่า มีสัดส่วนเท่าไรที่เป็นสีอ่อน"</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Poisson · L11</span></div>
+  <div class="exq-body">
+    <p>การทดลอง salmonella reverse mutagenicity: นับจำนวนโคโลนีที่กลายพันธุ์กลับ (colonies) ตามระดับยา (dose) จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = colonies ~ dose + I(dose^2), family = poisson,
+    data = salmonella)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.163e+00  6.701e-02  47.202  < 2e-16 ***
+dose         2.507e-03  5.122e-04   4.895 9.84e-07 ***
+I(dose^2)   -2.294e-06  4.937e-07  -4.647 3.36e-06 ***
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 78.358  on 17  degrees of freedom
+Residual deviance: 55.535  on 15  degrees of freedom
+AIC: 154.07</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>Let \(\mu\) be the average number of revertant colonies of TA98 salmonella.</strong></p>
+      <p>\[\log(\hat{\mu}) = 3.16 + 0.0025\,\text{dose} - 0.0000023\,\text{dose}^2\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: นิยาม \(\mu\) เป็น "ค่าเฉลี่ยของจำนวนนับ"</li>
+      <li>1 คะแนน: ฝั่งซ้ายเป็น \(\log(\hat{\mu})\) และแปลง e-notation ถูก (2.507e-03 = 0.0025, −2.294e-06 = −0.0000023)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียน \(\hat{\mu} = 3.16 + \ldots\) ลืม log — Poisson ใช้ log link เสมอ (canonical link) ฝั่งซ้ายต้องเป็น \(\log(\hat{\mu})\)</p>
+      <p>อ่าน <code>e-06</code> ผิดเป็น <code>e-6</code> แล้วเขียน −0.000023 (ขาด/เกินหลักศูนย์) — ทดเลขช้า ๆ ตรงนี้</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Poisson + offset · L11</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผลของรังสีแกมมาต่อความผิดปกติของโครโมโซม นับ <code>ca</code> (จำนวนความผิดปกติ) จาก <code>cells</code> (จำนวนเซลล์ที่ตรวจ) เนื่องจากสนใจ<strong>อัตราต่อเซลล์</strong> ไม่ใช่จำนวนดิบ จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm(formula = ca ~ offset(log(cells)) + log(doserate) * dosef,
+    family = poisson, data = dicentric)
+
+Coefficients:
+                       Estimate Std. Error z value Pr(>|z|)
+(Intercept)            -2.74671    0.03426 -80.165  < 2e-16 ***
+log(doserate)           0.07178    0.03518   2.041 0.041299 *
+dosef2.5                1.62542    0.04946  32.863  < 2e-16 ***
+dosef5                  2.76109    0.04349  63.491  < 2e-16 ***
+log(doserate):dosef2.5  0.16122    0.04830   3.338 0.000844 ***
+log(doserate):dosef5    0.19350    0.04243   4.561  5.1e-06 ***</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p><strong>Let \(\mu\) be the average number of chromosomal abnormalities.</strong></p>
+      <p>\[\log(\hat{\mu}) = \log(\text{cells}) - 2.7467 + 0.0718\log(\text{doserate}) + 1.6254\,\text{dosef2.5} + 2.7611\,\text{dosef5}\]\[+\; 0.1612\log(\text{doserate})\times\text{dosef2.5} + 0.1935\log(\text{doserate})\times\text{dosef5}\]</p>
+      <p>เขียนในรูป<strong>อัตรา</strong>ได้เท่ากันว่า \(\log\left(\dfrac{\hat{\mu}}{\text{cells}}\right) = -2.7467 + 0.0718\log(\text{doserate}) + \ldots\)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: มีพจน์ \(\log(\text{cells})\) อยู่ในสมการ<strong>โดยไม่มีสัมประสิทธิ์</strong> (สัมประสิทธิ์ถูกบังคับ = 1)</li>
+      <li>1 คะแนน: พจน์ที่เหลือครบพร้อม interaction</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใส่สัมประสิทธิ์ให้ offset เช่นเขียน \(\hat{\beta}\log(\text{cells})\) — <strong>ผิดนิยามของ offset</strong>: จุดประสงค์ทั้งหมดของ offset คือ<strong>ตรึง</strong>สัมประสิทธิ์ไว้ที่ 1 ไม่ให้ข้อมูลประมาณค่ามัน จึงไม่มีตัวเลขนำหน้าและไม่ปรากฏในตาราง Coefficients</p>
+      <p>มองหา <code>offset</code> ในตาราง Coefficients แล้วไม่เจอเลยคิดว่าไม่มี — offset <strong>ไม่เคย</strong>โผล่ในตารางสัมประสิทธิ์ ต้องอ่านจากบรรทัด <code>Call:</code> เท่านั้น</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Negative Binomial · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูล salmonella ชุดเดิม (ข้อ 11) แต่เปลี่ยนมาใช้ Negative Binomial เพราะ Poisson มี overdispersion จงเขียนสมการที่ fit ได้ และระบุค่า \(\theta\)</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+glm.nb(formula = colonies ~ dose + I(dose^2), data = salmonella,
+    init.theta = 14.30585996, link = log)
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept)  3.143e+00  1.120e-01  28.061  < 2e-16 ***
+dose         2.751e-03  9.572e-04   2.874  0.00405 **
+I(dose^2)   -2.518e-06  9.280e-07  -2.713  0.00667 **
+
+(Dispersion parameter for Negative Binomial(14.3059) family taken to be 1)
+
+    Null deviance: 25.505  on 17  degrees of freedom
+Residual deviance: 17.626  on 15  degrees of freedom
+AIC: 137.69
+
+              Theta:  14.31
+          Std. Err.:   6.97</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p><strong>Let \(\mu\) be the average number of revertant colonies of TA98 salmonella.</strong></p>
+      <p>\[\log(\hat{\mu}) = 3.14 + 0.0028\,\text{dose} - 0.0000025\,\text{dose}^2\]</p>
+      <p>โดย \(\hat{\theta} = 14.31\) (SE = 6.97)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: สมการ log-linear ถูก (โครงสร้างเหมือน Poisson เป๊ะ)</li>
+      <li>1 คะแนน: ระบุ \(\hat{\theta} = 14.31\) — พารามิเตอร์เพิ่มที่ Poisson ไม่มี</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ลืม \(\theta\) — NB มีพารามิเตอร์มากกว่า Poisson 1 ตัว ถ้าไม่ระบุจะบอกไม่ได้ว่า overdispersion แรงแค่ไหน (\(\theta\) ยิ่งน้อย overdispersion ยิ่งมาก; \(\theta\to\infty\) จะกลายเป็น Poisson)</p>
+      <p>สังเกตว่าสมการ NB กับ Poisson <strong>หน้าตาเหมือนกัน</strong> ต่างแค่ตัวเลขนิดหน่อยและมี \(\theta\) เพิ่ม — สิ่งที่ต่างจริง ๆ คือ SE (NB ให้ SE ใหญ่กว่า สมจริงกว่า)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Multinomial · L12</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลคนงานเหมืองถ่านหิน จำแนกภาวะ pneumonoconiosis เป็น 3 ระดับ (normal / mild / severe) ตามจำนวนปีที่ทำงานหน้าเหมือง (year) จงเขียนสมการที่ fit ได้ <strong>ให้ครบทุกสมการ</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+multinom(formula = status ~ year, data = pneumo, weights = Freq)
+
+Coefficients:
+       (Intercept)        year
+normal   4.2916723 -0.08356506
+severe  -0.7681706  0.02572027
+
+Std. Errors:
+       (Intercept)       year
+normal   0.5214110 0.01528044
+severe   0.7377192 0.01976662
+
+Residual Deviance: 417.4496
+AIC: 425.4496</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>baseline category คือ <strong>mild</strong> (category ที่ไม่ปรากฏในตาราง) จึงมี 2 สมการ:</p>
+      <p>\[\log\left(\frac{\hat{\pi}_{\text{normal}}}{\hat{\pi}_{\text{mild}}}\right) = 4.2917 - 0.0836\,\text{year}\]</p>
+      <p>\[\log\left(\frac{\hat{\pi}_{\text{severe}}}{\hat{\pi}_{\text{mild}}}\right) = -0.7682 + 0.0257\,\text{year}\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: เขียน<strong>ครบ 2 สมการ</strong> (J−1 = 3−1 = 2) ไม่ใช่สมการเดียว</li>
+      <li>1 คะแนน: ระบุ baseline ถูกว่าเป็น <strong>mild</strong> และวางไว้เป็นตัวส่วนทั้งสองสมการ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียนสมการเดียว — multinomial ที่มี J categories ต้องมี <strong>J−1 สมการพร้อมกัน</strong> เสมอ นี่คือจุดต่างสำคัญที่สุดจาก binary logistic</p>
+      <p>เดา baseline ผิด — R เลือก baseline เป็น<strong>ระดับแรกตามลำดับตัวอักษร/factor level</strong> และ<strong>ไม่พิมพ์แถวของมัน</strong> ในตาราง วิธีหา: category ไหนหายไปจากตาราง Coefficients นั่นคือ baseline (ที่นี่มี normal กับ severe เหลือ mild หายไป)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 15</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Proportional odds · L12</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลชุดเดียวกับข้อ 14 แต่มองว่า status เป็น <strong>ordinal</strong> (normal &lt; mild &lt; severe) จงเขียนสมการที่ fit ได้</p>
+    <div class="rout"><span class="rout-label">R output</span>Call:
+polr(formula = status_order ~ year, data = pneumo, weights = Freq)
+
+Coefficients:
+      Value Std. Error t value
+year 0.0959    0.01194   8.034
+
+Intercepts:
+             Value   Std. Error t value
+normal|mild   3.9558 0.4097      9.6558
+mild|severe   4.8690 0.4411     11.0383
+
+Residual Deviance: 416.9188
+AIC: 422.9188</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\text{logit}\big(\hat{P}(\text{status} \leq \text{normal})\big) = 3.9558 - 0.0959\,\text{year}\]</p>
+      <p>\[\text{logit}\big(\hat{P}(\text{status} \leq \text{mild})\big) = 4.8690 - 0.0959\,\text{year}\]</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: ใช้ <strong>cumulative probability</strong> (\(P(Y \leq j)\)) ไม่ใช่ความน่าจะเป็นรายกลุ่ม</li>
+      <li>1 คะแนน: <strong>slope ตัวเดียวกัน</strong> ใช้ร่วมทั้งสองสมการ ต่างแค่ intercept (นี่คือหัวใจของ proportional odds)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ให้ slope ต่างกันในแต่ละสมการ — <strong>ผิดสมมติฐานของโมเดล</strong>: proportional odds บังคับให้ slope เท่ากันทุกจุดตัด (นั่นคือที่มาของชื่อ "proportional") ถ้า slope ต่างกันได้ก็ต้องใช้ multinomial แทน</p>
+      <p><strong>ระวังเครื่องหมาย:</strong> R รายงาน <code>year 0.0959</code> เป็นบวก แต่ <code>polr</code> ใช้ parameterization \(\text{logit}(P(Y\leq j)) = \theta_j - \beta x\) — ต้องใส่<strong>ลบ</strong>หน้า slope ในสมการ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน D — Mixed models (L14)</h2>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 16</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">LMM · L14</span></div>
+  <div class="exq-body">
+    <p>การทดลองเลี้ยงไก่: ไก่ 6 ตัวต่อ 1 คอก รวม 12 คอก แบ่งเป็น 4 บล็อกตามตำแหน่ง ให้ 3 treatment (E, F, O) นับจำนวนไข่ที่ได้ จงเขียนสมการของโมเดลที่ fit ได้ พร้อมระบุ variance components</p>
+    <div class="rout"><span class="rout-label">R output</span>Linear mixed model fit by REML ['lmerMod']
+Formula: eggs ~ treat + (1 | block)
+   Data: eggprod
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ block    (Intercept) 129.9    11.40
+ Residual             386.9    19.67
+Number of obs: 12, groups: block, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   349.00      11.37  30.702
+treatF         -6.25      13.91  -0.449
+treatO        -42.50      13.91  -3.056</div>
+  </div>
+  <textarea placeholder="เขียนสมการที่นี่..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย</div>
+      <p>\[\hat{Y}_{ij} = 349.00 - 6.25\,\text{treatF} - 42.50\,\text{treatO} + b_i + \varepsilon_{ij}\]</p>
+      <p>โดย \(b_i \sim N(0,\ \hat{\sigma}^2_{\text{block}})\) กับ \(\hat{\sigma}^2_{\text{block}} = 129.9\) และ \(\varepsilon_{ij} \sim N(0,\ \hat{\sigma}^2)\) กับ \(\hat{\sigma}^2 = 386.9\)</p>
+      <p>(treatE เป็น reference level จึงไม่ปรากฏ — intercept 349.00 คือค่าเฉลี่ยของ treatment E)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: แยก fixed effects (treat) ออกจาก random effect (\(b_i\) ของ block) ได้ชัดเจน</li>
+      <li>1 คะแนน: ระบุ variance components ทั้งสองตัวพร้อมการแจกแจง</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียนเหมือน MLR ธรรมดา ลืม \(b_i\) — ถ้าไม่มีพจน์ random effect ก็ไม่ใช่ mixed model ทั้งประเด็นของโมเดลนี้คือ<strong>สังเกตในบล็อกเดียวกันไม่เป็นอิสระต่อกัน</strong> (ละเมิด independence assumption จาก L1) จึงต้องมี \(b_i\) มาจับ</p>
+      <p>ลืมรายงาน variance components — เป็นผลลัพธ์ที่ <code>lmer()</code> ให้แต่ <code>lm()</code> ไม่มี ข้อสอบมักถามต่อว่าความแปรปรวนระหว่างบล็อกเทียบกับภายในบล็อกเป็นอย่างไร (ที่นี่ \(129.9/(129.9+386.9) = 25\%\) ของความแปรปรวนรวมมาจากความต่างระหว่างบล็อก)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">ข้อที่ยังไม่เต็ม ให้กลับไปอ่านบทที่ tag ไว้มุมขวาของข้อนั้น แล้วกลับมาทำใหม่อีกรอบในอีก 2–3 วัน (spacing ช่วยความจำระยะยาวมากกว่าทำซ้ำติดกัน)</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span><a href="drill-02-interpretation.html">Drill 2: แปลผลสัมประสิทธิ์ →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

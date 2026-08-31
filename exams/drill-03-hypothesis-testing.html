@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Drill 3: พิธีกรรมทดสอบสมมติฐาน — ครบทุกชนิดของการทดสอบ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/exam.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="index.html">← คลังข้อสอบ</a></span>
+  <span>Drill 3 / 6 · ทดสอบสมมติฐาน</span>
+</nav>
+
+<p class="kicker">Drill · Archetype 3 — State the hypotheses, p-value, and conclusion</p>
+<h1>Drill 3: พิธีกรรมทดสอบสมมติฐาน (ครบทุกชนิดในวิชานี้)</h1>
+
+<p>archetype นี้โผล่ใน 5 จาก 10 assignment ที่อาจารย์ให้มา และเป็นข้อที่<strong>เสียคะแนนง่ายที่สุด</strong> — ไม่ใช่เพราะคำนวณผิด (ตัวเลขให้มาหมดแล้ว) แต่เพราะเขียนไม่ครบท่อน อาจารย์เขียนเฉลยด้วยโครงเดียวกันทุกครั้งไม่มีเว้น: <strong>สมมติฐาน → test statistic พร้อมการแจกแจง → p-value → ประโยคสรุปที่พูดถึงตัวแปรจริง</strong> ขาดท่อนไหนหักท่อนนั้น ชุดนี้ให้ R output จริงจากเฉลยของอาจารย์ แล้วให้คุณเขียนพิธีกรรมทั้ง 4 ท่อนออกมา</p>
+
+<div class="exam-meta">
+<dl>
+  <dt>จำนวนข้อ</dt><dd>14 ข้อ · 30 คะแนน</dd>
+  <dt>เวลาที่ควรใช้</dt><dd>~40 นาที (ข้อละ ~3 นาที — เขียนเป็นประโยคเต็ม อย่าเขียนแค่ตัวเลข)</dd>
+  <dt>ครอบคลุม</dt><dd>t-test, overall F, extra sum-of-squares F, one-sided t, ANOVA F, Tukey, deviance GOF, Hosmer-Lemeshow, LRT, Brant, Kenward-Roger</dd>
+  <dt>วิธีทำ</dt><dd>เขียนคำตอบให้ครบ 4 ท่อนในช่องก่อน แล้วค่อยกดเฉลย → ให้คะแนนตัวเองตามเกณฑ์</dd>
+</dl>
+</div>
+
+<div class="box source">
+<div class="label">กติกาการทดสอบสมมติฐานที่อาจารย์ยึด (ดูจากเฉลยทุกชุด)</div>
+<p><strong>1. ต้องมีครบ 4 ท่อนเสมอ</strong> — (ก) \(H_0\) กับ \(H_1\) เขียนด้วยพารามิเตอร์ (ข) ค่า test statistic <em>พร้อมบอกว่ามันตามการแจกแจงอะไร df เท่าไร</em> (ค) p-value (ง) ประโยคสรุป ในเฉลยของอาจารย์ท่อน (ข) เขียนแบบนี้: "F test statistic = 35.34 which follows \(F_{3,48}\)"</p>
+<p><strong>2. ประโยคสรุปต้องพูดถึงตัวแปรจริง</strong> — อาจารย์<strong>ไม่เคย</strong>เขียนแค่ "reject \(H_0\)" เธอเขียนว่า "there is strong evidence that there exists a linear association <em>between car miles and expenses</em>" คือเอาชื่อตัวแปรในโจทย์กลับมาใส่ในประโยคเสมอ</p>
+<p><strong>3. ปิดท้ายด้วย "at a 5% level of significance"</strong> ทุกครั้ง — ท่อนนี้อยู่ท้ายประโยคสรุปของเธอแทบทุกข้อ ลืมแล้วโดนหัก</p>
+<p><strong>4. ระวังทิศทางกลับด้านของ GOF และ assumption test</strong> — สำหรับ goodness-of-fit (deviance vs \(\chi^2\), Hosmer-Lemeshow) และ Brant test สมมติฐานหลักคือ "โมเดล fit ดี" / "ข้อสมมติเป็นจริง" ดังนั้น <strong>p-value น้อย = ข่าวร้าย</strong> ตรงข้ามกับการทดสอบสัมประสิทธิ์โดยสิ้นเชิง นี่คือกับดักที่ทำคนพลาดมากที่สุดในครึ่งหลังของวิชา</p>
+</div>
+
+<div class="scorebar"></div>
+
+<div class="exam-section">
+<h2>ส่วน A — Linear models: t-test และ F-test</h2>
+<div class="sec-note">SLR slope, overall F, coefficient t, extra sum-of-squares F, one-sided t, การตัดพจน์ออกจากโมเดล</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 1</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">t-test on slope · L1</span></div>
+  <div class="exq-body">
+    <p>บริษัทรถโดยสารในอังกฤษเก็บค่าใช้จ่ายรวม (Cost, หน่วย £100,000) และระยะทางรถวิ่ง (Miles, หน่วยล้านไมล์) จาก <strong>33 ช่วงเวลา</strong> จงทดสอบว่ามีความสัมพันธ์เชิงเส้นระหว่าง car miles กับ expenses หรือไม่ ที่ระดับนัยสำคัญ 0.05 — <strong>ระบุ \(H_0\), \(H_1\), test statistic พร้อมการแจกแจง, p-value และข้อสรุป</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Cost~Miles, data=bus)
+&gt; summary(model)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 0.64963     0.06636    9.79 5.31e-11 ***
+Miles       0.44673     0.01909   23.40  &lt; 2e-16 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+Multiple R-squared: 0.9464,     Adjusted R-squared: 0.9447
+F-statistic: 547.7 on 1 and 31 DF,  p-value: &lt; 2.2e-16</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน: H0/H1 · test statistic + การแจกแจง · p-value · ข้อสรุป..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์)</div>
+      <p>\(H_0: \beta_1 = 0\) vs \(H_1: \beta_1 \neq 0\)</p>
+      <p>t test statistic = 23.40 which follows \(t_{31}\)</p>
+      <p>p-value = "&lt; 2e-16" (ค่าที่ R รายงานในตาราง summary)</p>
+      <p>Since the p-value is less than 0.05, we can conclude that there is strong evidence that <strong>there exists a linear association between car miles and expenses</strong> at a 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0: \beta_1 = 0\) vs \(H_1: \beta_1 \neq 0\) (เขียนด้วยพารามิเตอร์ ไม่ใช่คำบรรยาย)</li>
+      <li>0.5 คะแนน: t = 23.40 และระบุว่าตาม \(t_{31}\) — df = \(n - 2 = 33 - 2 = 31\) อ่านได้จากบรรทัด "on 31 degrees of freedom"</li>
+      <li>0.5 คะแนน: p-value &lt; 2e-16</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่มีคำว่า <em>car miles</em> และ <em>expenses</em> พร้อมปิดท้าย "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียนแค่ <strong>"p &lt; 0.05 จึง reject \(H_0\)"</strong> แล้วจบ — ได้ไม่เกินครึ่ง อาจารย์ต้องการให้<strong>แปลกลับเป็นภาษาของโจทย์</strong>ว่าผลนั้นแปลว่าอะไร คือ "มีความสัมพันธ์เชิงเส้นระหว่างระยะทางรถวิ่งกับค่าใช้จ่าย"</p>
+      <p><strong>ลืมท่อน "which follows \(t_{31}\)"</strong> — การบอกแค่ตัวเลข 23.40 ลอย ๆ ไม่พอ ต้องบอกการแจกแจงและ df เพราะนั่นคือสิ่งที่ทำให้ตัวเลขนั้นแปลเป็น p-value ได้</p>
+      <p>ใส่ df ผิดเป็น 33 หรือ 32 — SLR ใช้ \(n-2\) เพราะประมาณพารามิเตอร์ไป 2 ตัว (\(\beta_0, \beta_1\))</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 2</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Overall F-test · L2</span></div>
+  <div class="exq-body">
+    <p>ร้านค้าปลีกระดับประเทศเก็บข้อมูลรายสัปดาห์ 52 สัปดาห์: จำนวนกล่องที่ส่ง (X1), ต้นทุนแรงงานทางอ้อมเป็น % (X2), ตัวแปรบอกวันหยุด (X3), และชั่วโมงแรงงานรวม (Y) จงทดสอบว่า<strong>มี regression relation หรือไม่</strong> ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Y~., data=grocery)
+&gt; summary(model)
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  &lt; 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 143.3 on 48 degrees of freedom
+Multiple R-squared: 0.6883,     Adjusted R-squared: 0.6689
+F-statistic: 35.34 on 3 and 48 DF, p-value: 3.316e-12</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — ลอกจากเฉลย Assignment 2(e) แทบคำต่อคำ)</div>
+      <p>\(H_0: \beta_1 = \beta_2 = \beta_3 = 0\) vs \(H_1\): not \(H_0\)</p>
+      <p>F test statistic = 35.34 which follows \(F_{3,48}\)</p>
+      <p>p-value = \(3.316 \times 10^{-12}\)</p>
+      <p>Since the p-value is much less than 0.05, we can conclude that there is strong enough evidence that <strong>there exists a regression relation</strong> at a 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0\) ตั้งให้ทุก slope เป็นศูนย์<strong>พร้อมกัน</strong> และ \(H_1\) เขียนว่า "not \(H_0\)"</li>
+      <li>0.5 คะแนน: F = 35.34 พร้อมระบุ \(F_{3,48}\) — อ่านตรง ๆ จากบรรทัด "on 3 and 48 DF"</li>
+      <li>0.5 คะแนน: p-value = 3.316e-12</li>
+      <li>0.5 คะแนน: ประโยคสรุป "there exists a regression relation" + "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ใส่ \(\beta_0\) เข้าไปใน \(H_0\)</strong> เขียนเป็น \(\beta_0=\beta_1=\beta_2=\beta_3=0\) — ผิด: overall F-test ไม่แตะ intercept เลย มันทดสอบเฉพาะ slope ว่า "มีตัวทำนายสักตัวช่วยอธิบาย Y ได้ไหม" ถ้า intercept อยู่ใน \(H_0\) ด้วยจะกลายเป็นโมเดล \(Y=0\) ซึ่งไม่ใช่ reduced model ของการทดสอบนี้</p>
+      <p>เขียน \(H_1: \beta_1 \neq \beta_2 \neq \beta_3 \neq 0\) — ผิดความหมาย ตรงข้ามของ "ทุกตัวเป็นศูนย์" คือ "<strong>อย่างน้อยหนึ่งตัว</strong>ไม่เป็นศูนย์" ไม่ใช่ "ทุกตัวไม่เป็นศูนย์" อาจารย์เลี่ยงปัญหานี้ด้วยการเขียนสั้น ๆ ว่า not \(H_0\)</p>
+      <p>หยิบ p-value 0.0359 ของ X1 มาตอบ — นั่นคือ t-test รายตัว คนละการทดสอบกัน overall F ใช้บรรทัดสุดท้ายของ summary เท่านั้น</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 3</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">t-test in MLR · L2</span></div>
+  <div class="exq-body">
+    <p>จาก output ชุดเดียวกับข้อ 2 จงใช้ t-test ทดสอบว่าสัมประสิทธิ์การถดถอยของ <strong>X1 (จำนวนกล่องที่ส่ง)</strong> ต่างจาก 0 หรือไม่ ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output (ท่อนที่ต้องใช้)</span>Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 4.150e+03  1.956e+02  21.220  &lt; 2e-16 ***
+X1          7.871e-04  3.646e-04   2.159   0.0359 *
+X2         -1.317e+01  2.309e+01  -0.570   0.5712
+X3          6.236e+02  6.264e+01   9.954 2.94e-13 ***
+
+Residual standard error: 143.3 on 48 degrees of freedom</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 2(f))</div>
+      <p>\(H_0: \beta_1 = 0\) vs \(H_1: \beta_1 \neq 0\)</p>
+      <p>t test statistic = 2.159 which follows \(t_{48}\)</p>
+      <p>p-value = 0.0359</p>
+      <p>Since the p-value is less than 0.05, we can conclude that there is enough evidence that <strong>the number of cases shipped (X1) is related to the total labor hours (Y)</strong> at a 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0: \beta_1=0\) vs \(H_1: \beta_1 \neq 0\)</li>
+      <li>0.5 คะแนน: t = 2.159 ตาม \(t_{48}\) — df = \(n - p = 52 - 4 = 48\) อ่านจาก "on 48 degrees of freedom"</li>
+      <li>0.5 คะแนน: p-value = 0.0359</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่ระบุชื่อจริงของตัวแปร (จำนวนกล่องที่ส่ง / ชั่วโมงแรงงานรวม) + "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>ใช้ df เดียวกับ SLR (\(n-2 = 50\)) — ใน MLR ต้องหักจำนวนพารามิเตอร์ทั้งหมดที่ประมาณ (intercept + 3 slope = 4) เหลือ \(52-4=48\) วิธีที่ไม่มีวันพลาดคืออ่านจากบรรทัด residual standard error ที่ R พิมพ์ df มาให้แล้ว</p>
+      <p>สรุปว่า "X1 มีผลต่อ Y" โดยลืมว่า t-test ใน MLR เป็นการทดสอบ<strong>แบบมีเงื่อนไข</strong> — มันบอกว่า X1 ยังเพิ่มข้อมูลได้<em>หลังจากที่ X2 และ X3 อยู่ในโมเดลแล้ว</em> ถ้าเขียนประโยคสรุปให้เต็มควรมี "assuming the other variables are held constant" ติดไปด้วย (อาจารย์เขียนวลีนี้ในข้อแปลผลสัมประสิทธิ์เสมอ)</p>
+      <p>เอา p-value ของ X2 (0.5712) มาสรุปรวมว่า "โมเดลนี้ใช้ไม่ได้" — คนละข้อกัน แต่ละแถวเป็นการทดสอบของตัวเอง</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 4</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">Extra sum-of-squares F · L2</span></div>
+  <div class="exq-body">
+    <p>ยังเป็นข้อมูล grocery ชุดเดิม จงใช้ <strong>extra sum-of-squares F-test</strong> ทดสอบว่าสัมประสิทธิ์ของ X1 และ X3 เป็นศูนย์ทั้งคู่หรือไม่ ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-lm(Y~., data=grocery)
+&gt; reducedmodel&lt;-lm(Y~X2, data=grocery)
+&gt; anova(reducedmodel, model)
+Analysis of Variance Table
+
+Model 1: Y ~ X2
+Model 2: Y ~ X1 + X2 + X3
+  Res.Df     RSS Df Sum of Sq      F    Pr(&gt;F)
+1     50 3150741
+2     48  985530  2   2165211 52.728 7.694e-13 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 2(g))</div>
+      <p>\(H_0: \beta_1 = \beta_3 = 0\) vs \(H_1\): not \(H_0\)</p>
+      <p>F test statistic = 52.728 which follows \(F_{2,48}\)</p>
+      <p>p-value = \(7.694 \times 10^{-13}\)</p>
+      <p>Since the p-value is much less than 0.05, we can conclude that there is strong enough evidence that <strong>at least one of the regression coefficients of X1 and X3 is not zero</strong> at a 5% level of significance. In other words, <strong>we prefer the full model</strong> where X1 and X3 are in the model.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: \(H_0\) ตั้งเป็นสมมติฐานร่วมของ<strong>เฉพาะสองตัวที่ถูกตัดออก</strong> คือ \(\beta_1 = \beta_3 = 0\) (X2 ไม่อยู่ใน \(H_0\) เพราะมันอยู่ในทั้งสองโมเดล) และ \(H_1\): not \(H_0\)</li>
+      <li>1 คะแนน: F = 52.728 พร้อมระบุ \(F_{2,48}\) — ตัวเศษ df = 2 อ่านจากคอลัมน์ <code>Df</code> (จำนวนพจน์ที่ต่างกัน) ตัวส่วน df = 48 คือ <code>Res.Df</code> ของ<strong>โมเดลเต็ม</strong></li>
+      <li>1 คะแนน: p-value = 7.694e-13 + ประโยคสรุปที่บอกว่า "อย่างน้อยหนึ่งตัวไม่เป็นศูนย์ จึงเลือกโมเดลเต็ม" พร้อม "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ใส่ df ผิดเป็น \(F_{3,48}\)</strong> — นี่คือกับดักคลาสสิกที่สุดของข้อนี้ เพราะข้อ 2 (overall F) ใช้ \(F_{3,48}\) จริง แต่ที่นี่เราตัดพจน์ออกแค่ <strong>2</strong> พจน์ (X1 กับ X3) ตัวเศษ df จึงเป็น 2 หลักคิด: ตัวเศษ df = จำนวนข้อจำกัดใน \(H_0\) = จำนวนเครื่องหมาย \(=0\) ที่เขียนไว้ ที่นี่นับได้ 2 ตัว</p>
+      <p>ใช้ <code>Res.Df</code> = 50 ของ<strong>โมเดลย่อ</strong>เป็นตัวส่วน — ผิด ตัวส่วนของ extra SS F-test ใช้ \(MSE\) ของโมเดลเต็มเสมอ (48)</p>
+      <p>สรุปว่า "<strong>ทั้ง</strong> X1 และ X3 มีนัยสำคัญ" — ผิดตรรกะ การปฏิเสธ \(H_0: \beta_1=\beta_3=0\) บอกได้แค่ว่า<strong>อย่างน้อยหนึ่งตัว</strong>ไม่เป็นศูนย์ ถ้าจะบอกทีละตัวต้องกลับไปดู t-test รายตัว</p>
+      <p>ลืมประโยค "we prefer the full model" — อาจารย์เขียนท่อนนี้ปิดท้ายเสมอสำหรับการทดสอบเปรียบเทียบโมเดล เพราะจุดประสงค์จริงของ extra SS F-test คือ<strong>การเลือกโมเดล</strong> ไม่ใช่แค่ปฏิเสธสมมติฐาน</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 5</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">One-sided t-test · L1</span></div>
+  <div class="exq-body">
+    <p>กลับไปที่ข้อมูล Bus (ข้อ 1) คราวนี้โจทย์ถามเจาะจงว่า จงใช้ t-test ทดสอบว่า <strong>\(\beta_1 &gt; 0\)</strong> หรือไม่ ที่ระดับนัยสำคัญ 0.05 (สังเกตว่าโจทย์ระบุ<strong>ทิศทาง</strong>มาแล้ว)</p>
+    <div class="rout"><span class="rout-label">R output</span>Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 0.64963     0.06636    9.79 5.31e-11 ***
+Miles       0.44673     0.01909   23.40  &lt; 2e-16 ***
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+
+&gt; 1-pt(23.40, 31)
+[1] 0</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน — ระวังการจัดการ p-value..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 1 ข้อ 13)</div>
+      <p>\(H_0: \beta_1 \leq 0\) vs \(H_1: \beta_1 &gt; 0\)</p>
+      <p>\(t = 23.40\) which follows \(t_{31}\)</p>
+      <p>One-sided p-value = \(P(t_{31} &gt; 23.40) = 0\)</p>
+      <p>Since the one-sided p-value is less than 0.05, we can conclude that there is enough evidence that there exists a <strong>positive</strong> linear association between car miles and expense at a 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_1\) เขียนเป็น \(\beta_1 &gt; 0\) (ไม่ใช่ \(\neq\)) และ \(H_0\) เป็น \(\beta_1 \leq 0\)</li>
+      <li>0.5 คะแนน: t = 23.40 ตาม \(t_{31}\)</li>
+      <li>0.5 คะแนน: แสดงให้ชัดว่า p-value ที่ใช้เป็น<strong>ด้านเดียว</strong> — เขียนเป็น \(P(t_{31}&gt;23.40)\) หรือ \(\tfrac{1}{2}\times\) (p-value สองด้าน)</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่มีคำว่า "<strong>positive</strong>" (ทิศทาง) + "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ยก p-value สองด้านจากตาราง summary มาใช้ตรง ๆ</strong> — R พิมพ์คอลัมน์ <code>Pr(&gt;|t|)</code> ซึ่งเป็นสองด้าน<strong>เสมอ</strong> การทดสอบด้านเดียวต้อง<strong>หารสอง</strong>ก่อน ที่นี่ผลลัพธ์เท่ากันเพราะทั้งคู่ปัดเป็น 0 แต่ถ้าเจอ p สองด้าน = 0.08 คำตอบจะพลิก: ด้านเดียวได้ 0.04 ซึ่ง<strong>ปฏิเสธ</strong> \(H_0\) ขณะที่สองด้าน<strong>ไม่ปฏิเสธ</strong></p>
+      <p><strong>หารสองโดยไม่ดูเครื่องหมายก่อน</strong> — การหารสองใช้ได้ก็ต่อเมื่อ \(\hat{\beta}_1\) มีเครื่องหมาย<strong>ตรงกับทิศของ \(H_1\)</strong> ที่นี่ \(\hat{\beta}_1 = +0.447\) ตรงกับ \(H_1: \beta_1&gt;0\) จึงหารสองได้ ถ้าเจอ \(\hat{\beta}_1\) ติดลบแต่ \(H_1: \beta_1&gt;0\) p-value ด้านเดียวจะเป็น \(1 - \tfrac{p}{2}\) ซึ่งใหญ่มาก (ไม่มีทางปฏิเสธ)</p>
+      <p>เขียน \(H_1: \beta_1 \neq 0\) ทั้งที่โจทย์บอกทิศมาแล้ว — เสียคะแนนท่อนแรกทันที คำว่า "test whether \(\beta_1 &gt; 0\)" คือสัญญาณว่าเป็นการทดสอบด้านเดียว</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 6</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Drop a term · L2</span></div>
+  <div class="exq-body">
+    <p>ศึกษามวลกล้ามเนื้อ (Y) กับอายุ (X) ของคน 60 คน จาก scatterplot เห็นความโค้ง จึง fit โมเดลอันดับสอง จงทดสอบว่า<strong>สามารถตัดพจน์กำลังสองออกจากโมเดลได้หรือไม่</strong> ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model2&lt;-lm(Y~X+I(X^2), data=muscle)
+&gt; summary(model2)
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 207.349608  29.225118   7.095 2.21e-09 ***
+X            -2.964323   1.003031  -2.955  0.00453 **
+I(X^2)        0.014840   0.008357   1.776  0.08109 .
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 8.026 on 57 degrees of freedom
+Multiple R-squared: 0.7632,     Adjusted R-squared: 0.7549
+F-statistic: 91.84 on 2 and 57 DF, p-value: &lt; 2.2e-16</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 2 ข้อ 2(f))</div>
+      <p>\(H_0: \beta_2 = 0\) vs \(H_1: \beta_2 \neq 0\)  (โดย \(\beta_2\) คือสัมประสิทธิ์ของ \(X^2\))</p>
+      <p>t test statistic = 1.776 which follows \(t_{57}\)</p>
+      <p>p-value = 0.08109</p>
+      <p>Since the p-value is greater than 0.05, <strong>we can drop the quadratic term</strong> from the regression model at a 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0: \beta_2 = 0\) โดยระบุชัดว่า \(\beta_2\) หมายถึงสัมประสิทธิ์ของพจน์กำลังสอง</li>
+      <li>0.5 คะแนน: t = 1.776 ตาม \(t_{57}\) — df = \(60-3=57\) (ประมาณ 3 พารามิเตอร์)</li>
+      <li>0.5 คะแนน: p-value = 0.08109</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่<strong>ตอบคำถามที่ถูกถาม</strong> คือ "ตัดพจน์กำลังสองออกได้" + "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สรุปว่า "<strong>\(\beta_2\) เท่ากับ 0</strong>" หรือ "พิสูจน์ได้ว่าไม่มีความโค้ง" — ผิดหลักตรรกะ: การไม่ปฏิเสธ \(H_0\) <strong>ไม่ใช่</strong>การพิสูจน์ว่า \(H_0\) จริง มันแค่แปลว่าข้อมูลชุดนี้<strong>ไม่มีหลักฐานพอ</strong>ที่จะบอกว่าพจน์กำลังสองจำเป็น (สังเกตว่า p = 0.081 เฉียดมาก และ scatterplot ก็เห็นความโค้งจริง ๆ) วิธีเขียนที่ปลอดภัยคือใช้สำนวนอาจารย์: "we can drop the quadratic term"</p>
+      <p>ใช้ df = 58 (จากโมเดลอันดับหนึ่งในข้อก่อนหน้า) — ต้องอ่าน df จาก output ของ<strong>โมเดลที่กำลังทดสอบ</strong> คือ 57</p>
+      <p>ตัดพจน์กำลังสองออกแล้ว<strong>เก็บ X ไว้</strong> — ถูก แต่กลับกันไม่ได้: ห้ามเก็บ \(X^2\) ไว้แล้วตัด \(X\) ทิ้ง (หลัก marginality เดียวกับ interaction)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน B — ANOVA</h2>
+<div class="sec-note">F-test ความเท่ากันของค่าเฉลี่ยรายกลุ่ม และการเปรียบเทียบรายคู่ด้วย Tukey</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 7</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">ANOVA F-test · L6</span></div>
+  <div class="exq-body">
+    <p>องค์กรผู้บริโภคศึกษาผลของอายุเจ้าของรถต่อราคาเสนอซื้อรถมือสอง โดยใช้คน 12 คนในแต่ละกลุ่มอายุ 3 กลุ่ม (young / middle / elderly) ไปเสนอขายรถกับดีลเลอร์ 36 ราย จงทำ <strong>F test for equality of factor level means</strong> ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; aovmodel&lt;-aov(CashOffer~AgeGroup, data=cash)
+&gt; summary(aovmodel)
+            Df Sum Sq Mean Sq F value   Pr(&gt;F)
+AgeGroup     2  316.7  158.36    63.6 4.77e-12 ***
+Residuals   33   82.2    2.49
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 6(f))</div>
+      <p>\(H_0: \mu_{Young} = \mu_{Middle} = \mu_{Elderly}\) vs \(H_1\): not \(H_0\)</p>
+      <p>F test statistic = 63.6 which follows \(F_{2,33}\)</p>
+      <p>p-value = 4.77e-12</p>
+      <p>There is strong evidence that <strong>factor level means appear to differ in at least 2 age groups</strong> at the 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0\) เขียนด้วย \(\mu\) ของ<strong>ทั้งสามกลุ่มเรียงเท่ากันหมด</strong> (ไม่ใช่ \(\beta\)) และตั้งชื่อกลุ่มจริง</li>
+      <li>0.5 คะแนน: F = 63.6 ตาม \(F_{2,33}\) — ตัวเศษ df = \(k-1 = 3-1 = 2\), ตัวส่วน df = \(n-k = 36-3 = 33\) อ่านตรงจากคอลัมน์ Df</li>
+      <li>0.5 คะแนน: p-value = 4.77e-12</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่พูดถึง<strong>กลุ่มอายุ</strong> และระบุว่า "อย่างน้อย 2 กลุ่มต่างกัน" + ระดับนัยสำคัญ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>สรุปว่า "<strong>ทั้งสามกลุ่ม</strong>มีค่าเฉลี่ยต่างกัน" — ผิด F-test บอกได้แค่ว่า "ไม่ใช่ทุกกลุ่มเท่ากันหมด" ซึ่งอาจแปลว่ามีแค่<strong>สองกลุ่ม</strong>ที่ต่างกันก็ได้ (และในข้อมูลชุดนี้ก็เป็นอย่างนั้นจริง ๆ — ดูข้อ 8: Young กับ Elderly ไม่ต่างกันเลย) อาจารย์จึงเขียนว่า "in at least 2 age groups"</p>
+      <p>เขียน \(H_0\) ด้วย \(\tau_i = 0\) แล้วไม่บอกว่า \(\tau_i\) คืออะไร — ใช้ได้ถ้าใช้ factor effects model แต่ต้องนิยามให้ครบ \(H_0: \tau_1=\tau_2=\tau_3=0\) รูปแบบที่ปลอดภัยกว่าคือเขียนด้วย \(\mu\) ตรง ๆ แบบอาจารย์</p>
+      <p>สลับ df เป็น \(F_{33,2}\) — ลำดับสำคัญ: ตัวเศษคือ treatment df เสมอ (ตัวเลขน้อย) ตัวส่วนคือ residual df</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 8</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Tukey pairwise · L6</span></div>
+  <div class="exq-body">
+    <p>ต่อจากข้อ 7 จงหาช่วงความเชื่อมั่นของการเปรียบเทียบรายคู่ทั้งหมดด้วยวิธี Tukey ที่ family confidence coefficient 90% แล้วสรุปว่า<strong>คู่ไหนต่างกันบ้าง</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; TukeyHSD(aovmodel, conf.level=0.90)
+  Tukey multiple comparisons of means
+    90% family-wise confidence level
+
+Fit: aov(formula = CashOffer ~ AgeGroup, data = cash)
+
+$AgeGroup
+                      diff       lwr       upr     p adj
+Middle-Elderly  6.33333333  4.963842  7.702825 0.0000000
+Young-Elderly   0.08333333 -1.286158  1.452825 0.9908192
+Young-Middle   -6.25000000 -7.619492 -4.880508 0.0000000</div>
+  </div>
+  <textarea placeholder="สรุปคู่ต่อคู่ พร้อมบอกว่าอ่านจากอะไร..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 6(i))</div>
+      <p>\(H_0: \mu_i = \mu_j\) vs \(H_1: \mu_i \neq \mu_j\) สำหรับทุกคู่ \(i \neq j\) (ทดสอบพร้อมกัน 3 คู่ ภายใต้ family-wise error rate 10%)</p>
+      <p>อ่านจากช่วงความเชื่อมั่น — ช่วงไหน<strong>ไม่คร่อม 0</strong> แปลว่าคู่นั้นต่างกัน:</p>
+      <ul>
+        <li>Middle − Elderly = 6.333, CI = (4.964, 7.703) → ไม่คร่อม 0, p adj ≈ 0 ⟹ \(\mu_{Middle} \neq \mu_{Elderly}\)</li>
+        <li>Young − Elderly = 0.083, CI = (−1.286, 1.453) → <strong>คร่อม 0</strong>, p adj = 0.9908 ⟹ \(\mu_{Young} = \mu_{Elderly}\)</li>
+        <li>Young − Middle = −6.250, CI = (−7.619, −4.881) → ไม่คร่อม 0, p adj ≈ 0 ⟹ \(\mu_{Young} \neq \mu_{Middle}\)</li>
+      </ul>
+      <p>สรุปเป็นภาษาโจทย์: ดีลเลอร์เสนอราคาให้เจ้าของรถ<strong>วัยกลางคน</strong>สูงกว่าทั้งวัยหนุ่มสาวและผู้สูงอายุประมาณ 6.3 ร้อยดอลลาร์ ส่วนวัยหนุ่มสาวกับผู้สูงอายุได้ราคาไม่ต่างกัน ที่ระดับนัยสำคัญของครอบครัวการทดสอบ 10%</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: ระบุเกณฑ์การอ่านให้ชัด — ช่วงคร่อม 0 = ไม่ต่างกัน / ไม่คร่อม 0 = ต่างกัน (หรือเทียบ p adj กับ \(\alpha\))</li>
+      <li>0.5 คะแนน: ตัดสินถูกครบทั้ง 3 คู่</li>
+      <li>0.5 คะแนน: อ้างตัวเลข lwr/upr หรือ p adj ประกอบ ไม่ใช่ตอบลอย ๆ</li>
+      <li>0.5 คะแนน: แปลกลับเป็นภาษาของโจทย์ (กลุ่มวัยกลางคนได้ราคาสูงกว่า) พร้อมระบุระดับนัยสำคัญ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>เทียบ p adj กับ 0.05 ทั้งที่ output เป็น 90%</strong> — <code>conf.level=0.90</code> แปลว่า family-wise error rate = <strong>0.10</strong> เกณฑ์ตัดสินจึงเป็น 0.10 ไม่ใช่ 0.05 (ข้อนี้บังเอิญได้คำตอบเดียวกันเพราะ p adj เป็น 0 กับ 0.99 แต่ถ้าเจอ p adj = 0.07 คำตอบจะพลิก) ต้องอ่านบรรทัด "90% family-wise confidence level" ก่อนตัดสินเสมอ</p>
+      <p>สรุปว่า "พิสูจน์แล้วว่า Young กับ Elderly เท่ากัน" — พูดแรงเกิน CI ที่คร่อม 0 แค่บอกว่า<strong>ไม่มีหลักฐานว่าต่างกัน</strong> ช่วง (−1.29, 1.45) ยังกว้างพอที่ความต่างจริงจะเป็น 1.4 ร้อยดอลลาร์ได้</p>
+      <p>ทำ t-test แยกทีละคู่ 3 ครั้งแทนที่จะใช้ Tukey — จุดทั้งหมดของ Tukey คือ<strong>คุมความคลาดเคลื่อนรวม</strong>: ทดสอบ 3 คู่ที่ 5% ทีละคู่ ทำให้โอกาสพลาดรวมพุ่งไปเกิน 10% คอลัมน์ <code>p adj</code> คือ p-value ที่ปรับแล้ว ไม่ใช่ p-value ดิบ</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน C — GLM: ที่ทิศทางของ p-value กลับด้าน</h2>
+<div class="sec-note">deviance goodness-of-fit, Hosmer-Lemeshow, likelihood ratio test, Brant test</div>
+</div>
+
+<div class="exq" data-points="3">
+  <div class="exq-head"><span class="exq-num">ข้อ 9</span><span class="exq-pts">[3 คะแนน]</span><span class="exq-tag">Deviance GOF · L11</span></div>
+  <div class="exq-body">
+    <p>การทดลอง salmonella reverse mutagenicity: นับจำนวนโคโลนีที่กลายพันธุ์กลับ (colonies) ตามระดับยา quinolone (dose) 6 ระดับ ระดับละ 3 จาน fit ด้วย Poisson GLM แล้ว จง<strong>ทำ goodness-of-fit test</strong> ที่ \(\alpha = 0.05\)</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-glm(colonies~dose+I(dose^2), data=salmonella, family=poisson)
+&gt; summary(model)
+
+Coefficients:
+              Estimate Std. Error z value Pr(&gt;|z|)
+(Intercept)  3.163e+00  6.701e-02  47.202  &lt; 2e-16 ***
+dose         2.507e-03  5.122e-04   4.895 9.84e-07 ***
+I(dose^2)   -2.294e-06  4.937e-07  -4.647 3.36e-06 ***
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 78.358  on 17  degrees of freedom
+Residual deviance: 55.535  on 15  degrees of freedom
+AIC: 154.07
+
+&gt; 1-pchisq(deviance(model), model$df.residual)
+[1] 1.451732e-06</div>
+  </div>
+  <textarea placeholder="ระวัง! H0 ของ GOF ไม่เหมือนการทดสอบสัมประสิทธิ์..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 8(c))</div>
+      <p>\(H_0\): the model fits the data  vs  \(H_1\): not \(H_0\)</p>
+      <p>Test statistic = residual deviance = 55.535 which follows \(\chi^2_{15}\)</p>
+      <p>p-value = \(P(\chi^2_{15} &gt; 55.535) = 1.451732 \times 10^{-6}\)</p>
+      <p>Since the p-value is much less than 0.05, we reject \(H_0\). <strong>Clearly, the Poisson model does not fit the data</strong> at the 5% level of significance.</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>1 คะแนน: \(H_0\) = "โมเดล fit ข้อมูล" (ไม่ใช่ "\(\beta = 0\)") และ \(H_1\) = not \(H_0\) — ท่อนนี้คือหัวใจของข้อ ตั้งกลับด้านคือ 0 ทั้งข้อ</li>
+      <li>1 คะแนน: ใช้ <strong>residual deviance = 55.535</strong> เป็น test statistic และระบุว่าตาม \(\chi^2_{15}\) โดย df = residual df ของโมเดล (\(18 - 3 = 15\))</li>
+      <li>1 คะแนน: p-value = 1.45e-06 + สรุปว่า<strong>โมเดลไม่ fit</strong> พร้อมระดับนัยสำคัญ</li></ul>
+      <p style="margin-top:0.5em">โบนัสความเข้าใจ: เพราะ Poisson ไม่ fit จึงเป็นที่มาของข้อถัดไปในโจทย์จริง — ลอง quasipoisson แล้วพบ dispersion = 4.13 (&gt; 1 มาก) ยืนยัน overdispersion แล้วจึงย้ายไป Negative Binomial (ข้อ 12)</p>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>อ่านทิศทางกลับ — นี่คือกับดักใหญ่ที่สุดในครึ่งหลังของวิชานี้</strong> ในการทดสอบสัมประสิทธิ์ p น้อย = ข่าวดี (ตัวแปรมีผล) แต่ใน GOF test \(H_0\) คือ "โมเดล fit" ดังนั้น <strong>p น้อย = ข่าวร้าย = โมเดลใช้ไม่ได้</strong> คนจำนวนมากเห็น p = 1.45e-06 แล้วเขียนว่า "โมเดลมีนัยสำคัญ / โมเดลดีมาก" ซึ่งกลับด้านสิ้นเชิง วิธีกันพลาด: <strong>เขียน \(H_0\) ออกมาก่อนเสมอ แล้วค่อยตัดสิน</strong> อย่าตัดสินจาก p-value ก่อนเขียน \(H_0\)</p>
+      <p>ใช้ <strong>null deviance 78.358 บน 17 df</strong> แทน residual deviance — ผิดตัว null deviance เป็นของโมเดลที่มีแต่ intercept ใช้เทียบ LRT ไม่ใช่ GOF</p>
+      <p>ระบุ df ผิดเป็น 17 หรือ 18 — df ของ GOF = residual df = \(n - p\) = \(18 - 3 = 15\) อ่านตรงจากบรรทัด "Residual deviance: 55.535 on 15 degrees of freedom"</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 10</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Hosmer-Lemeshow · L9</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลมะเร็งเต้านมวิสคอนซิน 681 เคส (ข้อมูลรายคน — แต่ละแถวคือผู้ป่วย 1 ราย, <code>Class</code> = 1 ถ้าเนื้องอก benign) fit binary logistic ด้วยตัวแปรทำนาย 9 ตัว จง<strong>ทำ goodness-of-fit test</strong> ที่ \(\alpha = 0.05\) และ<strong>อธิบายว่าทำไมใช้ deviance GOF แบบข้อ 9 ไม่ได้</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; summary(model)
+Call: glm(formula = Class ~ ., family = binomial, data = wbca)
+
+    Null deviance: 881.388  on 680  degrees of freedom
+Residual deviance:  89.464  on 671  degrees of freedom
+AIC: 109.46
+
+&gt; hosmerlem(wbca$Class, model$fitted.values)
+      X^2        Df   P(&gt;Chi)
+3.9019449 8.0000000 0.8658601</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน + เหตุผลว่าทำไมต้องใช้ Hosmer-Lemeshow..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 7(b))</div>
+      <p>\(H_0\): the model fits the data  vs  \(H_1\): not \(H_0\)</p>
+      <p>Hosmer-Lemeshow statistic \(X^2 = 3.9019\) which follows \(\chi^2_{8}\)</p>
+      <p>p-value = 0.8659</p>
+      <p>"Since all \(n_i = 1\), so we need Hosmer-Lemeshow to test goodness-of-fit. The p-value is 0.8659 which is &gt; 0.05, therefore, <strong>this model fits data sufficiently well</strong>" at the 5% level of significance.</p>
+      <p style="margin-top:0.6em"><strong>ทำไมใช้ deviance GOF ไม่ได้:</strong> ข้อมูลนี้เป็น binary รายคน คือ \(n_i = 1\) ทุกแถว ผลรวมของ residual deviance จึงไม่ลู่เข้าสู่ \(\chi^2\) ตามทฤษฎี asymptotic (การประมาณ \(\chi^2\) ต้องการให้แต่ละ cell มีจำนวนสังเกตมากพอ) การเอา 89.464 ไปเทียบ \(\chi^2_{671}\) จึงให้ p-value ที่เชื่อไม่ได้ Hosmer-Lemeshow แก้ปัญหานี้โดย<strong>จับกลุ่มผู้ป่วยตามความน่าจะเป็นที่ทำนายได้เป็น 10 กลุ่ม</strong> แล้วเทียบจำนวนที่สังเกตจริงกับจำนวนที่คาดหวังในแต่ละกลุ่ม จึงได้ df = \(10 - 2 = 8\)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0\) = "โมเดล fit ข้อมูล" (ทิศเดียวกับข้อ 9)</li>
+      <li>0.5 คะแนน: \(X^2 = 3.902\) ตาม \(\chi^2_8\) (อ่าน Df = 8 จาก output)</li>
+      <li>0.5 คะแนน: p-value = 0.8659 + สรุปว่าโมเดล fit ข้อมูลได้ดีพอ ที่ระดับนัยสำคัญ 5%</li>
+      <li>0.5 คะแนน: อธิบายเหตุผล \(n_i = 1\) ได้ถูก</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>หยิบ residual deviance 89.464 บน 671 df มาทำ GOF</strong> — นี่คือกับดักหลักของข้อนี้ ตัวเลขมีอยู่ใน output ล่อตาล่อใจ แต่ใช้ไม่ได้เพราะ \(n_i=1\) จำหลักง่าย ๆ: <strong>ข้อมูล binary รายคน → Hosmer-Lemeshow เท่านั้น; ข้อมูล binomial แบบจับกลุ่ม (cbind(success, failure)) ที่ \(n_i\) ใหญ่พอ → ใช้ deviance ได้</strong></p>
+      <p>อ่านทิศกลับอีกครั้ง — p = 0.8659 ใหญ่ ⟹ <strong>ข่าวดี</strong> โมเดล fit บางคนเห็น p ใหญ่แล้วเขียนว่า "โมเดลไม่มีนัยสำคัญ / โมเดลใช้ไม่ได้" ซึ่งกลับด้าน</p>
+      <p>ลืมระบุ df = 8 หรือใส่เป็น 10 — Hosmer-Lemeshow แบ่ง 10 กลุ่มแล้วหักไป 2 เหลือ df = 8 ซึ่ง output พิมพ์มาให้แล้วในคอลัมน์ <code>Df</code></p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 11</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Likelihood ratio test · L10</span></div>
+  <div class="exq-body">
+    <p>ศึกษาผีเสื้อกลางคืนใกล้ลิเวอร์พูล: ที่แต่ละระยะทางจากเมือง (distance) นับจำนวนผีเสื้อ<strong>สีอ่อน</strong>ที่ถูกล่าจากผีเสื้อที่ถูกล่าทั้งหมด จงใช้ <strong>LRT</strong> ทดสอบว่าระยะทางจากลิเวอร์พูลมีความสัมพันธ์กับสัดส่วนผีเสื้อสีอ่อนที่ถูกล่าหรือไม่ ที่ \(\alpha = 0.05\)</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; model&lt;-glm(cbind(light_removed,dark_removed)~distance, data=newdata, family=binomial)
+&gt; reducedmodel&lt;-glm(cbind(light_removed,dark_removed)~1, data=newdata, family=binomial)
+&gt; anova(reducedmodel, model, test="Chisq")
+Analysis of Deviance Table
+
+Model 1: cbind(light_removed, dark_removed) ~ 1
+Model 2: cbind(light_removed, dark_removed) ~ distance
+  Resid. Df Resid. Dev Df Deviance Pr(&gt;Chi)
+1         6     9.8997
+2         5     2.0741  1   7.8256 0.005151 **
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 7(d))</div>
+      <p>\(H_0: \beta_{distance} = 0\) vs \(H_1: \beta_{distance} \neq 0\)</p>
+      <p>LRT statistic = ผลต่างของ deviance = \(9.8997 - 2.0741 = 7.8256\) which follows \(\chi^2_{1}\)</p>
+      <p>p-value = 0.005151</p>
+      <p>Since the p-value is less than 0.05, we conclude that there is enough evidence that <strong>the distance from Liverpool has relationship with the proportion of light moths removed</strong> at \(\alpha = 0.05\).</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0: \beta_{distance}=0\) vs \(H_1: \beta_{distance} \neq 0\) (ทิศ<strong>ปกติ</strong> เหมือน t-test ไม่ใช่ทิศ GOF)</li>
+      <li>0.5 คะแนน: test statistic = 7.8256 ระบุว่าเป็น<strong>ผลต่างของ deviance</strong> และตาม \(\chi^2_1\) (df = ผลต่างจำนวนพารามิเตอร์ = 1 อ่านจากคอลัมน์ <code>Df</code>)</li>
+      <li>0.5 คะแนน: p-value = 0.005151</li>
+      <li>0.5 คะแนน: ประโยคสรุปที่พูดถึง <em>distance</em> และ <em>proportion of light moths removed</em> + ระดับนัยสำคัญ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>สับสน LRT กับ GOF ทั้งที่อ่านตารางเดียวกัน</strong> — ในตารางนี้ตัวเลข 2.0741 บน 5 df คือ GOF (โมเดล fit ไหม, \(H_0\) = โมเดล fit) ส่วน 7.8256 บน 1 df คือ LRT (ตัวแปร distance จำเป็นไหม, \(H_0: \beta=0\)) <strong>คนละสมมติฐาน คนละทิศการตีความ</strong> ต้องหยิบตัวเลขให้ตรงกับคำถาม</p>
+      <p>ใช้ deviance ของโมเดลใดโมเดลหนึ่ง (9.8997 หรือ 2.0741) เป็น test statistic — LRT ใช้<strong>ผลต่าง</strong>เสมอ ซึ่ง R พิมพ์ให้ในคอลัมน์ <code>Deviance</code></p>
+      <p>ใส่ df เป็น 5 หรือ 6 — df ของ LRT = ผลต่าง df ระหว่างสองโมเดล = \(6-5 = 1\)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 12</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">GOF หลัง Poisson พัง · L11</span></div>
+  <div class="exq-body">
+    <p>ข้อมูล salmonella ชุดเดียวกับข้อ 9 หลังพบว่า Poisson ไม่ fit และ quasipoisson ประมาณ dispersion ได้ 4.13 (overdispersion ชัดเจน) จึงเปลี่ยนไปใช้ Negative Binomial จง<strong>ทำ goodness-of-fit test ของโมเดลใหม่</strong> ที่ \(\alpha = 0.05\) และ<strong>เทียบข้อสรุปกับข้อ 9</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; nbmodel&lt;-glm.nb(colonies~dose+I(dose^2), data=salmonella)
+&gt; summary(nbmodel)
+
+Coefficients:
+              Estimate Std. Error z value Pr(&gt;|z|)
+(Intercept)  3.143e+00  1.120e-01  28.061  &lt; 2e-16 ***
+dose         2.751e-03  9.572e-04   2.874  0.00405 **
+I(dose^2)   -2.518e-06  9.280e-07  -2.713  0.00667 **
+
+(Dispersion parameter for Negative Binomial(14.3059) family taken to be 1)
+
+    Null deviance: 25.505  on 17  degrees of freedom
+Residual deviance: 17.626  on 15  degrees of freedom
+AIC: 137.69
+
+              Theta:  14.31
+          Std. Err.:   6.97
+
+&gt; 1-pchisq(deviance(nbmodel), nbmodel$df.residual)
+[1] 0.2828136</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน + เทียบกับข้อ 9..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 8(f))</div>
+      <p>\(H_0\): the model fits the data  vs  \(H_1\): not \(H_0\)</p>
+      <p>Test statistic = residual deviance = 17.626 which follows \(\chi^2_{15}\)</p>
+      <p>p-value = \(P(\chi^2_{15} &gt; 17.626) = 0.2828\)</p>
+      <p>Since the p-value is greater than 0.05, we fail to reject \(H_0\). <strong>The negative binomial model fits data</strong> at the 5% level of significance.</p>
+      <p style="margin-top:0.6em"><strong>เทียบกับข้อ 9:</strong> เป็นข้อมูลชุดเดียวกัน สมการเดียวกัน (\(\log\hat{\mu} = 3.14 + 0.0028\,\text{dose} - 0.0000025\,\text{dose}^2\) แทบไม่ต่างจาก Poisson) และ df เท่ากันคือ 15 — สิ่งที่ต่างคือ residual deviance หล่นจาก 55.535 เหลือ 17.626 เพราะ NB มีพารามิเตอร์ \(\hat{\theta} = 14.31\) มารองรับความแปรปรวนส่วนเกินไว้ p-value จึงพลิกจาก \(1.45\times10^{-6}\) (ไม่ fit) เป็น 0.2828 (fit) นี่คือเหตุผลที่อาจารย์ตอบข้อถัดไปว่า "negative binomial model is preferred"</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0\) = "โมเดล fit ข้อมูล"</li>
+      <li>0.5 คะแนน: deviance = 17.626 ตาม \(\chi^2_{15}\)</li>
+      <li>0.5 คะแนน: p-value = 0.2828 + สรุปว่า NB <strong>fit</strong> ข้อมูล ที่ระดับนัยสำคัญ 5%</li>
+      <li>0.5 คะแนน: เทียบกับข้อ 9 ได้ถูกทิศ (Poisson ไม่ fit → NB fit → จึงเลือก NB)</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p>เขียนว่า "p = 0.28 &gt; 0.05 ดังนั้น<strong>โมเดลไม่มีนัยสำคัญ</strong>" — ทิศกลับด้านอีกแล้ว ใน GOF การ<strong>ไม่ปฏิเสธ</strong> \(H_0\) คือสิ่งที่เราต้องการ นี่คือการทดสอบเดียวในวิชานี้ที่ "สอบผ่าน" แปลว่า p ใหญ่</p>
+      <p>สรุปว่า "NB ดีกว่า Poisson เพราะ AIC ต่ำกว่า (137.69 &lt; 154.07)" — จริงและใช้เป็นเหตุผลเสริมได้ แต่<strong>ไม่ตรงคำถาม</strong> โจทย์สั่งให้ทำ goodness-of-fit test ต้องเขียนพิธีกรรม 4 ท่อนให้ครบก่อน</p>
+      <p>ระบุ df เป็น 17 — null deviance ต่างหากที่อยู่บน 17 df ค่าที่ใช้คือ residual df = 15 (สังเกตว่าเท่ากับข้อ 9 พอดี เพราะจำนวนพารามิเตอร์ในส่วน mean structure เท่ากัน)</p>
+    </div>
+  </div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 13</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Brant test · L12</span></div>
+  <div class="exq-body">
+    <p>ข้อมูลคนงานเหมืองถ่านหิน จำแนกภาวะ pneumonoconiosis เป็น 3 ระดับเรียงลำดับ (normal &lt; mild &lt; severe) ตามจำนวนปีทำงานหน้าเหมือง (year) fit ด้วย <code>polr</code> (proportional odds model) จง<strong>ตรวจสอบว่าข้อสมมติ proportional odds เป็นจริงหรือไม่</strong></p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; omodel&lt;-polr(status_order~year, data=pneumo, weights=Freq)
+&gt; summary(omodel)
+
+Coefficients:
+      Value Std. Error t value
+year 0.0959    0.01194   8.034
+
+Intercepts:
+             Value   Std. Error t value
+normal|mild   3.9558 0.4097      9.6558
+mild|severe   4.8690 0.4411     11.0383
+
+Residual Deviance: 416.9188
+AIC: 422.9188
+
+&gt; library(brant)
+&gt; brant(omodel)
+--------------------------------------------
+Test for        X2     df     probability
+--------------------------------------------
+Omnibus         0      1      1
+year            0      1      1
+--------------------------------------------
+H0: Parallel Regression Assumption holds</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน — สังเกต H0 ที่ output พิมพ์มาให้..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 9(c))</div>
+      <p>\(H_0\): the parallel regression (proportional odds) assumption holds  vs  \(H_1\): not \(H_0\)</p>
+      <p>Omnibus \(X^2 = 0\) which follows \(\chi^2_{1}\)  (df = 1 = จำนวนตัวทำนาย × (จำนวน cut point − 1) = \(1\times(2-1)\))</p>
+      <p>p-value = 1</p>
+      <p>"Since the p-value from the Brant's test is 1, therefore, we fail to reject the null hypothesis. That is, <strong>the proportional odds assumption holds</strong>" — สรุปได้ว่าการใช้ slope ตัวเดียว (0.0959) ร่วมกันทั้งสอง cut point คือ normal|mild และ mild|severe เป็นสมมติฐานที่ข้อมูลไม่ค้าน จึงใช้ <code>polr</code> ต่อได้ ที่ระดับนัยสำคัญ 5%</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: \(H_0\) = "ข้อสมมติ proportional odds เป็นจริง" — output พิมพ์บรรทัด <code>H0: Parallel Regression Assumption holds</code> มาให้แล้ว ต้องลอกมาใช้</li>
+      <li>0.5 คะแนน: \(X^2 = 0\) ตาม \(\chi^2_1\) (ใช้แถว Omnibus ไม่ใช่แถว year เมื่อถามภาพรวม)</li>
+      <li>0.5 คะแนน: p-value = 1</li>
+      <li>0.5 คะแนน: สรุปว่า<strong>ข้อสมมติเป็นจริง จึงใช้โมเดล ordinal ต่อได้</strong> พร้อมระดับนัยสำคัญ</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>อ่านทิศกลับ (ครั้งที่สามในชุดนี้)</strong> — Brant เป็น assumption test ไม่ใช่การทดสอบสัมประสิทธิ์ \(H_0\) คือ "ข้อสมมติเป็นจริง" ดังนั้น <strong>p ใหญ่ = ข่าวดี</strong> ถ้าเจอ p = 0.001 แปลว่าข้อสมมติ<strong>ถูกละเมิด</strong> ต้องเลิกใช้ <code>polr</code> แล้วย้ายไป multinomial แทน (ซึ่งเป็นเหตุผลที่โจทย์ให้ fit ทั้งสองแบบไว้เทียบกัน)</p>
+      <p>เขียน \(H_0: \beta_{year} = 0\) — <strong>ผิดการทดสอบ</strong> Brant ไม่ได้ถามว่า year มีผลหรือไม่ (t = 8.034 ตอบข้อนั้นไปแล้ว) แต่ถามว่า<strong>ผลของ year เท่ากันทุก cut point หรือไม่</strong></p>
+      <p>สรุปว่า "p = 1 แปลว่าโมเดลสมบูรณ์แบบ" — พูดแรงเกิน Brant ตรวจแค่<strong>ข้อสมมติเดียว</strong> ไม่ได้รับประกันว่าโมเดล fit ดี ต้องทำ goodness-of-fit แยกต่างหาก</p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-section">
+<h2>ส่วน D — Mixed models</h2>
+<div class="sec-note">การทดสอบ fixed effect เมื่อ df ไม่ใช่จำนวนเต็มตรง ๆ</div>
+</div>
+
+<div class="exq" data-points="2">
+  <div class="exq-head"><span class="exq-num">ข้อ 14</span><span class="exq-pts">[2 คะแนน]</span><span class="exq-tag">Kenward-Roger · L14</span></div>
+  <div class="exq-body">
+    <p>การทดลองเลี้ยงไก่: ไก่ 6 ตัวต่อ 1 คอก รวม 12 คอก จัดเป็น 4 บล็อกตามตำแหน่ง (บล็อกละ 3 คอก) ให้ 3 treatment (E, F, O) โดยให้ treatment เป็น fixed effect และ block เป็น random effect จง<strong>ทดสอบนัยสำคัญของ treatment ด้วย Kenward-Roger approximation</strong> ที่ระดับนัยสำคัญ 0.05</p>
+    <div class="rout"><span class="rout-label">R output</span>&gt; library(lmerTest)
+&gt; summary(lmmmodel, ddf = "Kenward-Roger")
+Linear mixed model fit by REML. t-tests use Kenward-Roger's method
+['lmerModLmerTest']
+Formula: eggs ~ treat + (1 | block)
+   Data: eggprod
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ block    (Intercept) 129.9    11.40
+ Residual             386.9    19.67
+Number of obs: 12, groups: block, 4
+
+Fixed effects:
+            Estimate Std. Error    df t value Pr(&gt;|t|)
+(Intercept)   349.00      11.37  7.99  30.702  1.4e-09 ***
+treatF         -6.25      13.91  6.00  -0.449   0.6690
+treatO        -42.50      13.91  6.00  -3.056   0.0224 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</div>
+  </div>
+  <textarea placeholder="เขียนครบ 4 ท่อน..."></textarea>
+  <button class="exq-reveal">ดูเฉลย</button>
+  <div class="exq-answer">
+    <div class="ans-model"><div class="label">เฉลย (สำนวนอาจารย์ — Assignment 10(b))</div>
+      <p>\(H_0: \beta_{treatO} = 0\) vs \(H_1: \beta_{treatO} \neq 0\)  (คือค่าเฉลี่ยจำนวนไข่ของ treatment O ไม่ต่างจาก treatment E ซึ่งเป็น reference level)</p>
+      <p>t test statistic = −3.056 which follows \(t_{6.00}\) (df จาก Kenward-Roger approximation ที่ R คำนวณให้ในคอลัมน์ <code>df</code>)</p>
+      <p>p-value = 0.0224</p>
+      <p>"We can see that the p-value for treatO is less than 0.05. Thus, it implies that <strong>the treatment is significant</strong> at the 5% level of significance." — พูดให้เต็มคือ: ไก่ที่ได้ treatment O ออกไข่<strong>น้อยกว่า</strong>ไก่ที่ได้ treatment E อยู่ 42.50 ฟองโดยเฉลี่ย หลังปรับผลของบล็อกแล้ว</p>
+      <p style="margin-top:0.5em">(treatF: t = −0.449, df = 6.00, p = 0.6690 &gt; 0.05 ⟹ ไม่มีหลักฐานว่า F ต่างจาก E)</p>
+    </div>
+    <div class="ans-rubric"><div class="label">เกณฑ์คะแนน</div>
+      <ul><li>0.5 คะแนน: ตั้ง \(H_0\) บนสัมประสิทธิ์ของ treatment โดยระบุว่าเทียบกับ <strong>reference level E</strong></li>
+      <li>0.5 คะแนน: t = −3.056 และระบุว่าตาม \(t\) ด้วย <strong>df = 6.00 จาก Kenward-Roger</strong> (ไม่ใช่ค่าที่คำนวณเองจาก n)</li>
+      <li>0.5 คะแนน: p-value = 0.0224</li>
+      <li>0.5 คะแนน: สรุปว่า treatment มีนัยสำคัญ พร้อมแปลเป็นจำนวนไข่จริง (O ให้ไข่น้อยกว่า E 42.5 ฟอง) + "at a 5% level of significance"</li></ul>
+    </div>
+    <div class="ans-trap"><div class="label">จุดโดนหักบ่อย</div>
+      <p><strong>ใช้ z-test / การแจกแจงปกติ</strong> — output ของ <code>lmer()</code> เปล่า ๆ ให้แค่คอลัมน์ <code>t value</code> โดย<strong>ไม่มี p-value</strong> เพราะ df ของ mixed model ไม่ใช่จำนวนเต็มที่คำนวณตรง ๆ ได้ ทั้งหมดนี้คือเหตุผลที่ต้องเรียก <code>lmerTest</code> พร้อม <code>ddf = "Kenward-Roger"</code> มาประมาณ df ให้ ถ้าเดา df เองหรือใช้ normal approximation จะได้ p-value ที่<strong>เล็กเกินจริง</strong> (มั่นใจเกินไป) โดยเฉพาะเมื่อตัวอย่างเล็กแบบนี้ (n = 12)</p>
+      <p>คำนวณ df เองเป็น \(n - p = 12 - 3 = 9\) — ผิด KR ให้ df = 6.00 เพราะข้อมูลถูก "ใช้ไป" ส่วนหนึ่งกับการประมาณความแปรปรวนของบล็อก (129.9) ต้อง<strong>อ่านจากคอลัมน์ df ที่ R พิมพ์มา</strong> ห้ามคิดเอง</p>
+      <p>สรุปว่า "treatment <strong>ไม่</strong>มีนัยสำคัญ" เพราะเห็น treatF มี p = 0.669 — ผิด การมีแม้แต่<strong>ระดับเดียว</strong>ที่ต่างจาก reference ก็พอจะบอกว่า factor treatment มีผลแล้ว (อาจารย์สรุปจาก treatO ตัวเดียว) ถ้าอยากทดสอบ treatment ทั้งก้อนพร้อมกันจริง ๆ ต้องใช้ \(F\)-test แบบ KR ผ่าน <code>anova(model, ddf="Kenward-Roger")</code></p>
+    </div>
+  </div>
+</div>
+
+<div class="exam-summary">
+<h3>สรุปผล</h3>
+<p data-role="summary">ยังไม่ได้ตรวจข้อไหนเลย</p>
+<p style="margin-top:0.8em;font-size:0.9rem">เช็กตัวเองก่อนปิดหน้านี้: ข้อไหนที่คุณเขียนแค่ "reject \(H_0\)" โดยไม่มีชื่อตัวแปรในประโยคสรุป ให้นับเป็นครึ่งคะแนนทันที และถ้าข้อ 9, 10, 12, 13 (ตระกูล GOF/assumption) ตอบกลับทิศแม้แต่ข้อเดียว ให้กลับไปอ่าน L11 กับ L12 ใหม่ทั้งบท — ทิศทางกลับด้านนี้คือจุดที่เสียคะแนนเยอะที่สุดในครึ่งหลังของวิชา</p>
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="drill-02-interpretation.html">← Drill 2: แปลผล</a></span>
+  <span><a href="drill-04-diagnose-from-plots.html">Drill 4: วินิจฉัยจาก plot →</a></span>
+</nav>
+
+<script src="../assets/exam.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

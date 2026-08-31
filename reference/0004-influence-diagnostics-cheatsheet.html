@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Outlier/Leverage/Influence Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 4</span>
+  <span><a href="../lessons/0004-regression-diagnostics-part-2.html">← Lesson 4: Regression Diagnostics (Part II)</a></span>
+</nav>
+
+<p class="kicker">Lecture 4 — Regression Diagnostics (Part II)</p>
+<h1>Outlier / Leverage / Influence — สูตร + Threshold ทั้งหมด</h1>
+
+<p>สามคำที่ข้อสอบชอบสับสน + ตารางสูตร/threshold ของทุก influence measure — ใช้ n, p ของโมเดลตัวเองแทนในสูตรได้ทันที (p = จำนวนตัวแปรอิสระ ไม่รวม intercept, p+1 = จำนวนพารามิเตอร์ทั้งหมด)</p>
+
+<h2>1. นิยาม 3 คำที่ต้องแยกให้ออก</h2>
+<div class="box win">
+<p><strong>Outlier</strong> — เบี่ยงเบนใน <strong>Y</strong> (แนวตั้ง, ให้ X คงที่) — วัดด้วย residual/studentized residual</p>
+<p><strong>Leverage point</strong> — เบี่ยงเบนใน <strong>X</strong> (แนวนอน) — วัดด้วย hat value h<sub>ii</sub></p>
+<p><strong>Influential point</strong> — ไม่ใช่การวัดแบบใหม่ แต่เป็น<em>ผลลัพธ์ร่วม</em>ของ leverage + residual — วัดด้วย DFFITS/Cook's D/DFBETAS</p>
+</div>
+<p><strong>กฎสำคัญ:</strong> Leverage สูงไม่ได้แปลว่า influence สูงเสมอไป — ถ้า Y ของจุดนั้นยังสอดคล้องกับแนวโน้ม (residual ปกติ) มันจะไม่ดึงเส้นถดถอยมาก แต่ leverage ที่สูง<strong>มาก</strong> (h<sub>ii</sub>→1) ก็ทำให้ influential ได้เองผ่านพจน์ \( (1-h_{ii})^2 \) ในสูตร Cook's D แม้ residual จะปกติ — จุดที่เบี่ยงเบนทั้ง X และ Y พร้อมกันจะ influential รุนแรงที่สุด</p>
+
+<h2>2. ตารางสูตร + Threshold ทั้งหมด</h2>
+<table>
+<tr><th>ตัวชี้วัด</th><th>วัดอะไร</th><th>สูตร</th><th>Rule of thumb</th></tr>
+<tr><td>Hat value h<sub>ii</sub></td><td>Leverage (outlying X)</td><td>\( 0 \leq h_{ii} \leq 1 \), \( \sum h_{ii} = p+1 \)</td><td>\( h_{ii} > 2(p+1)/n \)</td></tr>
+<tr><td>Internally studentized residual r_i</td><td>Outlier ใน Y</td><td>\( r_i = e_i/\sqrt{MSE(1-h_{ii})} \)</td><td>\( r_i > 2 \)</td></tr>
+<tr><td>Studentized deleted residual t_i<br>(= Externally studentized / RStudent)</td><td>Outlier ใน Y (ไม่มี masking)</td><td>\( t_i = e_i\sqrt{(n-p-2)/(SSE(1-h_{ii})-e_i^2)} \sim t(n-p-2) \)</td><td>\( t_i > t(1-\alpha/2n; n-p-2) \) (Bonferroni) หรือ \( t_i > 3 \) (กฎง่าย)</td></tr>
+<tr><td>DFFITS</td><td>Influence บนค่า fit ที่ i</td><td>\( (DFFITS)_i = t_i\sqrt{h_{ii}/(1-h_{ii})} \)</td><td>\( |DFFITS|>1 \) (เล็ก-กลาง) หรือ \( >2\sqrt{(p+1)/n} \) (ชุดใหญ่)</td></tr>
+<tr><td>Cook's Distance D_i</td><td>Influence รวมบนค่า fit ทั้ง n ค่า</td><td>\( D_i = e_i^2h_{ii} / [(p+1)MSE(1-h_{ii})^2] \)</td><td>\( D_i > 4/n \) (นิยม) หรือเทียบ percentile ของ F(p+1,n−p−1)</td></tr>
+<tr><td>DFBETAS<sub>k</sub></td><td>Influence บนสัมประสิทธิ์ β_k ตัวเดียว</td><td>\( (DFBETAS)_{k(i)} = (\hat{\beta}_k-\hat{\beta}_{k(i)})/\sqrt{MSE_{(i)}c_{kk}} \)</td><td>\( |DFBETAS|>1 \) (เล็ก-กลาง) หรือ \( >2/\sqrt{n} \) (ชุดใหญ่)</td></tr>
+<tr><td>COV RATIO</td><td>ผลต่อความแม่นยำ (precision) ของสัมประสิทธิ์</td><td>\( [1/(1-h_{ii})] \times [MSE_{(i)}/MSE]^{p+1} \)</td><td>\( |COV\ RATIO-1| \geq 3(p+1)/n \)</td></tr>
+</table>
+<p><strong>COV RATIO &lt; 1</strong> = ตัดเคสนี้ออกแล้ว CI ของสัมประสิทธิ์<strong>แคบลง</strong> (เคสนี้เคยเพิ่มความไม่แน่นอน) &nbsp;|&nbsp; <strong>COV RATIO &gt; 1</strong> = ตัดออกแล้ว CI <strong>กว้างขึ้น</strong> (เคสนี้เคยช่วยให้แม่นยำขึ้น มักเป็น leverage point ที่ไม่ใช่ outlier)</p>
+
+<h2>3. Masking Effect — ทำไมต้องมี t_i แยกจาก r_i</h2>
+<p>r_i คำนวณจาก MSE ที่รวม residual ของเคสนั้นเองด้วย — ถ้าเคสนั้นเป็น outlier รุนแรง residual ใหญ่ของมันจะดัน MSE ให้สูงขึ้น ทำให้ r_i ของตัวมันเองถูก "เจือจาง" จนดูไม่ผิดปกติ (masking) — t_i แก้ด้วยการคำนวณ MSE(i) โดย<strong>ไม่รวมเคส i</strong> จึงจับ outlier รุนแรงได้แม่นกว่าเสมอ</p>
+
+<h2>4. อ่านผลจาก R</h2>
+<pre><code>e &lt;- resid(model)                    # residual ดิบ
+h &lt;- hatvalues(model)                # leverage h_ii
+rstandard(model)                     # internally studentized (r_i)
+rstudent(model)                      # studentized deleted (t_i / RStudent)
+influence.measures(model)            # ตารางรวม DFBETAS, dffit, cov.r, cook.d, hat (มี * กำกับเคสที่ flag)
+plot(model, 4)                       # Cook's distance plot</code></pre>
+<div class="box source">
+<code>library(olsrr)</code> — ชุดพล็อตสำเร็จรูป: <code>ols_plot_resid_stand()</code> (internally studentized), <code>ols_plot_resid_stud()</code> (studentized deleted), <code>ols_plot_resid_lev()</code> (RStudent vs Leverage — แยก 3 กลุ่มสี: outlier/leverage/ปกติ), <code>ols_plot_cooksd_bar()</code>/<code>chart()</code>, <code>ols_plot_dfbetas()</code> — threshold ที่ olsrr พิมพ์กำกับใช้สูตร large-sample เสมอ (\( 2\sqrt{(p+1)/n} \), \( 2/\sqrt{n} \))
+</div>
+
+<h2>5. ตรรกะการอ่านกราฟ RStudent vs Leverage (3 กลุ่ม)</h2>
+<table>
+<tr><th>ตำแหน่ง</th><th>RStudent</th><th>Leverage</th><th>สรุป</th></tr>
+<tr><td>กลุ่ม "outlier"</td><td>&gt;2 หรือ &lt;−2</td><td>ต่ำกว่า cutoff</td><td>Outlier ล้วน ๆ ไม่ leverage — มักไม่ influential มาก (มีเคสคล้ายกันในข้อมูล)</td></tr>
+<tr><td>กลุ่ม "leverage"</td><td>ใกล้ 0 (ปกติ)</td><td>เกิน cutoff</td><td>Leverage point ล้วน ๆ — <strong>ยัง influential ได้</strong> ถ้า h_ii สูงมาก (เช็ค Cook's D ต่อ)</td></tr>
+<tr><td>ทั้งสองมิติรุนแรง</td><td>เกิน ±2</td><td>เกิน cutoff</td><td>Influential point ชัดเจนที่สุด — Cook's D สูงสุดในชุดข้อมูลมักอยู่กลุ่มนี้</td></tr>
+</table>
+
+<h2>6. Remedies สำหรับ Influential Point</h2>
+<table>
+<tr><th>ทางเลือก</th><th>ใช้เมื่อไร</th></tr>
+<tr><td>ตัดทิ้ง (Remove)</td><td>มั่นใจว่าเป็นข้อผิดพลาดจากการเก็บ/บันทึกข้อมูล หรือไม่ควรอยู่ใน population ที่ศึกษา</td></tr>
+<tr><td>Robust regression — LMS (Least Median of Squares)</td><td>ข้อมูลจริงถูกต้อง, minimize <strong>median</strong> ของ residual² แทน sum — ทนต่อ outlier มาก แต่ไม่มี SE/p-value ให้ในตัว</td></tr>
+<tr><td>Robust regression — IRLS / M-estimator (Huber, Bisquare)</td><td>ข้อมูลจริงถูกต้อง, ถ่วงน้ำหนัก w_i ลดลงตาม residual แล้ว iterate — ให้ SE/t-value แต่ต้องใช้ <code>f.robftest()</code> แยกหา p-value</td></tr>
+</table>
+<div class="box">
+Huber weight: \( w_i=1 \) ถ้า \( |e_i|\leq 1.345 \), มิฉะนั้น \( w_i=1.345/|e_i| \) (ลดน้ำหนักค่อยเป็นค่อยไป ไม่มีวันเป็น 0)<br>
+Bisquare weight: \( w_i=[1-(e_i/4.685)^2]^2 \) ถ้า \( |e_i|\leq 4.685 \), มิฉะนั้น \( w_i=0 \) (ตัดทิ้งเต็ม ๆ เมื่อ residual รุนแรงมาก — ดุกว่า Huber)
+</div>
+<pre><code>library(MASS)
+lmsreg(y~x1+x2, data=d)                                    # LMS — coef() เท่านั้น ไม่มี SE
+rlm(y~x1+x2, data=d, method="M", psi=psi.huber)             # IRLS-Huber
+rlm(y~x1+x2, data=d, method="M", psi=psi.bisquare, maxit=50) # IRLS-Bisquare
+library(sfsmisc); f.robftest(model, var="x1")                # p-value ของ rlm()</code></pre>
+<p><strong>Action เมื่อเจอเคสที่ถูก flag:</strong> ตรวจว่าข้อมูลถูกต้องหรือไม่ก่อนเสมอ → ถ้าถูกต้องจริง ให้ fit ทั้งโมเดลเต็มและ robust regression คู่กัน แล้วรายงานทั้งสองผลเปรียบเทียบว่าข้อสรุปเปลี่ยนไปมากแค่ไหน</p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

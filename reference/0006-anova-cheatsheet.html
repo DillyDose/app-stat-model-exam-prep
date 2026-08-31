@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: ANOVA Formulas + Post-hoc Cheat Sheet</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 6</span>
+  <span><a href="../lessons/0006-single-factor-anova.html">← Lesson 6: Single Factor ANOVA</a></span>
+</nav>
+
+<p class="kicker">Lecture 6 — Single Factor ANOVA</p>
+<h1>ANOVA สมการ + ANOVA Table + Post-hoc Cheat Sheet</h1>
+
+<p>สรุปสมการ ANOVA ทั้งสองแบบ, โครงสร้างตาราง ANOVA, การอ่าน R output ภายใต้ contrast ต่างกัน, และวิธี post-hoc ทั้ง 4 — พิมพ์แผ่นนี้ติดโต๊ะได้เลย</p>
+
+<h2>1. สมการโมเดล ANOVA (สองแบบ)</h2>
+<div class="box source">
+<div class="label">Cell Means Model</div>
+\(Y_{ij} = \mu_i + \varepsilon_{ij}\), &nbsp;\(\varepsilon_{ij} \sim \text{iid } N(0, \sigma^2)\) \(\Longleftrightarrow\) \(Y_{ij} \sim \text{independent } N(\mu_i, \sigma^2)\)
+<p>พารามิเตอร์: \(\mu_1,\ldots,\mu_r\) และ \(\sigma^2\) (รวม \(r+1\) ตัว) &nbsp;|&nbsp; \(H_0: \mu_1=\mu_2=\cdots=\mu_r\)</p>
+</div>
+<div class="box source">
+<div class="label">Factor Effects Model</div>
+\(Y_{ij} = \mu + \tau_i + \varepsilon_{ij}\) &nbsp;พร้อม constraint \(\sum \tau_i = 0\) (นิยมสุด) หรือ \(\tau_r = 0\)
+<p>พารามิเตอร์: \(\mu, \tau_1,\ldots,\tau_r\) และ \(\sigma^2\) (\(r+2\) ตัว — overparameterized ถ้าไม่ใส่ constraint) &nbsp;|&nbsp; \(H_0: \tau_1=\cdots=\tau_r=0\)</p>
+</div>
+<p><strong>ANOVA ↔ Regression:</strong> factor ที่มี \(r\) levels เทียบเท่า regression ที่มีตัวแปร dummy \(r-1\) ตัว (เก็บ intercept ไว้แทนกลุ่มอ้างอิง 1 กลุ่ม) — \(Y_i = \beta_0+\beta_1 X_{i1}+\cdots+\beta_{r-1} X_{i,r-1}+\varepsilon_i\)</p>
+<p><strong>สำคัญ:</strong> ค่าประมาณของ \(\mu, \tau_i\) เองเปลี่ยนไปตาม constraint ที่เลือก แต่ปริมาณที่สนใจจริง (เช่น \(\hat{\mu}+\hat{\tau}_i\) หรือ \(\hat{\tau}_i-\hat{\tau}_k\)) เท่ากันเสมอไม่ว่าจะเลือก constraint แบบไหน</p>
+
+<h2>2. ANOVA Table</h2>
+<table>
+<tr><th>Source</th><th>df</th><th>Sum of Squares</th><th>Mean Square</th></tr>
+<tr><td>Model (Treatment)</td><td>\(r-1\)</td><td>\(SSTR = \sum n_i(\bar{Y}_{i\cdot}-\bar{Y}_{\cdot\cdot})^2\)</td><td>\(MSTR = SSTR/(r-1)\)</td></tr>
+<tr><td>Error</td><td>\(n_T-r\)</td><td>\(SSE = \sum\sum(Y_{ij}-\bar{Y}_{i\cdot})^2\)</td><td>\(MSE = SSE/(n_T-r)\)</td></tr>
+<tr><td>Total</td><td>\(n_T-1\)</td><td>\(SST = \sum\sum(Y_{ij}-\bar{Y}_{\cdot\cdot})^2\)</td><td>\(MST = SST/(n_T-1)\)</td></tr>
+</table>
+<div class="box win">
+\(F = MSTR/MSE\) — วัดอัตราส่วน between-treatment ÷ within-treatment variability &nbsp;|&nbsp; F สูง = between มากกว่า within มาก → ปฏิเสธ \(H_0\); F ใกล้ 1 = ไม่ปฏิเสธ \(H_0\)
+</div>
+<p>เปรียบเทียบกับ SLR ANOVA table (Lesson 1): โครงสร้างเหมือนกันทุกประการ เปลี่ยนแค่ SSTR แทน SSR และ \(r-1\) df แทน 1 df (เพราะ ANOVA ใช้ dummy variable \(r-1\) ตัว)</p>
+<div class="box">
+\(s^2 = \sum(n_i-1)s_i^2 / (n_T-r)\) &nbsp;(pooled variance ถ่วงน้ำหนักด้วย df แต่ละกลุ่ม), &nbsp;\(s_i^2 = \sum(Y_{ij}-\bar{Y}_{i\cdot})^2/(n_i-1)\)
+</div>
+
+<h2>3. Assumptions — เหมือน Lesson 1 ทุกข้อ</h2>
+<p>(1) Independent (2) Normal — ทุกกลุ่มมี mean ต่างกันได้แต่ <strong>variance คงที่ทุกกลุ่ม</strong> (constant variance/homoscedasticity) — เช็คด้วย residual plot, Levene's/Bartlett's test (variance), Shapiro-Wilk/Q-Q plot (normality)</p>
+
+<h2>4. Fit ใน R: <code>aov()</code> vs <code>lm()</code></h2>
+<table>
+<tr><th>Contrast</th><th>Constraint</th><th>ความหมาย (Intercept)</th><th>ความหมายสัมประสิทธิ์</th></tr>
+<tr><td><code>contr.treatment</code> (default R)</td><td>\(\tau_r=0\) (กลุ่มอ้างอิง=กลุ่มแรก)</td><td>ค่าเฉลี่ยกลุ่มอ้างอิงตรง ๆ</td><td>ผลต่างค่าเฉลี่ย (กลุ่มนี้ − กลุ่มอ้างอิง)</td></tr>
+<tr><td><code>contr.sum</code></td><td>\(\sum\tau_i=0\)</td><td>Grand mean</td><td>ผลของกลุ่มนี้เทียบ grand mean (\(\hat{\tau}_i\))</td></tr>
+</table>
+<div class="box win">
+<code>aov(y~x, data=data)</code> และ <code>lm(y~x, data=data, contrasts=list(x=...))</code> ให้ <strong>F, p-value, \(R^2\) เหมือนกันทุกประการเสมอ</strong> — เพราะ aov เป็นแค่ wrapper ของ lm ที่เลือก contrast ให้อัตโนมัติ ต่างแค่ "ความหมายของ coefficient แต่ละตัว" เปลี่ยนตาม constraint
+</div>
+<pre><code>options("contrasts")                      # เช็คว่าใช้ constraint แบบไหนอยู่ก่อนตีความเสมอ
+aovmodel <- aov(y~x, data=data)
+summary(aovmodel)                         # ANOVA table: Df, Sum Sq, Mean Sq, F value, Pr(>F)
+model.tables(aovmodel, "means")           # ค่าเฉลี่ยแต่ละกลุ่ม + grand mean ตรง ๆ ไม่ต้องตีความ contrast
+model.tables(aovmodel, "effect")          # tau_i-hat ของแต่ละกลุ่ม (ผลต่างจาก grand mean)</code></pre>
+
+<h2>5. Template ประโยคแปลผล F-test</h2>
+<div class="box win">
+<p>"จากข้อมูลนี้ ปฏิเสธ/ไม่ปฏิเสธ \(H_0\) ที่ระดับนัยสำคัญ \(\alpha\)=[ค่า] (\(F\)([r-1],[n_T-r])=[F], p=[p-value]) สรุปได้ว่า [มี/ไม่มี] อย่างน้อยหนึ่ง[กลุ่ม]ที่มี[ตัวแปรตอบสนอง]เฉลี่ยแตกต่างจากกลุ่มอื่นอย่างมีนัยสำคัญทางสถิติ"</p>
+<p><strong>ข้อควรระวัง:</strong> F-test บอกแค่ "มีอย่างน้อยหนึ่งกลุ่มต่างจากกลุ่มอื่น" เท่านั้น <strong>ไม่บอกว่าคู่ไหนต่างจากคู่ไหน</strong> — ต้องทำ post-hoc comparison ต่อ</p>
+</div>
+
+<h2>6. ปัญหา Multiplicity และวิธีแก้ 4 แบบ</h2>
+<p>จำนวนคู่เปรียบเทียบทั้งหมด = \(r(r-1)/2\) — ยิ่งทดสอบหลายคู่พร้อมกัน ยิ่งมีโอกาสสูงที่อย่างน้อยหนึ่ง CI จะพลาดจากความบังเอิญ (overall confidence ต่ำกว่า \(1-\alpha\))</p>
+<table>
+<tr><th>วิธี</th><th>Multiplier</th><th>ลักษณะ</th></tr>
+<tr><td>LSD (Least Significant Difference)</td><td>\(t(1-\alpha/2; n_T-r)\)</td><td>ไม่ปรับ multiplicity เลย — power สูงสุด, false positive สูงสุด</td></tr>
+<tr><td>Bonferroni</td><td>\(t(1-\alpha^*/2; n_T-r)\), \(\alpha^*=\alpha/[r(r-1)/2]\)</td><td>ง่าย แต่ conservative เกินเมื่อคู่เยอะ</td></tr>
+<tr><td>Tukey's HSD</td><td>\(q(1-\alpha; r; n_T-r)\) (studentized range)</td><td>ออกแบบมาสำหรับ pairwise ทุกคู่โดยเฉพาะ — คุม family-wise error พอดี</td></tr>
+<tr><td>Scheffe's Method</td><td>\(\sqrt{(r-1)F(1-\alpha; r; n_T-r)}\)</td><td>คุม multiplicity ของ linear combination ทุกรูปแบบ — conservative ที่สุด</td></tr>
+</table>
+<p>CI ของผลต่างสองกลุ่ม: \((\bar{Y}_{i\cdot}-\bar{Y}_{k\cdot}) \pm \text{multiplier} \times s\sqrt{1/n_i+1/n_k}\)</p>
+
+<h2>7. Post Hoc ใน R และ Template แปลผล</h2>
+<pre><code>TukeyHSD(aovmodel)                                  # ตาราง diff, lwr, upr, p adj ต่อคู่
+library(DescTools)
+PostHocTest(aovmodel, method="lsd"/"bonferroni"/"hsd"/"scheffe")
+plot(PostHocTest(aovmodel, method="hsd"))           # plot CI ทุกคู่ เทียบเส้นอ้างอิงที่ 0</code></pre>
+<div class="box win">
+<div class="label">Template แปลผล Pairwise Comparison</div>
+<p>"[ตัวแปรตอบสนอง]เฉลี่ยของ[กลุ่ม A] [สูงกว่า/ต่ำกว่า][กลุ่ม B] อยู่ [|diff|] [หน่วย] อย่างมีนัยสำคัญทางสถิติที่ 95% family-wise confidence level (95% CI ของผลต่างคือ [lwr] ถึง [upr] ซึ่งไม่ครอบคลุม 0, p adj=[ค่า])"</p>
+<p>องค์ประกอบที่ขาดไม่ได้: (1) ทิศทางของผลต่าง ไม่ใช่แค่ "ต่างกัน" (2) ขนาดผลต่างพร้อมหน่วย (3) อ้าง CI/p-value ที่ปรับ multiplicity แล้ว ไม่ใช่ p ดิบจาก t-test ทีละคู่ (4) CI ไม่ครอบคลุม 0 \(\Longleftrightarrow\) นัยสำคัญ (กฎเดียวกับ CI ของ \(\beta\) ใน Lesson 1)</p>
+</div>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

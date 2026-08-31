@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 1: Simple Linear Regression — สมการ, Assumption, และการอ่านผล R</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 1 / 14 · Simple Linear Regression</span>
+  <span><a href="../reference/0001-slr-formulas-and-r-output-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output →</a></span>
+</nav>
+
+<p class="kicker">Lecture 1 — Simple Linear Regression</p>
+<h1>Simple Linear Regression: เขียนสมการ, เช็ค Assumption, อ่านผลจาก R</h1>
+
+<p>บทเรียนนี้ตอบ 4 เรื่องที่ต้องทำได้ก่อนเข้าสอบ: <strong>เขียนสมการโมเดลถูก</strong> (พร้อม assumption ของ error term), <strong>เช็คได้ว่าโมเดลใช้ได้ไหม</strong> (assumption checking), <strong>อ่าน output จาก <code>summary(lm(...))</code> ได้ทุกบรรทัด</strong> ไม่ใช่แค่มองหา p-value, และ <strong>เขียนประโยคแปลผล (interpretation)</strong> ของสัมประสิทธิ์ที่ได้ — ซึ่งเป็นทักษะที่ออกสอบหนักที่สุดของวิชานี้ตามที่คุณระบุไว้.</p>
+
+<div class="box source">
+<div class="label">อ่านเพิ่มก่อนเริ่ม (แนะนำ)</div>
+Ramsey &amp; Schafer, <em>The Statistical Sleuth</em> — หนังสือที่สไลด์อ้างอิงตรง ๆ ในหน้า assumption (ดูโค้ด/ข้อมูลจริงได้ฟรีที่ <a href="https://www.math.smith.edu/~nhorton/sleuth3/" target="_blank" rel="noopener">math.smith.edu/~nhorton/sleuth3</a>). ถ้าอยากได้ภาพประกอบเรื่อง diagnostic plot ที่ชัดกว่าในสไลด์ อ่าน <a href="https://www.sthda.com/english/articles/39-regression-model-diagnostics/161-linear-regression-assumptions-and-diagnostics-in-r-essentials/" target="_blank" rel="noopener">STHDA — Linear Regression Assumptions and Diagnostics in R</a> ประกอบ (จะได้ใช้เต็มที่ใน Lecture 3–4 เรื่อง Regression Diagnostics).
+</div>
+
+<h2>1. Deterministic vs Probabilistic Model — ทำไมต้องมี error term</h2>
+<p>โมเดล <em class="term">deterministic</em> คำนวณค่าตัวแปรตามได้เป๊ะจากตัวแปรอิสระ เช่น \(\text{Profit} = (\text{Price} - \text{Variable cost}) \times \text{Units sold} - \text{Fixed costs}\) — ใส่ตัวเลขเข้าไปแล้วได้คำตอบเดียวไม่มีความคลาดเคลื่อน. ปัญหาคือข้อมูลจริงไม่เป็นแบบนั้น: บ้านสองหลังขนาดเท่ากันเป๊ะ (ตารางฟุตเท่ากัน) แทบไม่มีทางขายได้ราคาเท่ากันเป๊ะ — มีปัจจัยอื่นที่โมเดลไม่ได้ใส่ (ทำเล สภาพบ้าน ฤดูกาลที่ขาย) ที่ทำให้ราคาจริงเบี่ยงจากที่โมเดลทำนายไว้เสมอ.</p>
+<p><em class="term">Probabilistic model</em> แก้ปัญหานี้โดยเริ่มจากโมเดล deterministic ที่ประมาณความสัมพันธ์ได้ดีที่สุด แล้ว<strong>บวกพจน์สุ่ม (error term)</strong> เข้าไปเพื่อจับความคลาดเคลื่อนที่เหลือ — นี่คือเหตุผลที่ทุกสมการถดถอยในวิชานี้มี \(\varepsilon\) ต่อท้ายเสมอ ไม่ใช่แค่ธรรมเนียมสัญกรณ์.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Deterministic vs Probabilistic</span></div>
+  <div class="qtext">ทำไมโมเดลถดถอย (regression model) ที่ใช้ทำนายราคาบ้านจากขนาดพื้นที่ ต้องมีพจน์ error (ε) ต่อท้ายสมการเสมอ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะสูตรทางคณิตศาสตร์ของเส้นตรงต้องมี error term โดยนิยาม</button>
+  <button class="opt" data-correct="true">เพราะบ้านขนาดเท่ากันเป๊ะยังมีปัจจัยอื่นที่ไม่ได้ใส่ในโมเดล ทำให้ราคาจริงเบี่ยงจากค่าที่โมเดลทำนายไว้</button>
+  <button class="opt" data-correct="false">เพราะ error term ทำให้ R² เพิ่มขึ้นเสมอ</button>
+  <button class="opt" data-correct="false">เพราะกฎของ R กำหนดให้ lm() ต้องมี error term เป็น argument</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. คำศัพท์, ที่มา, และ Association ≠ Causation</h2>
+<p>ในสมการถดถอย \(X\) เรียก independent/explanatory variable และ \(Y\) เรียก dependent/response variable. เป้าหมายของ regression มี 2 อย่าง: <strong>อธิบายความสัมพันธ์</strong> (association) ระหว่าง X กับ Y และ<strong>ทำนาย</strong> Y จาก X ในอนาคต — สังเกตว่าไม่มี "อธิบายเชิงเหตุผล (causal)" อยู่ในรายการนี้ ซึ่งเป็นจุดที่คนตีความสมการถดถอยผิดบ่อยที่สุด.</p>
+<p>คำว่า "regression" มาจากงานของ Francis Galton ในศตวรรษที่ 19 ที่ศึกษาความสูงของพ่อแม่กับลูก และพบปรากฏการณ์ที่เรียกว่า <em class="term">"regression toward mediocrity"</em> (ปัจจุบันเรียก regression toward the mean):</p>
+<figure>
+<img src="../assets/slides/as1-p07-galton-rate-of-regression.png" alt="Galton's 1886 diagram: rate of regression in hereditary stature, showing children's height deviations are 2/3 of their mid-parents' deviations from the mean">
+<figcaption>Slide: Rate of Regression in Hereditary Stature — Galton 1886 (Lecture 1, p.7)</figcaption>
+</figure>
+<p>อ่านตัวเลขในภาพ: ถ้าพ่อแม่เฉลี่ย (mid-parent) สูงกว่าค่าเฉลี่ยประชากร 3 นิ้ว ลูกจะสูงกว่าค่าเฉลี่ยเพียง <strong>2 นิ้ว</strong> เท่านั้น — ไม่ใช่ 3 นิ้วเท่าพ่อแม่ (สังเกตอัตราส่วน "2 to 3" ที่เขียนกำกับไว้ในภาพต้นฉบับ). พ่อแม่ที่สูงผิดปกติ ลูกจะสูง "น้อยลง" กว่าพ่อแม่ (ถอยเข้าใกล้ค่าเฉลี่ยประชากร) และพ่อแม่ที่เตี้ยผิดปกติ ลูกจะเตี้ย "น้อยลง" เช่นกัน — นี่คือที่มาของคำว่า "regression" (การถอยกลับ) ที่ใช้เรียกเทคนิคทั้งตระกูลนี้มาจนถึงทุกวันนี้ ทั้งที่ปัจจุบันเราใช้ regression กับโจทย์ที่ไม่เกี่ยวกับ "การถอยกลับสู่ค่าเฉลี่ย" เลยก็ได้.</p>
+
+<h3>Associative vs Causal Inference</h3>
+<p>สไลด์ยกตัวอย่างคลาสสิกของ <em class="term">confounding variable</em>: ยอดขายไอศกรีมกับจำนวนนักท่องเที่ยวมีความสัมพันธ์เชิงบวกชัดเจนในข้อมูล แต่ทั้งคู่ถูกขับเคลื่อนโดยตัวแปรกวน (confounder) ตัวเดียวกันคืออุณหภูมิ — วันที่ร้อน คนออกไปเที่ยวเยอะขึ้น<strong>และ</strong>ไอศกรีมขายดีขึ้นพร้อมกัน โดยที่นักท่องเที่ยวไม่ได้เป็น "สาเหตุ" ที่ทำให้ไอศกรีมขายดีเลย:</p>
+<figure>
+<img src="../assets/slides/as1-p08-confounder-example.png" alt="Diagram: temperature as confounding variable pointing to both number of tourists and ice cream sales, with tourists and ice cream sales boxed together as the regression model variables">
+<figcaption>Slide: Associative vs Causal Inference — ตัวแปรกวน (Lecture 1, p.8)</figcaption>
+</figure>
+<p>ถ้าเก็บข้อมูลแบบสังเกตการณ์ (observational) แล้วรัน <code>lm(ยอดขายไอศกรีม ~ จำนวนนักท่องเที่ยว)</code> จะได้สัมประสิทธิ์เป็นบวกและมีนัยสำคัญทางสถิติแน่นอน — แต่<strong>ห้ามสรุปว่านักท่องเที่ยวทำให้ไอศกรีมขายดีขึ้น</strong> เพราะกล่องเส้นประสีแดงในภาพ (ตัวแปรที่อยู่ในตัวแบบการถดถอยจริง) ไม่ได้ครอบคลุมอุณหภูมิ ซึ่งเป็นตัวขับเคลื่อนที่แท้จริงของทั้งสองตัว.</p>
+<p>ทางแก้ที่ทำให้สรุปเชิงเหตุผล (causal) ได้ คือการทำ <em class="term">experimental study</em> — สุ่มกำหนดค่าตัวแปรอิสระเอง แทนที่จะปล่อยให้มันเกิดขึ้นเองตามธรรมชาติ. ตัวอย่างในสไลด์: สุ่มต้นทานตะวัน 10 ต้น แบ่ง 5 ต้นให้แสง 100,000 ลักซ์ อีก 5 ต้นให้แสง 50,000 ลักซ์ วัดความสูงหลัง 2 สัปดาห์:</p>
+<figure>
+<img src="../assets/slides/as1-p09-experimental-design-example.png" alt="Diagram: 10 sunflower plants randomly assigned to 100,000 lux or 50,000 lux light intensity groups, both measured for height after 2 weeks, feeding into a regression model of light intensity on plant height">
+<figcaption>Slide: Associative vs Causal Inference — experimental design (Lecture 1, p.9)</figcaption>
+</figure>
+<p>เพราะ<strong>สุ่ม (randomize)</strong> ว่าต้นไหนได้แสงระดับใด ตัวแปรกวนที่อาจจะมีอยู่ (เช่น พันธุกรรมของเมล็ด ความสมบูรณ์ของดินเดิม) ถูกกระจายเท่า ๆ กันในสองกลุ่มโดยเฉลี่ย — ถ้าความสูงต่างกันอย่างมีนัยสำคัญระหว่างสองกลุ่ม จึงสรุปเชิงเหตุผลได้ว่า<strong>ความเข้มแสงเป็นสาเหตุ</strong>ของความสูงที่ต่างกัน ไม่ใช่แค่ "สัมพันธ์กัน" เฉย ๆ — กฎทอง: <strong>ข้อมูล observational ให้ได้แค่ข้อสรุปเชิง association; ต้องมี randomized experiment ถึงจะสรุปเชิง causal ได้</strong></p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>Associative vs Causal</span></div>
+  <div class="qtext">นักวิจัยเก็บข้อมูล (ไม่ได้สุ่มทดลอง) พบว่ายอดขายไอศกรีมกับจำนวนนักท่องเที่ยวมีสหสัมพันธ์เป็นบวกอย่างมีนัยสำคัญ (p &lt; 0.001) จากตัวอย่างในสไลด์ ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">นักท่องเที่ยวเป็นสาเหตุโดยตรงที่ทำให้ยอดขายไอศกรีมเพิ่มขึ้น เพราะ p-value ต่ำมาก</button>
+  <button class="opt" data-correct="false">p-value ต่ำเพียงพอที่จะพิสูจน์ความเป็นเหตุเป็นผลได้เสมอ ไม่ว่าข้อมูลจะเก็บมาแบบใด</button>
+  <button class="opt" data-correct="true">สรุปได้แค่ว่าทั้งสองตัวแปรสัมพันธ์กัน (associative) เพราะข้อมูลเป็น observational และอาจมีตัวแปรกวนอย่างอุณหภูมิอยู่เบื้องหลัง</button>
+  <button class="opt" data-correct="false">ผลลัพธ์นี้ใช้ไม่ได้เลยเพราะไม่ได้มาจาก randomized experiment</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p>ข้อดี/ข้อเสียของ linear regression โดยรวม: <strong>ข้อดี</strong> — ใช้แพร่หลายที่สุดสำหรับข้อมูลตัวเลข, ปรับใช้ได้กับโจทย์หลากหลาย, ให้ทั้งขนาดและทิศทางของความสัมพันธ์, ทฤษฎีการอนุมานทางสถิติศึกษามาอย่างละเอียด. <strong>ข้อเสีย</strong> — ตั้งสมมติฐาน (assumption) เกี่ยวกับข้อมูลค่อนข้างเข้มงวด และผู้ใช้ต้องกำหนดรูปแบบโมเดล (เชิงเส้น/ไม่เชิงเส้น) ไว้ล่วงหน้าเอง.</p>
+
+<h2>3. สมการโมเดล — ทักษะที่ 1: เขียนสมการให้ถูก</h2>
+<p>Simple Linear Regression คือการถดถอยตัวแปรตาม Y ตัวเดียวบนตัวแปรอิสระ X ตัวเดียว จากคู่ข้อมูล \((X_i, Y_i)\) สำหรับ \(i = 1, 2, \ldots, n\) โมเดลเขียนเป็น:</p>
+<div class="box">
+\[Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i\]<br>
+โดย \(\beta_0\) คือ intercept, \(\beta_1\) คือ slope, \(\varepsilon_i\) คือ error term ที่ \(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\)
+</div>
+<p>เมื่อวาดในกราฟสองมิติ \(\hat{\beta}_0\) คือจุดตัดแกน Y (y-intercept) และ \(\hat{\beta}_1\) คือความชัน (slope = rise/run) ของเส้นถดถอยที่ประมาณได้ \(\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X\):</p>
+<figure>
+<img src="../assets/slides/as1-p14-regression-line-diagram.png" alt="Diagram of a regression line in two dimensions showing y-intercept beta-hat-0, slope beta-hat-1 as rise over run, and the fitted equation Y-hat = beta-hat-0 + beta-hat-1 X1">
+<figcaption>Slide: Linear Regression Model when p=1 (Lecture 1, p.14)</figcaption>
+</figure>
+<p>จำไว้เสมอ: \(\beta_0, \beta_1\) (ไม่มีหมวก) คือ<strong>พารามิเตอร์ทฤษฎีที่ไม่รู้ค่าจริง</strong> ส่วน \(\hat{\beta}_0, \hat{\beta}_1\) (มีหมวก) คือ<strong>ค่าประมาณจากข้อมูลตัวอย่าง</strong> — ข้อสอบชอบเช็คว่าเขียนหมวกถูกจุดหรือไม่ เพราะสื่อความหมายต่างกันโดยสิ้นเชิง (ค่าจริงที่ไม่มีทางรู้ vs ค่าประมาณที่คำนวณได้จากข้อมูล).</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 3 (Free response)</span><span>เขียนสมการโมเดล</span></div>
+  <div class="qtext">บริษัทอยากศึกษาความสัมพันธ์ระหว่างงบโฆษณารายเดือน (ล้านบาท) กับยอดขายรายเดือน (ล้านบาท) จาก 24 เดือนที่ผ่านมา จงเขียนสมการ simple linear regression พร้อมระบุความหมายของแต่ละพจน์ และเขียน assumption ของ ε_i</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\(Sales_i = \beta_0 + \beta_1 Ad_i + \varepsilon_i\), สำหรับ i = 1,…,24</p>
+  <p>โดย \(\beta_0\) = ยอดขายคาดการณ์เมื่องบโฆษณาเท่ากับ 0, \(\beta_1\) = ยอดขายที่เปลี่ยนไปโดยเฉลี่ยเมื่องบโฆษณาเพิ่มขึ้น 1 ล้านบาท, \(\varepsilon_i\) = ความคลาดเคลื่อนของเดือนที่ i ที่โมเดลอธิบายไม่ได้</p>
+  <p>Assumption: \(\varepsilon_i \sim \text{iid } N(0,\sigma^2)\) — error แต่ละเดือนมีค่าเฉลี่ยเป็นศูนย์ เป็นอิสระต่อกัน มี variance คงที่ทุกระดับของงบโฆษณา และแจกแจงแบบปกติ</p>
+  </div>
+</div>
+
+<h2>4. Assumptions on Error Terms — สิ่งที่ต้องเช็คทุกครั้ง</h2>
+<p>นี่คือหัวใจของ "assumption checking" ที่ใช้ทั้งวิชา สไลด์ตั้งไว้ 4 ข้อ:</p>
+<ol>
+<li>Error terms มีค่าเฉลี่ยเป็นศูนย์ (mean zero)</li>
+<li>Error terms เป็นอิสระต่อกัน (independent)</li>
+<li>Error terms มี variance คงที่ทุกระดับของ X (constant variance / homoscedasticity)</li>
+<li>Error terms แจกแจงแบบปกติ (normally distributed)</li>
+</ol>
+<p>ภาพนี้แปล assumption 4 ข้อให้เห็นเป็นรูปธรรม: จุดข้อมูลแต่ละจุด \(y_i\) คือค่าจริงที่สังเกตได้ ส่วนเส้นประสีเขียว \(y = \beta_0 + \beta_1 x\) คือค่าเฉลี่ยทฤษฎีที่โมเดลทำนาย — \(\varepsilon_i\) (ลูกศรสีแดง) คือระยะห่างแนวตั้งระหว่างจุดจริงกับเส้นทฤษฎีที่จุดนั้น. สังเกตว่าจุดข้อมูลกระจายอยู่<strong>รอบ ๆ</strong> เส้นทั้งด้านบนและด้านล่างในปริมาณใกล้เคียงกันตลอดช่วง X — นี่คือหน้าตาของ assumption ที่ "ผ่าน":</p>
+<figure>
+<img src="../assets/slides/as1-p12-error-term-scatter.png" alt="Scatterplot with a fitted regression line y=beta0+beta1x, showing an observation y_i=beta0+beta1xi+epsilon_i with the vertical error epsilon_i marked as the gap between the point and the line">
+<figcaption>Slide: Assumptions on Error Terms — ภาพนิยาม ε_i (Lecture 1, p.12)</figcaption>
+</figure>
+<p>ภาพต่อไปนี้ (จาก Ramsey &amp; Schafer) แปล assumption 4 ข้อให้เป็น "การแจกแจงของ Y ที่แต่ละระดับ X" โดยตรง: ที่ทุกค่าของ X บนเส้นถดถอย มีระฆังคว่ำ (normal distribution) วางอยู่ — ระฆังแต่ละลูก<strong>มีศูนย์กลางอยู่บนเส้น</strong> \(\beta_0+\beta_1 X\) พอดี (= assumption ข้อ 1 mean เป็นศูนย์ที่ทุกจุด แปลว่า \(E[Y|X]=\beta_0+\beta_1 X\)) และ<strong>มีความกว้าง (variance) เท่ากันทุกลูก</strong> ไม่ว่า X จะมีค่าเท่าไร (= assumption ข้อ 3 constant variance):</p>
+<figure>
+<img src="../assets/slides/as1-p13-error-term-assumptions-diagram.png" alt="Ramsey and Schafer diagram showing normal distributions of the response variable Y centered on the regression line beta0+beta1X at four different levels of the explanatory variable X, all with equal spread">
+<figcaption>Slide: Assumptions on Error Terms — สี่ระฆังบนเส้นถดถอย (Ramsey &amp; Schafer) (Lecture 1, p.13)</figcaption>
+</figure>
+<p>ถ้าระฆังลูกไหนกว้างกว่าลูกอื่นอย่างชัดเจน (เช่น กว้างขึ้นเรื่อย ๆ ตาม X) นั่นคือการละเมิด assumption ข้อ 3 หรือที่เรียกว่า <em class="term">heteroscedasticity</em> — และถ้าระฆังไม่สมมาตร (เบ้ซ้าย/ขวา) คือการละเมิดข้อ 4 (normality) — <strong>นี่คือสิ่งที่ diagnostic plot ใน R จะให้คุณตรวจสอบจริง</strong> (Residuals vs Fitted สำหรับข้อ 1&amp;3, Normal Q-Q สำหรับข้อ 4, Durbin-Watson หรือดูลำดับข้อมูลสำหรับข้อ 2) — รายละเอียดเต็มอยู่ใน Lecture 3 (Regression Diagnostics) แต่ต้องจำ 4 ข้อนี้ให้ขึ้นใจตั้งแต่บทนี้ เพราะทุกโจทย์ที่ให้ fit โมเดลจะถามต่อว่า "assumption เป็นไปตามที่ตั้งไว้หรือไม่"</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Assumptions</span></div>
+  <div class="qtext">ถ้าพล็อต residual แล้วพบว่าความกระจาย (spread) ของ residual แคบตอน X มีค่าน้อย แต่กว้างขึ้นเรื่อย ๆ เมื่อ X มีค่ามาก (รูปทรงคล้ายกรวย) กำลังละเมิด assumption ข้อใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">Error terms มี variance ไม่คงที่ทุกระดับของ X (heteroscedasticity)</button>
+  <button class="opt" data-correct="false">Error terms ไม่เป็นอิสระต่อกัน</button>
+  <button class="opt" data-correct="false">Error terms ไม่แจกแจงแบบปกติ</button>
+  <button class="opt" data-correct="false">Error terms มีค่าเฉลี่ยไม่เป็นศูนย์</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. ต้อง Plot ก่อนเสมอ: Scatter Plot</h2>
+<p>ก่อนฟิตโมเดลใด ๆ สไลด์ย้ำให้ทำ scatter plot ก่อนเป็นขั้นแรกเสมอ เพื่อดูว่าความสัมพันธ์ระหว่าง X กับ Y เป็นแบบไหน — เพราะ regression เชิงเส้นใช้ได้ดีเฉพาะกรณีความสัมพันธ์เป็นเส้นตรงเท่านั้น:</p>
+<figure>
+<img src="../assets/slides/as1-p15-scatter-plot-relationship-types.png" alt="Four scatterplots: positive linear relationship, relationship not linear (curved), negative linear relationship, and no relationship (flat scatter)">
+<figcaption>Slide: Scatter Plot — 4 รูปแบบความสัมพันธ์ (Lecture 1, p.15)</figcaption>
+</figure>
+<p>สังเกตกราฟบนขวา "Relationship NOT Linear" — จุดข้อมูลโค้งเป็นรูป log/sqrt ชัดเจน ถ้าฟิต simple linear regression ตรง ๆ กับข้อมูลแบบนี้ เส้นตรงจะพลาดทั้งช่วงต้น (underestimate) และช่วงปลาย (underestimate เช่นกัน) แต่ overestimate ช่วงกลาง — นี่คือเหตุผลที่ scatter plot ต้องทำก่อน ไม่ใช่หลัง fit โมเดล.</p>
+<p>ใน R คำสั่งพื้นฐานคือ <code>plot(x, y, xlab=..., ylab=...)</code> ปรับแต่งได้ด้วย <code>cex</code> (ขนาดตัวอักษร/สัญลักษณ์), <code>pch</code> (รูปทรงจุด), <code>lty</code>/<code>lwd</code> (ชนิด/ความหนาเส้น) — ตัวเลือกเหล่านี้เป็น syntax ล้วน ๆ ไม่มีเนื้อหาทฤษฎีให้ทำ quiz เพิ่ม สรุปไว้ในตารางอ้างอิงแล้วที่ reference sheet ท้ายบทเรียน.</p>
+<p>ตัวอย่างที่จะใช้ตลอดบทนี้ — ยอดขายรถ 10 เดือน:</p>
+<figure>
+<img src="../assets/slides/as1-p20-automobile-data-scatter.png" alt="Table of automobile sales data for time 1-10 with sales values 30,20,45,35,30,60,40,50,45,65, alongside two scatterplots: one with raw points, one showing two candidate fitted lines through the data">
+<figcaption>Slide: Example — Automobile Data (Lecture 1, p.20)</figcaption>
+</figure>
+<p>ข้อมูลจริง: <code>Time = 1..10</code>, <code>Sales = 30,20,45,35,30,60,40,50,45,65</code>. กราฟขวาลองวาดเส้นถดถอยตั้งต้น 2 เส้น (สีเขียว/สีน้ำเงิน) ทับข้อมูลไว้เปรียบเทียบ — คำถามที่ Least Squares Method จะตอบต่อไปคือ "เส้นไหนคือเส้นที่ดีที่สุด" อย่างเป็นระบบ ไม่ใช่กะด้วยตา ใน R เขียนโค้ดตรง ๆ ได้ดังนี้:</p>
+<pre><code>x&lt;-1:10
+y&lt;-c(30,20,45,35,30,60,40,50,45,65)
+plot(x,y,xlab="Time",ylab="Sales")</code></pre>
+<figure>
+<img src="../assets/slides/as1-p21-automobile-data-r-code-plot.png" alt="R code producing a scatterplot of automobile sales data against time, with the resulting plot showing 10 points">
+<figcaption>Slide: Example — Automobile Data (revisited), โค้ด R (Lecture 1, p.21)</figcaption>
+</figure>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Scatter Plot</span></div>
+  <div class="qtext">ข้อมูลชุดหนึ่งเมื่อพล็อต scatter plot แล้วจุดกระจายเป็นรูปโค้ง (curve) ชัดเจน ไม่ใช่เส้นตรง ควรทำอย่างไรก่อนสรุปผล?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">พิจารณาแปลงตัวแปร (transform) หรือใช้โมเดลรูปแบบอื่นที่ไม่ใช่เส้นตรง เพราะ linear regression ใช้ได้ดีเฉพาะความสัมพันธ์เชิงเส้น</button>
+  <button class="opt" data-correct="false">ข้ามขั้นตอน scatter plot ไปเลยในครั้งถัดไปเพราะไม่จำเป็น</button>
+  <button class="opt" data-correct="false">ฟิต simple linear regression ตรง ๆ ได้เลย เพราะ lm() รองรับข้อมูลทุกรูปแบบ</button>
+  <button class="opt" data-correct="false">เพิ่มจำนวนข้อมูลจะทำให้ความสัมพันธ์กลายเป็นเส้นตรงเองโดยอัตโนมัติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>6. Ordinary Least Squares (OLS) — ที่มาของ \(\hat{\beta}_0, \hat{\beta}_1\)</h2>
+<p>แนวคิด OLS: หา \(\hat{\beta}_0, \hat{\beta}_1\) ที่ทำให้เส้นถดถอย "ฟิต" ข้อมูลดีที่สุด โดยวัดความ fit จาก residual \(e_i = Y_i - \hat{Y}_i\) (ระยะห่างแนวตั้งจากจุดจริงถึงเส้นทำนาย) ดังภาพ:</p>
+<figure>
+<img src="../assets/slides/as1-p22-least-squares-residual-diagram.png" alt="Scatterplot with fitted regression line showing point Yi above the line, with residual ei = Yi - Y-hat-i marked as the vertical gap to the fitted value Y-hat-i = beta-hat-0 + beta-hat-1 Xi at Xi">
+<figcaption>Slide: Least Squares Method — นิยาม residual (Lecture 1, p.22)</figcaption>
+</figure>
+<p>OLS เลือก \(\hat{\beta}_0, \hat{\beta}_1\) ที่ทำให้ผลรวมกำลังสองของ residual (<em class="term">SSE</em>) น้อยที่สุด:</p>
+<div class="box">
+\[SSE = \sum e_i^2 = \sum (Y_i-\hat{Y}_i)^2 = \sum (Y_i-\beta_0-\beta_1 X_i)^2\]<br>
+แก้สมการ \(\text{argmin}\) ได้:<br>
+\(\hat{\beta}_1 = \dfrac{\sum (X_i-\bar{X})(Y_i-\bar{Y})}{\sum (X_i-\bar{X})^2}\) &nbsp;และ&nbsp; \(\hat{\beta}_0 = \bar{Y} - \hat{\beta}_1 \bar{X}\)
+</div>
+<p>เหตุผลที่ยกกำลังสองแทนที่จะบวก residual ตรง ๆ: ถ้าบวกตรง ๆ residual บวกกับลบจะหักล้างกันจนผลรวมใกล้ศูนย์เสมอ (ทำให้ประเมิน fit ไม่ได้) ยกกำลังสองแก้ปัญหานี้และยังลงโทษ residual ที่มีขนาดใหญ่หนักกว่าสัดส่วน — จุดที่ห่างเส้นมากมีผลต่อ SSE รุนแรงกว่าจุดที่ห่างน้อยแบบไม่เป็นเชิงเส้น.</p>
+
+<h3>ความเชื่อมโยงกับ Correlation Coefficient</h3>
+<p>Correlation coefficient \(r_{xy}\) วัดความสัมพันธ์เชิงเส้นระหว่างสองตัวแปร มีค่าระหว่าง −1 ถึง 1:</p>
+<div class="box">
+\(S_x^2 = \dfrac{1}{n-1}\sum (X_i-\bar{X})^2\), &nbsp;\(S_y^2 = \dfrac{1}{n-1}\sum (Y_i-\bar{Y})^2\), &nbsp;\(\text{COV}_{xy} = \dfrac{1}{n-1}\sum (X_i-\bar{X})(Y_i-\bar{Y})\)<br>
+\[r_{xy} = \dfrac{\text{COV}_{xy}}{S_x S_y}\]
+</div>
+<p>จัดรูป \(\hat{\beta}_1\) ใหม่โดยหารทั้งเศษส่วนทั้งบนล่างด้วย \((n-1)\) จะเห็นว่า \(\hat{\beta}_1 = \dfrac{\text{COV}_{xy}}{S_x^2}\) — และเพราะ \(r_{xy} = \dfrac{\text{COV}_{xy}}{S_x S_y}\) จึงจัดรูปได้อีกขั้นเป็น:</p>
+<div class="box win">
+\[\hat{\beta}_1 = r_{xy} \times \dfrac{S_y}{S_x}\]
+</div>
+<p>สูตรนี้บอกอะไร: <strong>ความชันของเส้นถดถอยไม่ใช่แค่ทิศทางของ correlation (บวก/ลบตาม r_xy) แต่ยังถูกปรับสเกลด้วยอัตราส่วนความแปรปรวนของ Y ต่อ X ด้วย</strong> — X, Y คู่เดียวกันที่มี \(r_{xy}\) เท่ากันเป๊ะ อาจได้ \(\hat{\beta}_1\) ต่างกันมากถ้าหน่วยวัดของ Y "แกว่งแรง" กว่า X มาก (S_y ใหญ่กว่า S_x มาก) เทียบกับกรณี S_y ใกล้เคียง S_x — และในกรณี <em>Simple</em> Linear Regression (ตัวแปรอิสระเดียว) เท่านั้นที่ \(R^2 = r_{xy}^2\) พอดี (จะเห็นอีกครั้งในหัวข้อ 9).</p>
+<p>ค่า correlation coefficient ที่ระดับต่าง ๆ หน้าตาเป็นอย่างไรในทางกราฟ:</p>
+<figure>
+<img src="../assets/slides/as1-p27-correlation-coefficient-values.png" alt="Five scatterplots illustrating correlation values: r=1 perfect positive, positive r with scatter, r near 0 with a circular cloud, negative r with scatter, and r=-1 perfect negative correlation">
+<figcaption>Slide: Different Values of the Correlation Coefficient (Lecture 1, p.27)</figcaption>
+</figure>
+<p>สังเกตแผง (c) "Little correlation (r near 0)" — จุดกระจายเป็นวงกลมไม่มีทิศทาง นี่คือ<strong>รูปแบบเดียว</strong>ที่ r ใกล้ 0 บอกว่า "ไม่มีความสัมพันธ์เชิงเส้น" — แต่ข้อควรระวัง 3 ข้อจากสไลด์: (1) ถ้าความสัมพันธ์เป็นแบบไม่เชิงเส้น (เช่นรูปโค้งในหัวข้อ 5) r จะประเมินความแรงของความสัมพันธ์ต่ำเกินจริง ทั้งที่ความสัมพันธ์นั้นแน่นมาก แค่ไม่ใช่เส้นตรง (2) เมื่อ n เล็ก ค่า r ไม่เสถียร แกว่งง่ายจากตัวอย่างสุ่ม (3) r ไม่ทนต่อ outlier — จุดผิดปกติจุดเดียวดึง r ให้เปลี่ยนไปมากได้.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>OLS และ Correlation</span></div>
+  <div class="qtext">ข้อมูลชุดหนึ่งมี \(r_{xy} = 0.8\), \(S_x = 2\), \(S_y = 10\) จงคำนวณ \(\hat{\beta}_1\) และอธิบายสั้น ๆ ว่าทำไมค่าที่ได้ไม่เท่ากับ \(r_{xy}\) ตรง ๆ</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">\(\hat{\beta}_1 = r_{xy} \times (S_y/S_x) = 0.8 \times (10/2) = \) <strong>4</strong>. ค่าไม่เท่ากับ \(r_{xy}\) ตรง ๆ เพราะ \(\hat{\beta}_1\) ถูกปรับสเกลด้วยอัตราส่วนหน่วยของ Y ต่อ X (S_y/S_x) ด้วย ไม่ใช่แค่ทิศทางและความแรงของความสัมพันธ์เหมือน \(r_{xy}\) ล้วน ๆ — ในที่นี้ Y แปรผันมากกว่า X ถึง 5 เท่า (S_y/S_x=5) จึงขยายความชันจาก 0.8 เป็น 4</div>
+</div>
+
+<h2>7. Fitting ใน R: <code>lm()</code> และการอ่าน <code>summary()</code> — ทักษะที่ 2</h2>
+<p>ใน R ฟิตโมเดลด้วย <code>lm(formula, data, subset, weights, na.action)</code> — argument เดียวที่จำเป็นคือ <code>formula</code> (รูปแบบ <code>y ~ x</code>). object ที่ได้เป็น class <code>lm</code> ซึ่งมีฟังก์ชันมาตรฐานให้ดึงข้อมูลออกมา: <code>summary()</code> (ตารางผลวิเคราะห์แบบเต็ม), <code>coef()</code> (สัมประสิทธิ์), <code>resid()</code> (residual), <code>fitted()</code> (ค่าทำนาย), <code>anova()</code> (ตาราง ANOVA), <code>predict()</code> (ทำนายค่าใหม่), <code>confint()</code> (ช่วงความเชื่อมั่นของ β̂) — ทั้งหมดนี้จะได้ใช้จริงในบทนี้.</p>
+<p>ฟิตโมเดลกับข้อมูล Automobile Data:</p>
+<pre><code>data&lt;-data.frame(y=y, x=x)
+model&lt;-lm(y~x,data=data)
+summary(model)</code></pre>
+<p>ผลลัพธ์เต็มจาก <code>summary(model)</code> — นี่คือ output ที่ต้องอ่านให้ครบทุกบรรทัด:</p>
+<pre><code>Call:
+lm(formula = y ~ x, data = data)
+
+Residuals:
+    Min     1Q     Median      3Q      Max
+-10.303 -8.432     -1.197   6.614   16.303
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   23.333      6.873   3.395 0.00943 **
+x              3.394      1.108   3.064 0.01548 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 10.06 on 8 degrees of freedom
+Multiple R-squared: 0.5399,     Adjusted R-squared: 0.4824
+F-statistic: 9.389 on 1 and 8 DF, p-value: 0.01548</code></pre>
+<p>อ่านทีละส่วน:</p>
+<ul>
+<li><strong>Coefficients → Estimate:</strong> \(\hat{\beta}_0 = 23.333\), \(\hat{\beta}_1 = 3.394\) — สมการที่ได้คือ \(\hat{Y} = 23.333 + 3.394X\)</li>
+<li><strong>Std. Error:</strong> ความคลาดเคลื่อนมาตรฐานของแต่ละ β̂ — ยิ่งเล็กยิ่งประมาณค่าได้แม่นยำ</li>
+<li><strong>t value:</strong> = Estimate / Std. Error (สถิติทดสอบ H₀: β=0)</li>
+<li><strong>Pr(&gt;|t|):</strong> p-value ของการทดสอบนั้น — ของ x เท่ากับ 0.01548 (มีดอกจันทร์ <code>*</code> แปลว่า &lt; 0.05)</li>
+<li><strong>Residual standard error:</strong> ค่าประมาณ σ (ส่วนเบี่ยงเบนมาตรฐานของ error) = 10.06, df = n−2 = 8</li>
+<li><strong>Multiple R-squared:</strong> สัดส่วนความแปรปรวนของ Y ที่ X อธิบายได้ = 53.99%</li>
+<li><strong>F-statistic:</strong> ทดสอบภาพรวมของโมเดล (จะอธิบายละเอียดในหัวข้อ 9)</li>
+</ul>
+
+<div class="box win">
+<div class="label">ทักษะที่ออกสอบหนักที่สุด: การแปลผล (Interpretation)</div>
+<p>ประโยคแปลผลที่ถูกต้องของ \(\hat{\beta}_1 = 3.394\) ต้อง<strong>อ้างหน่วยของทั้ง X และ Y เสมอ</strong>: "เมื่อ Time เพิ่มขึ้น 1 หน่วย (1 เดือน) Sales คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย <strong>3.394 หน่วย</strong> (จากข้อมูลตัวอย่างนี้)" — <strong>ห้าม</strong>เขียนว่า "X ทำให้ Y เพิ่มขึ้น" (นี่คือคำเชิงเหตุผล/causal ที่ข้อมูล observational พิสูจน์ไม่ได้ ตามหัวข้อ 2) ให้ใช้คำว่า "สัมพันธ์กับ" หรือ "คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย" แทน</p>
+<p>ส่วน \(\hat{\beta}_0 = 23.333\): "เมื่อ Time = 0 (จุดเริ่มต้นก่อนมีการสังเกต) ค่า Sales ที่คาดไว้คือ 23.333 หน่วย" — แต่ต้องระวัง: ถ้า X=0 อยู่นอกช่วงข้อมูลจริงที่สังเกตมา (extrapolation) การแปลผล intercept แบบนี้อาจไม่มีความหมายในทางปฏิบัติ ต้องเช็คก่อนว่า X=0 อยู่ในช่วงข้อมูลที่สมเหตุสมผลหรือไม่</p>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response — รูปแบบข้อสอบจริง)</span><span>แปลผล Coefficient</span></div>
+  <div class="qtext">จาก output ด้านบน จงเขียนประโยคแปลผล (interpretation) ของ \(\hat{\beta}_1 = 3.394\) ให้ถูกต้องตามหลักการแปลผลข้อมูล observational (ห้ามใช้คำเชิงเหตุผล)</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"จากข้อมูลนี้ เมื่อ Time เพิ่มขึ้น 1 หน่วย ยอดขาย (Sales) คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย 3.394 หน่วย" — องค์ประกอบที่ขาดไม่ได้: (1) อ้างหน่วยของทั้งสองตัวแปร (2) ใช้คำว่า "คาดว่า/โดยเฉลี่ย" ไม่ใช่ "ทำให้" (3) อาจเติม "อย่างมีนัยสำคัญทางสถิติ (p=0.01548 &lt; 0.05)" ต่อท้ายเพื่อความสมบูรณ์</div>
+</div>
+
+<h2>8. การทดสอบสมมติฐาน \(\beta_0\) และ \(\beta_1\)</h2>
+<p>สนใจทดสอบ \(H_0: \beta_1 = 0\) (X ไม่มีความสัมพันธ์เชิงเส้นกับ Y เลย) รูปแบบทั่วไปของ test statistic คือ \(\dfrac{\text{point estimate} - \text{ค่าคาดหวังภายใต้ } H_0}{SE[\text{point estimate}]}\). สำหรับ \(\beta_1\):</p>
+<div class="box">
+\(t = \dfrac{\hat{\beta}_1-\beta_1}{SE[\hat{\beta}_1]} \sim t_{n-2}\), &nbsp;โดย&nbsp; \(SE[\hat{\beta}_1] = \sqrt{\dfrac{s^2}{\sum (X_i-\bar{X})^2}}\)
+</div>
+<p>และสำหรับ \(\beta_0\) ใช้สูตรคล้ายกัน แทนที่ตัวส่วนด้วย \(SE[\hat{\beta}_0] = \sqrt{s^2\left(\dfrac{1}{n} + \dfrac{\bar{X}^2}{\sum (X_i-\bar{X})^2}\right)}\). ทั้งสองมี df = n−2 (เสีย 2 df ให้กับการประมาณ \(\beta_0\) และ \(\beta_1\)).</p>
+<p>เชื่อมกับ output จริง: แถว <code>x</code> ในตาราง Coefficients คือผลการทดสอบ \(H_0: \beta_1=0\) พอดี — \(t = 3.394/1.108 = 3.064\) ตรงกับคอลัมน์ t value เป๊ะ, df=8 ตรงกับ "8 degrees of freedom" ที่บอกไว้ใต้ตาราง, และ \(\text{Pr}(>|t|) = 0.01548\) คือ p-value สองด้าน (two-tailed) ของการทดสอบนี้.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Hypothesis Testing</span></div>
+  <div class="qtext">ที่ระดับนัยสำคัญ α = 0.05 จาก output ของ Automobile Data สรุปเกี่ยวกับ \(H_0: \beta_1 = 0\) ได้ว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">สรุปไม่ได้ เพราะตัวอย่างมีขนาดเล็กเกินไป (n=10) จึงใช้ t-test ไม่ได้เลย</button>
+  <button class="opt" data-correct="false">ไม่ปฏิเสธ H₀ เพราะ t value = 3.064 มีค่าน้อยกว่า 8 (degrees of freedom)</button>
+  <button class="opt" data-correct="false">ปฏิเสธ H₀ ไม่ได้ เพราะ R-squared เพียง 0.5399 ถือว่าต่ำเกินไป</button>
+  <button class="opt" data-correct="true">ปฏิเสธ H₀ เพราะ p-value = 0.01548 น้อยกว่า 0.05 สรุปว่า Time มีความสัมพันธ์เชิงเส้นกับ Sales อย่างมีนัยสำคัญ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>9. Confidence Interval สำหรับ \(\beta_0\) และ \(\beta_1\)</h2>
+<p>ช่วงความเชื่อมั่น \((1-\alpha)\%\) ของ β สร้างจาก point estimate ± critical value × SE:</p>
+<div class="box">
+\[\hat{\beta}_1 \pm t_{(1-\alpha/2,\, n-2)} \times SE[\hat{\beta}_1]\]
+</div>
+<p>ใน R ใช้ <code>confint(object=model, level=0.95)</code>:</p>
+<pre><code>> confint(object=model, level=0.95)
+                2.5 %    97.5 %
+(Intercept) 7.4851409 39.181526
+x           0.8397719 5.948107</code></pre>
+<p>แปลผล: "มั่นใจ 95% ว่าค่าจริงของ β₁ อยู่ระหว่าง 0.84 ถึง 5.95" — สังเกตว่า<strong>ช่วงนี้ไม่ครอบคลุมศูนย์เลย</strong> (0 ไม่อยู่ระหว่าง 0.84 กับ 5.95) ซึ่งเป็นอีกวิธีสรุปแบบเดียวกับการทดสอบ p-value ในหัวข้อ 8 พอดี — <strong>กฎที่ต้องจำ: ถ้า \((1-\alpha)\%\) CI ของ β ไม่ครอบคลุม 0 แปลว่าปฏิเสธ \(H_0: \beta=0\) ที่ระดับนัยสำคัญ α ได้เลย</strong> โดยไม่ต้องดู p-value ซ้ำ — สองวิธีนี้ให้ข้อสรุปตรงกันเสมอในกรอบเดียวกัน</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 9 (Free response)</span><span>แปลผล Confidence Interval</span></div>
+  <div class="qtext">95% CI ของ β₁ คือ (0.84, 5.95) จงเขียนประโยคแปลผลที่ถูกต้อง และอธิบายว่าทำไมช่วงนี้บ่งบอกนัยสำคัญทางสถิติของ β₁ ได้โดยไม่ต้องดู p-value</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">"เรามั่นใจ 95% ว่าค่าจริงของ β₁ (ความชันของความสัมพันธ์ระหว่าง Time กับ Sales) อยู่ในช่วง 0.84 ถึง 5.95" เพราะช่วงนี้<strong>ไม่ครอบคลุมค่า 0</strong> จึงสรุปได้ว่าค่า \(\beta_1=0\) (ไม่มีความสัมพันธ์เลย) ไม่ใช่ค่าที่เป็นไปได้ที่ระดับความเชื่อมั่น 95% ซึ่งเทียบเท่ากับการปฏิเสธ \(H_0:\beta_1=0\) ที่ α=0.05 — ถ้าช่วงครอบคลุม 0 จะไม่ปฏิเสธ H₀</div>
+</div>
+
+<h2>10. Coefficient of Determination (R²) และการแตกตัว SST</h2>
+<p>R² วัด "ความแรง" ของความสัมพันธ์ (ต่างจาก hypothesis test ที่บอกแค่ "มี/ไม่มี" ความสัมพันธ์):</p>
+<div class="box">
+\(R^2 = \dfrac{SSR}{SST} = 1-\dfrac{SSE}{SST}\), &nbsp;ตีความว่าเป็น<strong>สัดส่วนความแปรปรวนของ Y ที่ X อธิบายได้</strong>, &nbsp;และในกรณี SLR: \(R^2 = r_{xy}^2\)
+</div>
+<p>ที่มา: ความเบี่ยงเบนรวมของ Y (Total SS) แตกออกเป็นสองส่วนเสมอ — ส่วนที่โมเดลอธิบายได้ (Explained SS, SSR) และส่วนที่อธิบายไม่ได้ (Unexplained SS, SSE):</p>
+<figure>
+<img src="../assets/slides/as1-p42-sst-sse-ssr-diagram.png" alt="Diagram decomposing the deviation of a point yi from the mean y-bar into SSE (residual from the fitted line to yi) and SSR (deviation of the fitted value from the mean), summing to SST">
+<figcaption>Slide: Explained and Unexplained Variation (Lecture 1, p.42)</figcaption>
+</figure>
+<p>อ่านภาพ: ระยะห่างรวมจากจุด \(y_i\) ถึงเส้นค่าเฉลี่ย \(\bar{y}\) (SST) แตกเป็นสองท่อนต่อกัน — ท่อนบน (จาก \(y_i\) ถึงเส้นถดถอย \(\hat{y}\)) คือ SSE ที่โมเดลยังทายพลาด, ท่อนล่าง (จากเส้นถดถอยถึง \(\bar{y}\)) คือ SSR ที่โมเดลอธิบายได้จาก X. ถ้า SSE ท่อนบนสั้นมาก (จุดข้อมูลอยู่ใกล้เส้นถดถอยมาก) แปลว่าโมเดลอธิบายได้เกือบหมด R² จะเข้าใกล้ 1.</p>
+<p>ยืนยันด้วย output จริง: <code>Multiple R-squared: 0.5399</code> — X (Time) อธิบายความแปรปรวนของ Sales ได้ 53.99% ส่วนอีก 46.01% เป็นปัจจัยอื่นที่โมเดลนี้ไม่ได้จับไว้.</p>
+<p>สไลด์เตือน 3 ความเข้าใจผิดที่พบบ่อยเกี่ยวกับ R²:</p>
+<ol>
+<li>R² สูง ≠ ทำนายได้แม่นยำเสมอ (ยังต้องดู residual standard error/prediction interval ประกอบ)</li>
+<li>R² สูง ≠ เส้นถดถอยฟิตข้อมูลดีเสมอ (อาจฟิตแนวโน้มหลักได้ แต่ยังพลาดรายละเอียดสำคัญ เช่น non-linearity)</li>
+<li>R² ใกล้ 0 ≠ X กับ Y ไม่สัมพันธ์กันเลย (อาจสัมพันธ์กันแบบไม่เชิงเส้นแรงมาก แต่ R² ของโมเดลเชิงเส้นจับไม่ได้ — ย้อนกลับไปหัวข้อ 6 เรื่องข้อจำกัดของ correlation)</li>
+</ol>
+
+<h3>F-test: ทดสอบภาพรวมโมเดล</h3>
+<p>อีกวิธีทดสอบ \(H_0: \beta_1=0\) คือ F-test:</p>
+<div class="box">
+\(F = \dfrac{MSR}{MSE} \sim F_{(df_R,\, df_E)} = F_{(1,\, n-2)}\), &nbsp;และพิสูจน์ได้ว่า \(t_{n-2}^2 = F_{(1,\, n-2)}\) — ให้ p-value เดียวกันเป๊ะกับ t-test ใน SLR
+</div>
+<table>
+<tr><th>Source</th><th>df</th><th>Sum Sq</th><th>Mean Sq</th><th>F</th></tr>
+<tr><td>Regression</td><td>1</td><td>SSR</td><td>MSR=SSR/1</td><td>F=MSR/MSE</td></tr>
+<tr><td>Error</td><td>n−2</td><td>SSE</td><td>MSE=SSE/(n−2)</td></tr>
+<tr><td>Total</td><td>n−1</td><td colspan="3"></td></tr>
+</table>
+<p>ตาราง ANOVA จริงจาก R (<code>anova(model)</code>):</p>
+<pre><code>> anova(model)
+Analysis of Variance Table
+
+Response: y
+          Df Sum Sq Mean Sq F value Pr(>F)
+x          1 950.3 950.30 9.3892 0.01548 *
+Residuals 8 809.7 101.21</code></pre>
+<p>เช็คความสอดคล้อง: \(F = 9.3892\) ตรงกับ <code>F-statistic: 9.389</code> ใน <code>summary(model)</code> เป๊ะ และ \(t^2 = 3.064^2 = 9.388 \approx F\) (คลาดเคลื่อนจากการปัดเศษ) — ยืนยันว่า t-test กับ F-test ให้ข้อสรุปเดียวกันในกรณี SLR จริงตามทฤษฎี</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 10</span><span>R² และ F-test</span></div>
+  <div class="qtext">โมเดลหนึ่งได้ R² = 0.05 (ต่ำมาก) จากข้อมูลที่จริง ๆ แล้ว X กับ Y สัมพันธ์กันแบบ U-shape (ไม่ใช่เส้นตรง) แต่แน่นมาก ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">R² ต่ำพิสูจน์ได้แน่นอนว่า X กับ Y ไม่มีความสัมพันธ์กันเลย</button>
+  <button class="opt" data-correct="true">R² ต่ำเป็นเพราะโมเดลเชิงเส้นจับความสัมพันธ์แบบ U-shape ไม่ได้ ไม่ได้แปลว่าไม่มีความสัมพันธ์ — ควรลองโมเดลไม่เชิงเส้นแทน</button>
+  <button class="opt" data-correct="false">R² ต่ำแปลว่าต้องมีตัวแปรกวน (confounder) อยู่แน่นอน</button>
+  <button class="opt" data-correct="false">ควรเพิ่มขนาดตัวอย่าง (n) เพียงอย่างเดียวก็จะทำให้ R² สูงขึ้นเองจนสะท้อนความสัมพันธ์ที่แท้จริง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>11. Mean Response vs Prediction ที่ X = X₀</h2>
+<p>มีสองคำถามที่ดูคล้ายกันแต่<strong>ไม่ใช่เรื่องเดียวกัน</strong>: (1) ค่าเฉลี่ยของ Y ที่ X=X₀ คือเท่าไร (mean response) กับ (2) ค่า Y ตัวใหม่ตัวหนึ่งที่ X=X₀ จะเป็นเท่าไร (prediction) — point estimate ของทั้งคู่เท่ากันคือ \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X_0\) แต่ interval estimate ต่างกัน:</p>
+<figure>
+<img src="../assets/slides/as1-p49-mean-response-distribution.png" alt="Diagram showing normal distributions of Y along a regression line, with the mean response at X0 highlighted as a point on the line, and the corresponding distribution of Y given X0 shown separately">
+<figcaption>Slide: Estimate Mean Response at X=X₀ (Lecture 1, p.49)</figcaption>
+</figure>
+<p>Mean response ที่ X₀ คือการถามหา<strong>จุดศูนย์กลาง</strong>ของระฆังทฤษฎีที่ X₀ — ความไม่แน่นอนมีแค่แหล่งเดียวคือความไม่แน่นอนในการประมาณ β̂₀, β̂₁ จากข้อมูลตัวอย่าง:</p>
+<div class="box">
+Point estimate: \(\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X_0\)<br>
+\((1-\alpha)\%\) CI: \(\hat{Y} \pm t_{(1-\alpha/2,\, n-2)} \times SE[\hat{Y}]\), &nbsp;\(SE[\hat{Y}] = s\sqrt{\dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)
+</div>
+<p>ส่วน prediction ที่ X₀ คือการถามหา<strong>ค่า Y สังเกตใหม่หนึ่งตัว</strong> ที่จะสุ่มออกมาจากระฆังทฤษฎีลูกนั้น — ไม่ใช่แค่จุดศูนย์กลางของระฆัง แต่เป็นค่าที่กระจายไปทั่วทั้งระฆังได้:</p>
+<figure>
+<img src="../assets/slides/as1-p51-prediction-distribution.png" alt="Diagram similar to mean response but for predicting a new individual Y value at X0, with the same normal distribution N(beta0+beta1X0, sigma^2) shown as the target distribution">
+<figcaption>Slide: Predict Y at X=X₀ (Lecture 1, p.51)</figcaption>
+</figure>
+<div class="box">
+Point estimate: \(\hat{Y}_{pred} = \hat{\beta}_0 + \hat{\beta}_1 X_0\) (จุดเดียวกับ mean response!)<br>
+\((1-\alpha)\%\) PI: \(\hat{Y}_{pred} \pm t_{(1-\alpha/2,\, n-2)} \times SE[\hat{Y}_{pred}]\), &nbsp;\(SE[\hat{Y}_{pred}] = s\sqrt{1 + \dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)
+</div>
+<p>เทียบสองสูตร <code>SE</code> ให้ดี: สูตร prediction มี <strong>"+1"</strong> เพิ่มเข้ามาในรากที่สอง ซึ่งไม่มีในสูตร mean response — พจน์ "+1" นี้คือความแปรปรวนของค่าสังเกตใหม่หนึ่งตัวรอบ ๆ ค่าเฉลี่ยทฤษฎี (ตัว Y เองยังสุ่มได้ตามระฆัง แม้จะรู้ค่าเฉลี่ยทฤษฎีแน่นอนแล้วก็ตาม) ดังนั้น <strong>prediction interval กว้างกว่า confidence interval ของ mean response เสมอ ที่ X₀ เดียวกัน</strong> — เป็นความจริงทางคณิตศาสตร์ ไม่ใช่แค่บังเอิญจากข้อมูลชุดใดชุดหนึ่ง</p>
+<p>ใน R ใช้ <code>predict(object, newdata, interval=c("none","confidence","prediction"), level=0.95)</code> ตัวอย่างทำนาย Sales ที่ Time=5 และ Time=7 แบบ prediction interval:</p>
+<pre><code>> newdata<-data.frame(x=c(5,7))
+> predict(model, newdata=newdata, interval="prediction")
+       fit      lwr      upr
+1 40.30303 15.93783 64.66824
+2 47.09091 22.45941 71.72241</code></pre>
+<p>เช็คตัวเลข: ที่ x=5, \(fit = 23.333 + 3.394\times5 = 40.303\) ตรงกับ \(\hat{Y} = \hat{\beta}_0+\hat{\beta}_1 X\) จากหัวข้อ 7 พอดี — ช่วง 95% prediction interval กว้างถึง <strong>48.7 หน่วย</strong> (15.9 ถึง 64.7) ทั้งที่ point estimate อยู่กลาง ๆ พอดีที่ 40.3 — สะท้อนว่าตัวอย่างมีแค่ n=10 จุด ทำให้ยังไม่แน่ใจมากนักในการทำนายค่าสังเกตใหม่แต่ละตัว</p>
+
+<h2>12. Confidence Band vs Prediction Interval — เห็นความต่างเป็นภาพ</h2>
+<p>ขยายจาก "จุดเดียว X₀" ไปเป็น "ทั้งเส้นถดถอย" — confidence band คือกลุ่มของ mean-response CI ที่ทุกค่า X ต่อกันเป็นแถบ, ส่วน prediction interval band คือกลุ่มของ PI ที่ทุกค่า X ต่อกัน:</p>
+<figure>
+<img src="../assets/slides/as1-p55-confidence-band-vs-prediction-interval.png" alt="Diagram of a scatterplot with a fitted regression line surrounded by a narrow 95% confidence band close to the line and a much wider 95% prediction interval band further out">
+<figcaption>Slide: Confidence Band and Prediction Interval — ภาพรวม (Lecture 1, p.55)</figcaption>
+</figure>
+<p>อ่านภาพ: เส้นประสีน้ำเงิน (95% Confidence Band) แนบชิดเส้นถดถอยสีน้ำเงินตลอดช่วง เพราะเป็นความไม่แน่นอนของ "ค่าเฉลี่ย" เท่านั้น ส่วนเส้นประสีแดง (95% Prediction Interval) ห่างออกไปมากกว่าอย่างชัดเจนตลอดทั้งเส้น ครอบคลุมจุดข้อมูลจริง (วงกลมดำ) เกือบทั้งหมดไว้ข้างใน — ตรงกับส่วน "+1" ในสูตร SE ของหัวข้อ 11 พอดี ที่ทำให้แถบ prediction กว้างกว่าแถบ confidence เสมอทุกจุดบนเส้น ไม่ใช่แค่บางช่วง</p>
+<p>ผลลัพธ์จริงจากข้อมูล Automobile Data เมื่อคำนวณทั้งสองแถบด้วย R (<code>predict(..., se.fit=TRUE)</code> ตามสูตร Working–Hotelling \(W=\sqrt{2F_{(1-\alpha,\,2,\,n-2)}}\) สำหรับ band และสูตร PI ปกติสำหรับแถบนอก) แล้วพล็อตทับข้อมูลจริง:</p>
+<figure>
+<img src="../assets/slides/as1-p58-confidence-band-r-output.png" alt="R plot of the automobile sales data with the fitted regression line in black, a tighter inner band (green/blue dashed) for the confidence band, and a wider outer band (red dashed) for the prediction interval">
+<figcaption>Slide: Confidence Band and Prediction Interval — ผลจริงจาก R (Lecture 1, p.58)</figcaption>
+</figure>
+<p>สังเกตแถบในสุด (เขียว/น้ำเงิน ประ) แคบกว่าแถบนอกสุด (แดง ประ) มาก และแถบทั้งคู่<strong>บีบแคบที่สุดตรงกลาง (ใกล้ X̄=5.5)</strong> แล้วบานออกที่ปลายทั้งสองข้าง (X=1 และ X=10) — ตรงกับพจน์ \((X_0-\bar{X})^2\) ในสูตร SE ทั้งสองแบบ: ยิ่ง X₀ ห่างจากค่าเฉลี่ย X̄ มาก ความไม่แน่นอนยิ่งสูง เพราะข้อมูลตัวอย่างเบาบางกว่าที่ขอบเทียบกับตรงกลาง</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 11 (Free response)</span><span>Confidence Band vs Prediction Interval</span></div>
+  <div class="qtext">อธิบายว่าทำไม 95% prediction interval ที่ X₀ หนึ่งจุด ต้องกว้างกว่า 95% confidence interval ของ mean response ที่ X₀ เดียวกันเสมอ (อ้างอิงสูตร SE ทั้งสองแบบ)</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">SE ของ prediction (\(s\sqrt{1 + \dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)) มีพจน์ "+1" เพิ่มเข้ามาเทียบกับ SE ของ mean response (\(s\sqrt{\dfrac{1}{n} + \dfrac{(X_0-\bar{X})^2}{\sum (X_i-\bar{X})^2}}\)) เพราะ prediction ต้องนับความไม่แน่นอน 2 แหล่งรวมกัน: (1) ความไม่แน่นอนในการประมาณเส้นถดถอยจากตัวอย่าง (เหมือน mean response) บวกกับ (2) ความแปรปรวนตามธรรมชาติของค่าสังเกตใหม่หนึ่งตัวรอบเส้นทฤษฎี (σ²) ซึ่ง mean response ไม่ต้องนับเพราะถามแค่ค่าเฉลี่ย ไม่ใช่ค่าสังเกตจริงตัวใดตัวหนึ่ง</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 12</span><span>สรุปรวม</span></div>
+  <div class="qtext">บริษัทอยากรู้ "ยอดขายเฉลี่ยของเดือนที่มีงบโฆษณา 5 ล้านบาท" เทียบกับ "ยอดขายของเดือนหน้าที่จะใช้งบโฆษณา 5 ล้านบาท" ควรใช้ interval แบบใดตามลำดับ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Prediction interval สำหรับคำถามแรก, Confidence interval ของ mean response สำหรับคำถามที่สอง</button>
+  <button class="opt" data-correct="false">ใช้ prediction interval กับทั้งสองคำถามได้เหมือนกัน เพราะปลอดภัยกว่าเสมอ</button>
+  <button class="opt" data-correct="true">Confidence interval ของ mean response สำหรับคำถามแรก, Prediction interval สำหรับคำถามที่สอง</button>
+  <button class="opt" data-correct="false">ใช้ confidence interval ของ mean response กับทั้งสองคำถามได้เหมือนกัน เพราะ point estimate เท่ากัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรเขียนสมการ \(Y_i = \beta_0+\beta_1 X_i+\varepsilon_i\) พร้อม assumption 4 ข้อของ ε ได้จากความจำ, อ่าน output จาก <code>summary(lm(...))</code> ได้ครบทุกบรรทัดพร้อมเชื่อมแต่ละตัวเลขกับสูตรที่มาของมัน, เขียนประโยคแปลผลสัมประสิทธิ์ที่ไม่ใช้คำเชิงเหตุผลผิด ๆ, และแยกความต่างระหว่าง confidence interval ของ mean response กับ prediction interval ได้ทั้งจากสูตรและจากภาพ — ทักษะทั้งหมดนี้จะถูกใช้ซ้ำและขยายผลใน Lecture 2 (Multiple Linear Regression) เป็นต้นไป
+</div>
+
+<h2>ภาคผนวก: Slide ทั้งหมดใน Deck (58 หน้า) — เช็คว่าอ่านครบ</h2>
+<p>ตารางนี้ไล่ทุกหน้าของ <code>Lecture1.pdf</code> ตั้งแต่หน้า 1 ถึง 58 — หน้าที่มี ✓ ถูกอธิบายและ/หรือใส่รูปในเนื้อหาข้างบนแล้ว ส่วนที่เหลือ (etc) เป็นหน้าปก/หน้าคั่น/R syntax อ้างอิงล้วน ๆ ที่ไม่มีเนื้อหาทฤษฎีใหม่ให้ทำ quiz เพิ่ม</p>
+<table>
+<tr><th>หน้า</th><th>เนื้อหา</th><th>สถานะ</th></tr>
+<tr><td>1</td><td>ปกเรื่อง "Lecture 1: Simple Linear Regression"</td><td>etc — ปก</td></tr>
+<tr><td>2</td><td>Deterministic vs Probabilistic Model — ตัวอย่าง deterministic (Profit)</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>3</td><td>Deterministic vs Probabilistic Model — นิยาม probabilistic</td><td>✓ หัวข้อ 1</td></tr>
+<tr><td>4</td><td>Introduction to Regression Methods — เป้าหมาย/คำศัพท์ X,Y</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>5</td><td>A Brief History of Regression — Galton/Pearson/Edgeworth/Yule</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>6</td><td>Galton's diagram based on Table I (ภาพประกอบประวัติศาสตร์)</td><td>etc — ภาพซ้ำแนวคิดกับหน้า 7 ที่ใช้แทนแล้ว</td></tr>
+<tr><td>7</td><td>Rate of Regression in Hereditary Stature (Galton 1886)</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>8</td><td>Associative vs Causal Inference — confounder (ไอศกรีม/นักท่องเที่ยว/อุณหภูมิ)</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>9</td><td>Associative vs Causal Inference — experimental design (แสง/ต้นทานตะวัน)</td><td>✓ หัวข้อ 2 (มีรูป)</td></tr>
+<tr><td>10</td><td>Strengths and Weaknesses of Linear Regression</td><td>✓ หัวข้อ 2</td></tr>
+<tr><td>11</td><td>Simple Linear Regression — นิยามโมเดล Y_i=β₀+β₁X_i+ε_i</td><td>✓ หัวข้อ 3</td></tr>
+<tr><td>12</td><td>Assumptions on Error Terms — รายการ 4 ข้อ + ภาพ scatter</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>13</td><td>Assumptions on Error Terms — ภาพ implication (Ramsey&amp;Schafer)</td><td>✓ หัวข้อ 4 (มีรูป)</td></tr>
+<tr><td>14</td><td>Linear Regression Model when p=1 — ภาพเส้นถดถอย</td><td>✓ หัวข้อ 3 (มีรูป)</td></tr>
+<tr><td>15</td><td>Scatter Plot — 4 รูปแบบความสัมพันธ์</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>16</td><td>Scatter Plot in R — args ของ plot()</td><td>✓ หัวข้อ 5</td></tr>
+<tr><td>17</td><td>Graphical Parameters — cex options</td><td>etc — R syntax อ้างอิง ดูตารางในบทเรียนสรุปสั้นแล้ว</td></tr>
+<tr><td>18</td><td>Graphical Parameters — pch symbols (ภาพ)</td><td>etc — R syntax อ้างอิงล้วน ๆ ไม่มีเนื้อหาทฤษฎี</td></tr>
+<tr><td>19</td><td>Graphical Parameters — lty/lwd (ภาพ)</td><td>etc — R syntax อ้างอิงล้วน ๆ ไม่มีเนื้อหาทฤษฎี</td></tr>
+<tr><td>20</td><td>Example: Automobile Data — ตาราง + scatter</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>21</td><td>Example: Automobile Data (revisited) — โค้ด R + plot</td><td>✓ หัวข้อ 5 (มีรูป)</td></tr>
+<tr><td>22</td><td>Least Squares Method — แนวคิด + ภาพ residual</td><td>✓ หัวข้อ 6 (มีรูป)</td></tr>
+<tr><td>23</td><td>Least Squares Method — สูตร SSE, β̂₀, β̂₁</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>24</td><td>Correlation Coefficients — นิยามทั่วไป</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>25</td><td>Correlation Coefficients — สูตร S_x², S_y², COV_xy, r_xy</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>26</td><td>Simple Regression and the Correlation Coefficient — β̂₁=r(S_x/S_y)</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>27</td><td>Different Values of the Correlation Coefficient (ภาพ 5 แผง)</td><td>✓ หัวข้อ 6 (มีรูป)</td></tr>
+<tr><td>28</td><td>Cautions in Using Correlation</td><td>✓ หัวข้อ 6</td></tr>
+<tr><td>29</td><td>Fitting a Regression Model in R — lm() args</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>30</td><td>Class lm — ฟังก์ชัน generic (summary, coef, resid ฯลฯ)</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>31</td><td>Example: Automobile Data (revisited) — โค้ด lm()/summary()</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>32</td><td>Example: Automobile Data (revisited) — ผล summary() เต็ม + สมการ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>33</td><td>Estimation of Error Term Variance σ² — สูตร SSE, s²</td><td>✓ หัวข้อ 7 (อ้างถึง Residual standard error)</td></tr>
+<tr><td>34</td><td>Estimation of Error Term Variance σ² — R output ซ้ำ</td><td>✓ หัวข้อ 7</td></tr>
+<tr><td>35</td><td>Inferences in Simple Linear Regression — รูปแบบ test statistic ทั่วไป</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>36</td><td>Testing β₁ — สูตร t, SE[β̂₁]</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>37</td><td>Testing β₀ — สูตร t, SE[β̂₀]</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>38</td><td>Results from R — output ซ้ำ (เชื่อมกับ t-test)</td><td>✓ หัวข้อ 8</td></tr>
+<tr><td>39</td><td>Confidence Interval for β₀ and β₁ — สูตร + confint() output</td><td>✓ หัวข้อ 9</td></tr>
+<tr><td>40</td><td>Coefficient of Determination — นิยาม R², R²=SSR/SST</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>41</td><td>Coefficient of Determination — การแตกตัว SST=SSE+SSR</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>42</td><td>Explained and Unexplained Variation — ภาพแตกตัว SST/SSE/SSR</td><td>✓ หัวข้อ 10 (มีรูป)</td></tr>
+<tr><td>43</td><td>Coefficient of Determination — R output ซ้ำ</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>44</td><td>3 Common Misunderstandings of R²</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>45</td><td>F-test — สูตร F=MSR/MSE, ความสัมพันธ์กับ t²</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>46</td><td>F-test — ตาราง ANOVA สำหรับ regression</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>47</td><td>ANOVA Table — anova(model) R output</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>48</td><td>Results from R — summary() output ซ้ำ (เชื่อมกับ F-test)</td><td>✓ หัวข้อ 10</td></tr>
+<tr><td>49</td><td>Estimate Mean Response at X=X₀ — ภาพระฆังบนเส้น</td><td>✓ หัวข้อ 11 (มีรูป)</td></tr>
+<tr><td>50</td><td>Estimate Mean Response at X=X₀ — สูตร point/interval estimate</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>51</td><td>Predict Y at X=X₀ — ภาพระฆัง</td><td>✓ หัวข้อ 11 (มีรูป)</td></tr>
+<tr><td>52</td><td>Predict Y at X=X₀ — สูตร point/interval estimate (PI)</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>53</td><td>Prediction using Regression Equation — predict() function + ตัวอย่าง</td><td>✓ หัวข้อ 11</td></tr>
+<tr><td>54</td><td>Confidence Band — สูตร Working-Hotelling</td><td>✓ หัวข้อ 12</td></tr>
+<tr><td>55</td><td>Confidence Band and Prediction Interval — ภาพรวมแนวคิด</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+<tr><td>56</td><td>Confidence Band and Prediction Interval — โค้ด R (คำนวณ band)</td><td>✓ หัวข้อ 12 (สรุปแนวคิด ไม่ยกโค้ดเต็ม)</td></tr>
+<tr><td>57</td><td>Confidence Band and Prediction Interval — โค้ด R (พล็อต)</td><td>✓ หัวข้อ 12 (สรุปแนวคิด ไม่ยกโค้ดเต็ม)</td></tr>
+<tr><td>58</td><td>Confidence Band and Prediction Interval — ผลจริงจาก R (ภาพ)</td><td>✓ หัวข้อ 12 (มีรูป)</td></tr>
+</table>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span>← กลับ MISSION.md เพื่อดูภาพรวม</span>
+  <span><a href="0002-multiple-linear-regression.html">Lesson 2: Multiple Linear Regression →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>
