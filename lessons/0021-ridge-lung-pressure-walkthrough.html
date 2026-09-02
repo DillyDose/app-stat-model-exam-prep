@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Assignment 4(j) Walkthrough: Ridge Regression บน Lung Pressure Data</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>แบบฝึกจริง · Assignment 4(j) — Ridge Regression บน Lung Pressure Data</span>
+  <span><a href="../reference/0007-penalized-regression-cheatsheet.html">Reference: สูตร Ridge/LASSO + glmnet cheat sheet →</a></span>
+</nav>
+
+<p class="kicker">Worked Example ต่อจาก Lesson 7 — Penalized Regression</p>
+<h1>Assignment 4(j) Walkthrough: Ridge Regression บน Lung Pressure Data</h1>
+
+<p><a href="0007-penalized-regression.html">← Lesson 7: Penalized Regression</a></p>
+
+<p>Lesson 7 วางหลักการทั่วไปของ Ridge Regression ไว้ผ่านสูตร \(\ell_2\)-norm และตัวอย่างจำลองด้วย <code>glmnet</code> — บทเรียนนี้เอาหลักการเดียวกันไปจับกับโจทย์จริงจาก Assignment 4 ข้อ (j) ที่ fit ridge บนชุดข้อมูล Lung Pressure ซึ่งพิสูจน์แล้วในข้อก่อนหน้าของ assignment เดียวกันว่ามี multicollinearity รุนแรง แม้ package ที่ใช้ในข้อนี้ (<code>lmridge</code> แทน <code>glmnet</code>) จะพิมพ์คอลัมน์ p-value ออกมาให้ต่างจากที่ Lesson 7 บอกไว้ว่า <code>glmnet</code> ไม่มีคอลัมน์นี้เลย แต่หลักการเดิมยังใช้เต็มที่: สัมประสิทธิ์ถูก standardize และ shrink โดยตั้งใจ จึงตีความแบบตาราง <code>lm()</code> ตรง ๆ ไม่ได้ ต่อให้มีตัวเลข p-value โชว์อยู่ก็ตาม.</p>
+
+<h2>1. ทวนบริบท: Lung Pressure Data และ Multicollinearity ที่มาก่อนหน้าข้อ (j)</h2>
+<ul>
+<li><strong>ข้อมูล:</strong> <code>lungpressure.csv</code> — คาร์ดิโอโลจิสต์เก็บข้อมูลจากผู้ป่วย COPD ระดับ mild-to-moderate จำนวน <strong>19 คน</strong></li>
+<li><strong>Y:</strong> systolic pulmonary arterial pressure วัดแบบ invasive (วิธีมาตรฐานแต่เสี่ยงและยากทางเทคนิค)</li>
+<li><strong>X1, X2:</strong> ตัวแปรจาก radionuclide imaging (วิธี non-invasive ที่ต้องการทดสอบว่าใช้แทนวิธี invasive ได้ไหม) — X1 = emptying rate ของเลือดเข้าห้องสูบฉีดของหัวใจ, X2 = ejection rate ของเลือดที่ปั๊มออกไปยังปอด</li>
+<li><strong>X3:</strong> ตัวแปรวัดค่าแก๊สในเลือด — <strong>ไม่ได้ใช้ในโมเดลของข้อ (j) นี้</strong> โมเดลที่ fit คือ <code>Y ~ X1*X2</code> (X1, X2 และพจน์ interaction X1:X2 เท่านั้น)</li>
+<li><strong>สิ่งที่ parts (a)-(i) ของ assignment ทำมาก่อนแล้ว</strong> (ไม่ลงรายละเอียดในบทเรียนนี้ — อยู่ใน lesson diagnostics part 2 แทน): fit OLS เต็มรูปแบบ (<code>Y~X1*X2</code>) บนข้อมูลทั้ง 19 เคส แล้วตรวจสอบ VIF ได้ <strong>X1 = 5.43, X2 = 11.64, X1X2 = 22.47</strong> — ทั้ง X2 และ X1X2 เกินเกณฑ์ VIF>10 ชัดเจน สรุปว่ามี multicollinearity รุนแรงตั้งแต่รอบแรก</li>
+<li>หลังจากนั้นตรวจ influence diagnostics (DFFITS, DFBETAS, Cook's distance) แล้วพบว่า <strong>Case 3, 7, 8, 15</strong> เป็นจุดที่มีอิทธิพลสูงต่อโมเดล จึงตัดทั้ง 4 เคสออกแล้ว refit OLS ใหม่บนข้อมูลที่เหลือ <strong>15 เคส</strong> (เรียกว่า <code>newdata</code> ในโค้ด R)</li>
+</ul>
+<p>ประเด็นสำคัญที่ทำให้ข้อ (j) ต้องใช้ ridge: การ refit OLS บน <code>newdata</code> (15 เคสที่ตัดจุดอิทธิพลออกแล้ว) กลับได้ VIF <strong>แย่ลงกว่าเดิม</strong> ไม่ใช่ดีขึ้น — <strong>X1 = 6.91, X2 = 38.15, X1X2 = 57.78</strong> พุ่งสูงขึ้นมากจากรอบแรก (11.64 → 38.15 สำหรับ X2, 22.47 → 57.78 สำหรับ X1X2) นี่คือหลักฐานตัวเลขจริงว่า <strong>การตัดจุดอิทธิพลทิ้งไม่ได้แก้ปัญหา multicollinearity เลย</strong> เพราะปัญหานี้มาจากความสัมพันธ์เชิงโครงสร้างระหว่างตัวแปรอิสระเอง (X1, X2 และพจน์คูณ X1X2 ของมันมักสัมพันธ์กันสูงโดยธรรมชาติ) ไม่ใช่จาก observation ไม่กี่ตัว — assignment จึงเปลี่ยนไปใช้ ridge regression เป็นทางแก้เชิงโครงสร้างแทนในข้อ (j).</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>ทำไมต้อง Ridge</span></div>
+  <div class="qtext">หลังจากตัด Case 3, 7, 8, 15 ออกแล้ว refit OLS ใหม่ VIF ของ X1X2 กลับพุ่งจาก 22.47 เป็น 57.78 (แย่ลง) ข้อสรุปใดถูกต้องที่สุดจากตัวเลขนี้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">การตัดจุดอิทธิพลทิ้งได้ผลดี ควรตัดเพิ่มอีกจนกว่า VIF จะลดลง</button>
+  <button class="opt" data-correct="true">Multicollinearity ในข้อมูลนี้มาจากความสัมพันธ์เชิงโครงสร้างของตัวแปรอิสระเอง ไม่ใช่จาก observation ที่ผิดปกติไม่กี่ตัว การตัด outlier ทิ้งจึงแก้ปัญหานี้ไม่ได้ ต้องใช้วิธีเชิงโครงสร้างอย่าง ridge แทน</button>
+  <button class="opt" data-correct="false">ตัวเลข VIF ที่สูงขึ้นแปลว่าการวิเคราะห์ influence diagnostics ในขั้นก่อนหน้าผิดพลาด</button>
+  <button class="opt" data-correct="false">VIF ที่สูงขึ้นไม่มีนัยสำคัญ เพราะ VIF ไม่เกี่ยวข้องกับการเลือกใช้ ridge regression เลย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. เรียก <code>lmridge()</code> และพารามิเตอร์ K</h2>
+<p>ขั้นแรกของข้อ (j) ไม่ได้ fit ridge ด้วยค่าเดียวทันที แต่สแกนหลายค่าก่อนเพื่อดูภาพรวม:</p>
+<pre><code>&gt; library(lmridge)
+&gt; ridgemodel&lt;-lmridge(Y~X1*X2, newdata, K=seq(0,2,0.01))
+&gt; plot(ridgemodel)</code></pre>
+<ul>
+<li><code>newdata</code> คือชุดข้อมูล 15 เคสที่ตัด Case 3, 7, 8, 15 ออกแล้วจากขั้นก่อนหน้า — <strong>ridge ในข้อนี้ fit บนข้อมูลที่ clean แล้ว ไม่ใช่ข้อมูลดิบ 19 เคส</strong></li>
+<li><code>K</code> คือ ridge biasing parameter — บทบาทเดียวกับ \(\lambda\) ที่ Lesson 7 ใช้ แค่ package <code>lmridge</code> เรียกชื่อพารามิเตอร์ต่างออกไป: <code>K=0</code> ให้ผลเท่ากับ OLS พอดี (ไม่มีการหดเลย) ส่วน K ยิ่งมากยิ่งหดสัมประสิทธิ์เข้าใกล้ศูนย์มากขึ้น</li>
+<li><code>K=seq(0,2,0.01)</code> คือสร้างลำดับค่า K ตั้งแต่ 0 ถึง 2 ทีละ 0.01 — รวม <strong>201 ค่า</strong> — แทนที่จะเดาค่าเดียวลอย ๆ แล้วดูผลจาก <code>plot(ridgemodel)</code> เป็น <em class="term">ridge trace plot</em> เพื่อเลือก K ด้วยตาก่อนตัดสินใจ fit จริงอีกที</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>บทบาทของ K</span></div>
+  <div class="qtext"><code>lmridge(Y~X1*X2, newdata, K=seq(0,2,0.01))</code> — เหตุผลที่ใส่ K เป็นลำดับ 201 ค่าแทนที่จะใส่ตัวเลขเดียวตั้งแต่แรกคืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ <code>lmridge()</code> ต้องการอย่างน้อย 201 ค่าเสมอ ไม่งั้นฟังก์ชันจะ error</button>
+  <button class="opt" data-correct="true">เพื่อพล็อต ridge trace ดูว่าสัมประสิทธิ์แต่ละตัวเปลี่ยนแปลงอย่างไรเมื่อ K เพิ่มขึ้น แล้วเลือก K ที่เหมาะสมด้วยตาก่อน ค่อย fit โมเดลจริงด้วยค่า K เดียวที่เลือกได้</button>
+  <button class="opt" data-correct="false">เพราะ K ในที่นี้คือจำนวน fold ของ cross-validation เหมือน <code>cv.glmnet</code></button>
+  <button class="opt" data-correct="false">เพราะยิ่งใส่ K หลายค่ายิ่งทำให้ R² ของโมเดลสุดท้ายสูงขึ้นเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>3. อ่าน Ridge Trace Plot</h2>
+<figure>
+<img src="../assets/exam-plots/ex-a4-ridge-trace.png" alt="Ridge trace plot from lmridge for the lungpressure Y~X1*X2 model: x-axis Biasing Parameter K from 0 to 2, y-axis Ridge Coefficients beta_ridge from about -150 to 150. Green dotted line (X1:X2) spikes sharply above 150 near K=0 then rapidly flattens near zero; red dashed line (X2) starts near -160 and rises quickly to settle around -20 to -30; black solid line (X1) starts moderate and settles near zero — all three lines are essentially flat from about K=0.3 onward through K=2. Red annotation text reads min MSE=4881.587 at K=0.">
+<figcaption>Assignment 4(j) — Ridge Trace Plot, lungpressure data (K = 0 ถึง 2)</figcaption>
+</figure>
+<p>อ่านกราฟด้วยตัวเลขจริง: แกน x คือ K ตั้งแต่ 0 ถึง 2, แกน y คือค่าสัมประสิทธิ์ ridge (\(\beta_{ridge}\)) ตั้งแต่ประมาณ -150 ถึง 150 มีสามเส้นตามสามสัมประสิทธิ์ที่ไม่ใช่ intercept (X1, X2, X1:X2):</p>
+<ul>
+<li><strong>ช่วง K ใกล้ 0 (ซ้ายสุดของกราฟ):</strong> ทั้งสามเส้นแกว่งรุนแรงมาก โดยเฉพาะเส้นประเขียว (X1:X2 ตามที่ legend ระบุ) ที่พุ่งขึ้นเกิน 150 เกือบทันทีตั้งแต่ K ยังใกล้ 0 มาก ๆ — นี่คือรูปธรรมของความไม่เสถียรที่ VIF=57.78 บอกไว้แล้วในหัวข้อ 1: ที่ K=0 (=OLS พอดี) สัมประสิทธิ์อ่อนไหวสุด ๆ ต่อการเปลี่ยนแปลงเล็กน้อยในข้อมูล</li>
+<li><strong>ตั้งแต่ประมาณ K≈0.2-0.3 เป็นต้นไป:</strong> ทั้งสามเส้นแบนราบลงชัดเจนและแทบไม่ขยับอีกเลยจนถึง K=2 — นี่คือจุดที่เรียกว่า "สัมประสิทธิ์เสถียรแล้ว" (coefficients stabilize) การเพิ่ม K ต่อจากจุดนี้แทบไม่ได้ความเสถียรเพิ่มขึ้นอีก มีแต่เพิ่ม bias เข้าไปเปล่า ๆ</li>
+<li><strong>คำเตือนสำคัญจากข้อความสีแดงในภาพ "min MSE=4881.587 at K=0":</strong> ถ้าเลือก K แบบ minimize MSE ตรง ๆ จากกริดนี้ จะได้ K=0 — ซึ่งก็คือ<strong>กลับไปเป็น OLS ธรรมดา</strong> อันเดียวกับที่มีปัญหา multicollinearity อยู่แล้ว! นี่คือเหตุผลที่ assignment <strong>ไม่</strong>ใช้กฎ minimum-MSE อัตโนมัติ แต่เลือกอ่านกราฟด้วยตาแทน แล้วเลือก <strong>K=0.5</strong> ซึ่งอยู่ในโซนที่เส้นแบนราบแล้วอย่างสบาย ๆ (ไม่ใช่จุดต่ำสุดของ MSE แต่เป็นจุดที่ trade-off ระหว่าง bias ที่เพิ่มกับความเสถียรที่ได้มาสมเหตุสมผลกว่า)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>อ่าน Ridge Trace</span></div>
+  <div class="qtext">กราฟระบุ "min MSE=4881.587 at K=0" แต่ assignment กลับเลือกใช้ K=0.5 แทน เหตุผลที่ถูกต้องที่สุดคืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะตัวเลข 4881.587 คำนวณผิดพลาด ต้องคำนวณใหม่</button>
+  <button class="opt" data-correct="true">K=0 เท่ากับไม่มีการหดสัมประสิทธิ์เลย (=OLS พอดี) ซึ่งเป็นจุดที่สัมประสิทธิ์แกว่งรุนแรงที่สุดตามที่กราฟแสดง — เลือก K=0.5 แทนเพราะเป็นจุดที่เส้นทั้งสามแบนราบและเสถียรแล้ว ไม่ใช่แค่จุดต่ำสุดของ MSE บนกริดที่ทดสอบ</button>
+  <button class="opt" data-correct="false">K=0.5 ให้ค่า R² สูงกว่า K=0 เสมอ จึงเลือกใช้</button>
+  <button class="opt" data-correct="false">ไม่มีความแตกต่างกันจริง ๆ ระหว่าง K=0 กับ K=0.5 เลือกค่าไหนก็ได้ผลเหมือนกัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. ตารางสัมประสิทธิ์ Ridge ที่ K=0.5</h2>
+<p>เมื่อเลือก K=0.5 ได้แล้วจากกราฟ ขั้นต่อไปคือ fit โมเดลจริงด้วยค่า K เดียวนี้:</p>
+<pre><code>&gt; ridgemodel&lt;-lmridge(Y~X1*X2, newdata, K=0.5)
+&gt; summary(ridgemodel)
+Call:
+lmridge.default(formula = Y ~ X1 * X2, data = newdata, K = 0.5)
+Coefficients: for Ridge parameter K= 0.5
+            Estimate Estimate (Sc) StdErr (Sc) t-value (Sc) Pr(&gt;|t|)
+Intercept    57.2359    12709.2724   5085.8432       2.4990   0.0271 *
+X1           -0.0571       -1.3597       6.0811      -0.2236   0.8266
+X2           -0.2705      -17.5346       4.7264      -3.7099   0.0027 **
+X1:X2        -0.0029       -8.5013       3.6252      -2.3450   0.0361 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Ridge Summary
+       R2    adj-R2 DF ridge          F       AIC       BIC
+  0.31270   0.19820   1.36457   6.36079 68.09100 109.67794
+Ridge minimum MSE= 53437.8 at K= 0.5
+P-value for F-test ( 1.36457 , 13.22619 ) = 0.01839163</code></pre>
+<ul>
+<li><strong>คอลัมน์ Estimate</strong> คือสัมประสิทธิ์ที่ถูกแปลงกลับ (back-transformed) มาอยู่ในหน่วยดั้งเดิมของ X1, X2 แล้ว — อ่านง่ายในหน่วยจริง แต่<strong>ไม่มี StdErr/t-value/p-value คู่กับมัน</strong></li>
+<li><strong>คอลัมน์ Estimate (Sc), StdErr (Sc), t-value (Sc), Pr(&gt;|t|)</strong> คือค่าบนสเกลที่ standardize แล้ว (Sc = scaled) — นี่คือสเกลที่ ridge penalty ทำงานจริง ๆ และเป็นคอลัมน์เดียวที่มีค่าทดสอบนัยสำคัญมาให้</li>
+<li><strong>DF ridge = 1.36457</strong> ไม่ใช่ 3 เท่ากับจำนวนตัวแปรที่ใส่ในโมเดล — สะท้อนว่า shrinkage ลดจำนวน "องศาความเสรีที่แท้จริง" (effective degrees of freedom) ของโมเดลลงจากค่านามธรรมเดิม เพราะสัมประสิทธิ์ถูกบีบให้ทำงานคล้ายกันมากขึ้น ไม่อิสระเต็มที่เหมือน OLS</li>
+<li><strong>Ridge minimum MSE = 53437.8 at K=0.5</strong> — สังเกตว่าตัวเลขนี้<strong>ไม่ใช่ตัวเดียวกัน</strong>กับ "min MSE=4881.587 at K=0" ที่ปรากฏในกราฟ ridge trace ของหัวข้อ 3 คนละค่ากันเพราะมาจากการคำนวณคนละขั้น (ค่าจากกราฟคือ MSE ต่ำสุดที่พบตลอดทั้งกริด K=0 ถึง 2 ส่วนค่านี้คือ MSE ที่รายงานเฉพาะสำหรับการ fit ที่ K=0.5 นี้) — อย่าสับสนตัวเลขสองตัวนี้เข้าด้วยกัน</li>
+</ul>
+<p>สมการสุดท้ายตามที่ solution เขียนไว้:</p>
+<div class="box win">
+\[\hat{Y} = 57.24 - 0.06X_1 - 0.27X_2 + 0.003X_1X_2\]
+</div>
+<p><strong>ข้อควรระวัง:</strong> สังเกตว่าเครื่องหมายของพจน์ \(X_1X_2\) ในสมการนี้เป็น <strong>บวก</strong> (+0.003) แต่ตารางสัมประสิทธิ์ด้านบนระบุ <code>X1:X2 = -0.0029</code> ชัดเจน — ถ้าปัดทศนิยมจาก -0.0029 ควรได้ -0.003 (ลบ) ไม่ใช่ +0.003 (บวก) นี่น่าจะเป็นความคลาดเคลื่อนจากการพิมพ์สมการสรุปในเฉลยต้นฉบับ ไม่ใช่ตัวเลขที่ถูกต้อง — บทเรียนที่ได้: <strong>อย่าเชื่อสมการสรุปท้ายบรรทัดเฉย ๆ โดยไม่ไล่เทียบกับตารางสัมประสิทธิ์ที่มันสรุปมาเสมอ</strong> โดยเฉพาะกับตัวเลขที่เล็กมากอย่าง 0.003 ซึ่งพลาดเครื่องหมายได้ง่าย.</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>สองคอลัมน์ Estimate</span></div>
+  <div class="qtext">ทำไมตาราง <code>summary(ridgemodel)</code> ถึงมีคอลัมน์ StdErr (Sc), t-value (Sc), Pr(&gt;|t|) ให้เฉพาะคอลัมน์ Estimate (Sc) เท่านั้น ไม่มีให้กับคอลัมน์ Estimate (หน่วยดั้งเดิม)?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เป็นข้อจำกัดทางเทคนิคของ R ที่ไม่สามารถคำนวณ StdErr บนหน่วยดั้งเดิมได้เลยในทุกกรณี</button>
+  <button class="opt" data-correct="true">Ridge penalty และการทดสอบนัยสำคัญถูกคำนวณบนสเกลที่ standardize แล้วเท่านั้น คอลัมน์ Estimate หน่วยดั้งเดิมเป็นแค่การแปลงกลับเพื่อให้อ่านง่าย ไม่ใช่สเกลที่ penalty ทำงานจริง จึงไม่มี inference คู่กับมัน</button>
+  <button class="opt" data-correct="false">เพราะ X1 และ X2 ในข้อมูลนี้มีหน่วยเดียวกันอยู่แล้ว ไม่จำเป็นต้อง standardize</button>
+  <button class="opt" data-correct="false">เพราะสัมประสิทธิ์หน่วยดั้งเดิมทุกตัวมีค่าเท่ากับศูนย์อยู่แล้วโดยอัตโนมัติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>5. OLS vs Ridge: อะไรเปลี่ยนไปบ้าง</h2>
+<p>เทียบสัมประสิทธิ์จาก OLS ที่ fit บนข้อมูล 15 เคสเดียวกัน (part h ของ assignment) กับ ridge ที่ K=0.5:</p>
+<div class="box source">
+OLS (part h, n=15): \(\hat{Y} = 135.70 - 2.078X_1 - 2.549X_2 + 0.055X_1X_2\)<br>
+Ridge (K=0.5): \(\hat{Y} = 57.24 - 0.057X_1 - 0.271X_2 - 0.0029X_1X_2\)
+</div>
+<ul>
+<li><strong>X1:</strong> -2.078 → -0.057 — หดลงประมาณ <strong>97%</strong></li>
+<li><strong>X2:</strong> -2.549 → -0.271 — หดลงประมาณ <strong>89%</strong></li>
+<li><strong>X1:X2:</strong> +0.0552 → -0.0029 — หดลงประมาณ <strong>95%</strong> ของขนาด <em>และ</em>เปลี่ยนเครื่องหมายจากบวกเป็นลบ</li>
+</ul>
+<p>การหดตัวขนาดใหญ่ขนาดนี้ (89-97%) สอดคล้องกับ VIF ที่สูงมากในหัวข้อ 1 (โดยเฉพาะ X1X2 ที่ VIF=57.78) — ยิ่ง multicollinearity รุนแรง ยิ่งบอกว่าค่า OLS เดิมไม่เสถียรมาก ridge จึงต้องหดแรงเพื่อดึงกลับมาให้เสถียร พจน์ที่น่าสนใจที่สุดคือ X1:X2 ที่<strong>เครื่องหมายพลิกจากบวกเป็นลบ</strong> — ไม่ควรอ่านว่า "ทิศทางของผล interaction กลับด้าน" เพราะค่า OLS เดิม (+0.055) เองก็เป็นผลผลิตของความไม่เสถียรจาก VIF=57.78 อยู่แล้ว ไม่ใช่ค่าที่น่าเชื่อถือตั้งแต่ต้น การที่ ridge ดึงมันข้ามศูนย์ไปอีกฝั่งเป็นเรื่องที่เกิดขึ้นได้ปกติเมื่อค่าที่แท้จริงอยู่ใกล้ศูนย์และตัวประมาณเดิมแกว่งแรง — ทั้งค่า OLS +0.055 และค่า ridge -0.003 จึงไม่ควรถูกอ่านแยกตัวว่าเป็น "ผลจริง" ของ interaction.</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>สัมประสิทธิ์ X1:X2 พลิกเครื่องหมาย</span></div>
+  <div class="qtext">สัมประสิทธิ์ X1:X2 เปลี่ยนจาก OLS +0.0552 เป็น ridge -0.0029 (K=0.5) อธิบายว่าทำไมไม่ควรสรุปว่า "ทิศทางที่แท้จริงของผล interaction กลับด้านจากบวกเป็นลบ" จากตัวเลขนี้</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">VIF ของ X1X2 ในโมเดล OLS สูงถึง 57.78 ซึ่งแปลว่าค่าประมาณ OLS ดั้งเดิม (+0.0552) เองก็ไม่เสถียรและมีความแปรปรวนสูงมากอยู่แล้ว ไม่ใช่ค่าที่น่าเชื่อถือเป็นทุนเดิม การที่ ridge ดึงค่านี้ผ่านศูนย์ไปอีกฝั่งเป็นพฤติกรรมปกติของ shrinkage เมื่อค่าจริงอยู่ใกล้ศูนย์และตัวประมาณเดิมแกว่งแรงจาก multicollinearity ไม่ใช่หลักฐานว่าทิศทางที่แท้จริงของผลกลับด้าน ทั้งค่า OLS +0.0552 และค่า ridge -0.0029 ต่างเป็นตัวประมาณที่มีความไม่แน่นอนสูงในบริบทนี้ ควรอ่านว่า "ผลของ interaction นี้เล็กมากและไม่แน่นอนพอที่จะฟันธงทิศทาง" มากกว่าเชื่อเครื่องหมายจากค่าใดค่าหนึ่งตรง ๆ</div>
+</div>
+
+<h2>6. ข้อควรระวังในการตีความ (Interpretation Caveats)</h2>
+<p>ทวนหลักการจาก Lesson 7 แล้วผูกกับตัวเลขจริงของข้อนี้:</p>
+<ul>
+<li><strong>(1) Standardization:</strong> คอลัมน์ Estimate (Sc) อยู่บนสเกลที่ X ถูก standardize แล้ว ส่วนคอลัมน์ Estimate (หน่วยดั้งเดิม) เป็นแค่การแปลงกลับเพื่อความสะดวกในการอ่าน — ไม่มี StdErr/p-value คู่กับมันเลยตามที่เห็นในหัวข้อ 4</li>
+<li><strong>(2) Shrinkage คือ bias ที่ตั้งใจใส่เข้าไป:</strong> X1 หดจาก -2.078 เหลือ -0.057 (~97%) — นี่ไม่ใช่ "X1 กลายเป็นตัวแปรที่แทบไม่มีผล" แต่เป็นผลจากการที่ ridge จงใจดึงสัมประสิทธิ์ทุกตัวเข้าหาศูนย์เพื่อแก้ปัญหาความไม่เสถียรที่ VIF สูงมากบอกไว้</li>
+<li><strong>(3) p-value ในคอลัมน์ Sc ไม่ได้มีสถานะเดียวกับ p-value จาก OLS:</strong> เพราะ \(\hat{\beta}_{ridge}\) เป็น biased estimator โดยการออกแบบ พื้นฐานทางทฤษฎีของ p-value แบบ OLS (ที่อิง unbiased sampling distribution) จึงไม่ได้ถือครบเหมือนเดิม — ตัวเลข p=0.0027 ของ X2 และ p=0.0361 ของ X1:X2 ควรอ่านเป็นสัญญาณคร่าว ๆ ว่าพจน์เหล่านี้ยังมีน้ำหนักอยู่ ไม่ใช่บทสรุปทางสถิติที่เข้มงวดแบบ hypothesis test ใน Lesson 1</li>
+<li><strong>(4) DF ridge = 1.36457 ไม่ใช่ 3:</strong> ตัวเลขนี้เตือนตรง ๆ ว่าโมเดลนี้ "ทำงาน" ต่างจาก OLS ที่มี 3 พารามิเตอร์อิสระเต็มตัว — เป็นอีกจุดที่ห้ามเทียบ Ridge Summary กับ <code>summary(lm(...))</code> แบบเซลล์ต่อเซลล์ตรง ๆ</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>อ่าน p-value จาก Ridge อย่างถูกต้อง</span></div>
+  <div class="qtext">จากตารางในหัวข้อ 4 สัมประสิทธิ์ X1 (Sc) มี p-value = 0.8266 (ไม่มีนัยสำคัญ) ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">สรุปได้แน่ชัดว่า X1 ไม่มีผลจริงต่อ Y เลยในความเป็นจริง เหมือนกับผลจาก hypothesis test ของ OLS ทุกประการ</button>
+  <button class="opt" data-correct="true">เพราะ \(\hat{\beta}_{ridge}\) เป็น biased estimator โดยตั้งใจ p-value นี้จึงไม่มีสถานะทางทฤษฎีเหมือน p-value จาก OLS — อ่านได้แค่เป็นสัญญาณคร่าว ๆ ว่า X1 ในโมเดลนี้ (หลัง shrink แรงจาก multicollinearity) มีน้ำหนักน้อยกว่า X2 และ X1:X2 ไม่ใช่บทสรุปเชิงสถิติที่เข้มงวด</button>
+  <button class="opt" data-correct="false">p-value ของ ridge regression คำนวณด้วยวิธีเดียวกับ OLS ทุกประการ ไม่มีความต่างใด ๆ เลย</button>
+  <button class="opt" data-correct="false">ตัวเลข p-value นี้ใช้ไม่ได้เลย ต้องละเลยทิ้งไปทั้งหมด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response)</span><span>สรุปรวม: ทำไมต้อง Ridge ในโจทย์นี้</span></div>
+  <div class="qtext">สรุปเป็นข้อ ๆ ว่าเหตุใดโจทย์ Lung Pressure ข้อนี้จึงเหมาะกับ Ridge Regression มากกว่า LASSO (อ้างอิงจากค่า VIF ที่เห็นในหัวข้อ 1 และลักษณะของตัวแปร X1, X2, X1X2)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">มีตัวแปรอิสระแค่ 3 พจน์ (X1, X2, X1X2) และทั้งสามพจน์นี้น่าจะมีผลจริงต่อ Y อยู่บ้าง (ไม่ใช่สถานการณ์ sparse ที่ต้องการคัดตัวแปรทิ้งแบบที่ LASSO ถนัด) โจทย์นี้ไม่ได้ต้องการ "รายชื่อตัวแปรที่สำคัญจริง" แบบที่ LASSO ให้ได้ แต่ต้องการแก้ปัญหา multicollinearity ที่รุนแรงมาก (VIF สูงถึง 38-58) ซึ่งเป็นจุดแข็งตรงของ Ridge ที่หดสัมประสิทธิ์ของตัวแปรที่สัมพันธ์กันเองสูงให้เสถียรขึ้นพร้อมกันโดยไม่ตัดตัวแปรใดออกไปเลย ต่างจาก LASSO ที่อาจสุ่มเลือกเก็บแค่ตัวแปรเดียวจากกลุ่มที่สัมพันธ์กัน ซึ่งไม่เหมาะกับกรณีนี้ที่ X1, X2 และ X1X2 (ซึ่งเป็นฟังก์ชันของอีกสองตัวโดยตรง) ล้วนมีเหตุผลทางทฤษฎีให้อยู่ในโมเดลทั้งหมด</div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรอ่านเอาต์พุตของ <code>lmridge()</code> ได้ครบทุกส่วน: เรียก <code>lmridge(..., K=seq(...))</code> เพื่อพล็อต ridge trace ก่อนเลือก K ด้วยตา (ไม่ใช่ minimize MSE อัตโนมัติ เพราะ MSE ต่ำสุดมักตกที่ K=0=OLS พอดี), แยกคอลัมน์ Estimate (หน่วยดั้งเดิม) กับ Estimate (Sc) (สเกลที่ penalty ทำงานจริงและมี inference คู่ให้) ออกจากกันได้, และอธิบายได้ว่าทำไมสัมประสิทธิ์ที่หดลง 90% ขึ้นไปพร้อมเครื่องหมายพลิก (เช่น X1:X2 ในตัวอย่างนี้) ไม่ควรถูกอ่านเหมือนสัมประสิทธิ์ OLS ตรง ๆ — ทักษะทั้งหมดนี้ต่อยอดตรงจาก Lesson 7 มาใช้กับโจทย์ข้อสอบจริงที่มีทั้งตัวเลขที่ต้องไล่เทียบเองและจุดที่เฉลยต้นฉบับพิมพ์ผิดให้ระวัง.
+</div>
+
+<p><em>บทเรียนนี้ครอบคลุมเฉพาะข้อ (j) ของ Assignment 4 (ridge regression) เท่านั้น — ส่วน parts (a) ถึง (i) ของโจทย์เดียวกัน (fit OLS, residual plots, VIF รอบแรก, QQ-plot, studentized deleted residuals, leverage, influence measures, และการตัดจุดอิทธิพล) อยู่ในบทเรียนคู่กับ Lecture 4: Regression Diagnostics Part 2 แทน ไม่ซ้ำในบทเรียนนี้</em></p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="0007-penalized-regression.html">← Lesson 7: Penalized Regression</a></span>
+  <span><a href="../reference/0007-penalized-regression-cheatsheet.html">Reference: สูตร Ridge/LASSO + glmnet cheat sheet →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

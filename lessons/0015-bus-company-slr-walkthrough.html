@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Assignment 1 Walkthrough: Bus Company Cost Function (SLR ทั้งฉบับ)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>← <a href="0001-simple-linear-regression.html">Lesson 1: Simple Linear Regression</a></span>
+  <span><a href="../reference/0001-slr-formulas-and-r-output-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output</a> · <a href="../exams/drill-01-write-the-equation.html">Drill 1: Write the Equation →</a></span>
+</nav>
+
+<p class="kicker">Assignment 1 Walkthrough — ประยุกต์ Lesson 1: Simple Linear Regression กับข้อมูลจริง</p>
+<h1>Bus Company Cost Function: Walkthrough Assignment 1 ทั้งฉบับ</h1>
+
+<p>บทเรียนนี้เอากรอบ SLR จาก <a href="0001-simple-linear-regression.html">Lesson 1</a> มาใช้กับโจทย์การบ้านจริงที่มีเฉลย — <strong>Assignment 1: Bus Company Cost Function</strong> (ข้อมูล <code>Bus.csv</code>) บริษัทรถบัสอังกฤษเก็บข้อมูล <strong>n = 33 ช่วงเวลา</strong> ของค่าใช้จ่ายรวมที่ปรับด้วยเงินเฟ้อแล้ว (<strong>Y = Cost</strong>, หน่วย £100,000s) เทียบกับระยะทางที่รถวิ่ง (<strong>X = Miles</strong>, หน่วยล้านไมล์) เป้าหมายคือสร้าง cost function จากระยะทาง. บทเรียนนี้ครอบคลุมครบทั้ง 13 ข้อของ Assignment 1 (รวม 16 คะแนน) เรียงลำดับและจัดกลุ่มใหม่เพื่อให้อ่านต่อเนื่องกับทักษะที่ Lesson 1 สอนไว้.</p>
+
+<div class="box source">
+<div class="label">โจทย์ต้นฉบับ</div>
+"The manager of a British bus company is interested in creating a cost function based on mileage. Total deflated expenses (Y, in £100,000s) and car miles (X, in millions) of the company are collected over 33 time periods." — <em>2603645 APP STAT MODEL, Assignment 1</em>
+</div>
+
+<h2>Part 1–3: Scatterplot และการฟิตโมเดล</h2>
+<p>สามข้อแรกทำตามลำดับที่ Lesson 1 หัวข้อ 5 (Scatter Plot ก่อนเสมอ) และหัวข้อ 7 (<code>lm()</code>/<code>summary()</code>) สอนไว้เป๊ะ ๆ: ดูข้อมูลก่อน → ฟิต → ตรวจว่าเส้นที่ได้เข้ากับข้อมูลจริงหรือไม่.</p>
+
+<h3>Part 1 — Scatterplot: ความสัมพันธ์เบื้องต้น</h3>
+<pre><code>&gt; bus&lt;-read.csv("Bus.csv")
+&gt; attach(bus)
+&gt; plot(Miles, Cost)</code></pre>
+<ul>
+<li>คำตอบเฉลย: <strong>"There is a linear relationship between car miles and the total deflated expense."</strong></li>
+<li>นี่คือขั้นตอนบังคับก่อนฟิตโมเดลใด ๆ (Lesson 1 หัวข้อ 5) — ถ้าจุดกระจายเป็นรูปโค้งแทน ต้องพิจารณาแปลงตัวแปรหรือโมเดลไม่เชิงเส้นก่อน ไม่ใช่ฟิต SLR ตรง ๆ</li>
+</ul>
+
+<h3>Part 2 — Fit โมเดลและเขียนสมการถดถอย</h3>
+<pre><code>&gt; model&lt;-lm(Cost~Miles, data=bus)
+&gt; summary(model)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 0.64963     0.06636    9.79 5.31e-11 ***
+Miles         0.44673   0.01909   23.40 &lt; 2e-16 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.04626 on 31 degrees of freedom
+Multiple R-squared: 0.9464,     Adjusted R-squared: 0.9447
+F-statistic: 547.7 on 1 and 31 DF,           p-value: &lt; 2.2e-16</code></pre>
+<div class="box win">
+\[\hat{Y} = 0.64963 + 0.44673X\]
+</div>
+<ul>
+<li><strong>Intercept</strong> \(\hat{\beta}_0 = 0.64963\) (SE 0.06636, t = 9.79, p = 5.31e-11): ที่ Miles = 0 ค่าใช้จ่ายคาดการณ์คือ £64,963 — แต่บริษัทรถบัสจริงแทบไม่มีทาง "วิ่ง 0 ไมล์" ในช่วงเวลาที่เก็บข้อมูล ดังนั้นการแปลผลค่านี้ตรง ๆ เป็นการ extrapolate ออกนอกช่วงข้อมูลจริง ต้องระวังตามกฎที่ Lesson 1 หัวข้อ 7 ย้ำไว้</li>
+<li><strong>Slope</strong> \(\hat{\beta}_1 = 0.44673\) (SE 0.01909, t = 23.40, p &lt; 2e-16): มีนัยสำคัญทางสถิติสูงมาก จะถูกใช้ตอบซ้ำใน Part 4–7 และ 13</li>
+<li><strong>df = 31</strong> = n − 2 = 33 − 2 ตรงกับสูตร df ของ SLR ที่ Lesson 1 ใช้ตลอด</li>
+</ul>
+
+<h3>Part 3 — พล็อตเส้นถดถอยทับข้อมูล</h3>
+<pre><code>&gt; plot(Miles, Cost)
+&gt; abline(model, col="red")</code></pre>
+<ul>
+<li>คำตอบเฉลย: <strong>"Overall, the estimated regression function fits the data well."</strong></li>
+<li>ตรงนี้คือ visual check ว่าสมการที่ได้จาก Part 2 สมเหตุสมผลกับข้อมูลจริง ก่อนไปตีความตัวเลขต่อ — สอดคล้องกับ Multiple R-squared = 0.9464 ที่บอกว่าโมเดลอธิบายความแปรปรวนได้เกือบทั้งหมด (ดูละเอียดใน Part 11)</li>
+</ul>
+
+<h2>Part 4–7: Point Estimate, Confidence Interval, และการทดสอบสมมติฐาน</h2>
+<p>สี่ข้อนี้ทำงานกับสัมประสิทธิ์ \(\hat{\beta}_1 = 0.44673\) ตัวเดียวกันจาก Part 2 ในสี่มุมต่างกัน: ขนาดของผล (point estimate) → ช่วงความเชื่อมั่น (CI) → การทดสอบว่ามีนัยสำคัญไหม (t-test) → ทำนายค่าที่จุดใหม่ (prediction).</p>
+
+<h3>Part 4 — Point Estimate ของการเปลี่ยนแปลง Mean Response</h3>
+<p>คำถาม: การเปลี่ยนแปลงของ mean response เมื่อ Miles เพิ่มขึ้น 1 ล้านไมล์ คือเท่าไร?</p>
+<ul>
+<li>คำตอบเฉลย: <strong>"The increase of £44,673 in mean response."</strong></li>
+<li>มาจาก \(\hat{\beta}_1 = 0.44673\) หน่วย £100,000s → คูณ 100,000 ได้ £44,673 ต่อการเพิ่มขึ้นของ Miles 1 ล้านไมล์</li>
+<li>ประโยคแปลผลที่ถูกต้องต้องใช้คำว่า "คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย" ไม่ใช่ "ทำให้เพิ่มขึ้น" เพราะข้อมูลนี้เป็น observational (เก็บข้อมูลตามช่วงเวลาจริง ไม่ได้สุ่มกำหนด Miles) — ตามกฎ association ≠ causation ที่ Lesson 1 หัวข้อ 2 ย้ำไว้</li>
+</ul>
+
+<h3>Part 5 — 95% Confidence Interval สำหรับ β1</h3>
+<pre><code>&gt; confint(model)
+                2.5 %    97.5 %
+(Intercept) 0.5142912 0.7849743
+Miles       0.4078000 0.4856592</code></pre>
+<ul>
+<li>CI ของ \(\beta_1\): <strong>(0.41, 0.49)</strong> (ปัดสองตำแหน่งจาก 0.4078 และ 0.4857)</li>
+<li>คำแปลผลเฉลย: "we are 95% sure that the true parameter β1 is between 0.41 and 0.49"</li>
+<li>เช็คตามกฎจาก Lesson 1 หัวข้อ 9: <strong>CI นี้ไม่ครอบคลุม 0 เลย</strong> → สรุปปฏิเสธ \(H_0: \beta_1=0\) ได้ทันทีที่ α = 0.05 โดยไม่ต้องรอดู p-value จาก Part 6 — สองวิธีต้องให้ข้อสรุปตรงกันเสมอ</li>
+</ul>
+
+<h3>Part 6 — Two-sided t-test: มี Linear Association หรือไม่</h3>
+<p>ทดสอบว่ามี linear association ระหว่าง Miles กับ Cost จริงหรือไม่ ที่ α = 0.05:</p>
+<div class="box">
+\[H_0: \beta_1 = 0 \quad \text{vs} \quad H_1: \beta_1 \neq 0\]
+</div>
+<ul>
+<li>p-value ที่รายงานใน <code>summary()</code>: <strong>"&lt; 2e-16"</strong></li>
+<li>สรุป: p-value &lt; 0.05 → ปฏิเสธ \(H_0\) → "there is strong evidence that there exists a linear association between car miles and expenses at a 5% level of significance"</li>
+<li>ผลนี้มาจากแถว <code>Miles</code> ในตาราง Coefficients ของ Part 2 ตรง ๆ (t = 23.40, df = 31)</li>
+</ul>
+
+<h3>Part 7 — พยากรณ์ Mean Expense ที่ Miles = 3.62</h3>
+<pre><code>Ŷ = 0.64963 + 0.44673X
+  = 0.64963 + 0.44673(3.62)
+  = 2.266793
+
+&gt; predict(model, data.frame(Miles=3.62))
+       1
+2.266794</code></pre>
+<ul>
+<li>คำนวณมือ (0.64963 + 0.44673×3.62) ได้ <strong>2.266793</strong> ส่วน <code>predict()</code> ใน R ให้ <strong>2.266794</strong> — ต่างกันแค่ตำแหน่งทศนิยมสุดท้ายจากการปัดเศษของสัมประสิทธิ์ที่แสดงในตาราง (R เก็บทศนิยมเต็มภายในแต่ตารางแสดงแค่ 5 ตำแหน่ง) ไม่ใช่ข้อผิดพลาด — เป็นจุดที่ต้องระวังเวลาคำนวณด้วยมือแล้วเทียบกับ R</li>
+<li>ค่านี้คือ point estimate ของ <strong>mean response</strong> ที่ Miles = 3.62 (£226,679.3) — ยังไม่ใช่ prediction interval ของค่าใช้จ่ายจริงหนึ่งช่วงเวลาใหม่ (ถ้าโจทย์ถามแบบนั้น ต้องใช้ <code>predict(..., interval="prediction")</code> ซึ่งจะได้ point estimate เดียวกันแต่ interval กว้างกว่า ตามหลัก "+1" ใน SE ที่ Lesson 1 หัวข้อ 11 อธิบายไว้)</li>
+</ul>
+
+<h2>Part 8–9: ANOVA F-test</h2>
+<p>อีกวิธีทดสอบ \(H_0: \beta_1=0\) เดียวกันกับ Part 6 แต่ผ่านตาราง ANOVA และสถิติ F แทน t — ตามทฤษฎีของ SLR ทั้งสองวิธีต้องให้ข้อสรุปเดียวกันเสมอ (Lesson 1 หัวข้อ 10).</p>
+
+<h3>Part 8 — ตาราง ANOVA และ F-test สำหรับ β1 = 0</h3>
+<pre><code>&gt; anova(model)
+Analysis of Variance Table
+
+Response: Cost
+          Df Sum Sq Mean Sq F value    Pr(&gt;F)
+Miles      1 1.17209 1.17209 547.75 &lt; 2.2e-16 ***
+Residuals 31 0.06633 0.00214
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+<div class="box">
+\[H_0: \beta_1 = 0 \quad \text{vs} \quad H_1: \beta_1 \neq 0\]
+</div>
+<ul>
+<li>p-value รายงานใน <code>summary()</code>: "&lt; 2e-16"</li>
+<li>สรุป: p-value &lt; 0.05 → ปฏิเสธ \(H_0\) → "there is strong evidence that there exists a linear association between car miles and expenses at a 5% level of significance" — ข้อสรุปคำต่อคำเดียวกับ Part 6</li>
+<li>เช็คตัวเลข: \(F = 547.75\) ตรงกับ <code>F-statistic: 547.7</code> ใน Part 2 (ต่างกันแค่การปัดเศษ) และ \(t^2 = 23.40^2 = 547.56 \approx F\) ตรงตามทฤษฎี \(t_{n-2}^2 = F_{(1,n-2)}\) ของ SLR</li>
+</ul>
+
+<h3>Part 9 — เทียบผลลัพธ์ Part 6 กับ Part 8</h3>
+<ul>
+<li>คำตอบเฉลย (คำถามต้นฉบับ): <strong>"Yes, they are the same."</strong></li>
+<li>เอกสารเฉลยเขียนคำถามไว้ว่า "Does the results in part (6) and (10) are the same?" — ตัวเลข "(10)" ในโจทย์น่าจะเป็นการพิมพ์คลาดเคลื่อน เพราะ Part 10 เป็นเรื่องประมาณค่า σ² (ไม่ใช่การทดสอบสมมติฐาน) ส่วน Part 8 ต่างหากที่เป็น F-test ซึ่งทดสอบ \(H_0:\beta_1=0\) เหมือน Part 6 เป๊ะ — คำตอบ "Yes" จึงสมเหตุสมผลเมื่อเทียบ Part 6 กับ Part 8</li>
+<li>บทเรียนนี้: t-test (two-sided) กับ F-test ในกรณี SLR (มี X ตัวเดียว) ให้ p-value เดียวกันเป๊ะเสมอ เพราะเป็นการทดสอบ \(H_0\) เดียวกันด้วยคณิตศาสตร์ที่สมมูลกัน — ไม่ใช่เรื่องบังเอิญของข้อมูลชุดนี้ชุดเดียว</li>
+</ul>
+
+<h2>Part 10–12: Error Variance, R², และ Correlation</h2>
+<p>สามข้อนี้อ่านตัวเลขเดิมจาก output ของ Part 2 และ Part 8 ในมุมที่ต่างกัน: ความแปรปรวนของ error, สัดส่วนความแปรปรวนที่โมเดลอธิบายได้, และทิศทาง+ความแรงของความสัมพันธ์เชิงเส้น.</p>
+
+<h3>Part 10 — ประมาณค่า σ²</h3>
+<ul>
+<li>คำตอบเฉลย: <strong>\(\hat{\sigma}^2 = 0.00214\)</strong></li>
+<li>อ่านตรงจากแถว <code>Residuals</code> คอลัมน์ <code>Mean Sq</code> ในตาราง ANOVA ของ Part 8 (MSE = SSE/df = 0.06633/31 ≈ 0.00214)</li>
+<li>เช็คไขว้: \(\text{Residual standard error} = \sqrt{\hat{\sigma}^2} = \sqrt{0.00214} \approx 0.04626\) ตรงกับ "Residual standard error: 0.04626" ใน Part 2 พอดี</li>
+</ul>
+
+<h3>Part 11 — Coefficient of Determination (R²)</h3>
+<ul>
+<li>คำตอบเฉลย: <strong>\(R^2 = 0.9464\)</strong> — "only 94.64% of the variation in Y is accounted by X"</li>
+<li>อ่านตรงจาก <code>Multiple R-squared: 0.9464</code> ใน Part 2 — ไม่ต้องคำนวณเพิ่ม</li>
+<li>ความหมาย: มีแค่ 5.36% ของความแปรปรวนใน Cost ที่ปัจจัยอื่นนอกเหนือจาก Miles อธิบาย — ตัวเลขสูงมากสำหรับข้อมูลจริง สนับสนุนข้อสรุป Part 3 ว่าเส้นถดถอย "fits the data well"</li>
+</ul>
+
+<h3>Part 12 — Correlation Coefficient r</h3>
+<div class="box win">
+\[r = +\sqrt{0.9464} = 0.9728\]
+</div>
+<ul>
+<li>ทำไมต้องใส่เครื่องหมาย <strong>บวก</strong>: \(R^2\) มาจากการยกกำลังสองจึงไม่บอกทิศทาง (√0.9464 ได้ทั้ง +0.9728 และ −0.9728 ในทางคณิตศาสตร์) ต้องดูเครื่องหมายของ \(\hat{\beta}_1 = 0.44673\) จาก Part 2 ประกอบ — เป็นบวก จึงเลือก \(r = +0.9728\)</li>
+<li>สอดคล้องกับสูตร \(\hat{\beta}_1 = r_{xy}\times(S_y/S_x)\) จาก Lesson 1 หัวข้อ 6: เครื่องหมายของ \(\hat{\beta}_1\) กับ \(r_{xy}\) ต้องตรงกันเสมอ เพราะ \(S_y/S_x > 0\) เสมอ (เป็นอัตราส่วนของค่าเบี่ยงเบนมาตรฐาน)</li>
+<li>r = 0.9728 ใกล้ 1 มาก ยืนยันภาพ scatterplot ของ Part 1/3 ว่าความสัมพันธ์เป็นเส้นตรงเชิงบวกที่แน่นมาก</li>
+</ul>
+
+<h2>Part 13: One-sided t-test สำหรับ β1 &gt; 0</h2>
+<p>ต่างจาก Part 6 (two-sided) ข้อนี้ถามเจาะจงทิศทาง — ทดสอบว่า \(\beta_1\) เป็นบวกจริงหรือไม่ (ไม่ใช่แค่ "ต่างจากศูนย์"):</p>
+<div class="box">
+\[H_0: \beta_1 \leq 0 \quad \text{vs} \quad H_1: \beta_1 > 0\]
+</div>
+<pre><code>t = 23.40
+One-sided p-value = P(t31 &gt; 23.40) = 0.
+
+&gt; 1-pt(23.40, 31)
+[1] 0</code></pre>
+<ul>
+<li>ใช้ค่า t เดิมจาก Part 2 (แถว <code>Miles</code>, t value = 23.40) — <strong>ไม่ต้องฟิตโมเดลใหม่</strong> แค่เปลี่ยนวิธีอ่าน p-value จากสองด้านเป็นด้านเดียว</li>
+<li>One-sided p-value = P(t<sub>31</sub> &gt; 23.40) คำนวณด้วย <code>1-pt(23.40, 31)</code> ได้ผลลัพธ์ที่ปัดเป็น <strong>0</strong> พอดี (t = 23.40 อยู่ไกลจากศูนย์มากเทียบกับการแจกแจง t ที่ df = 31 ทำให้พื้นที่หางขวาเล็กจนเครื่อง R แสดงเป็น 0)</li>
+<li>สรุป: one-sided p-value &lt; 0.05 → ปฏิเสธ \(H_0\) → "there is enough evidence that there exists a positive linear association between car miles and expense at a 5% level of significance"</li>
+<li>ข้อควรจำ: ถ้าโจทย์ระบุทิศทางไว้ล่วงหน้า ("β1 &gt; 0" ไม่ใช่แค่ "β1 ≠ 0") ต้องเปลี่ยนทั้ง \(H_1\) และวิธีอ่าน p-value เป็น one-sided เสมอ ใช้ p-value สองด้านจาก <code>summary()</code> ตรง ๆ ไม่ได้</li>
+</ul>
+
+<hr>
+
+<h2>ทดสอบความเข้าใจ</h2>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Part 1 — Scatterplot</span></div>
+  <div class="qtext">จาก Part 1 หลัง <code>plot(Miles, Cost)</code> เฉลยสรุปว่ามีความสัมพันธ์เชิงเส้น ขั้นตอนต่อไปที่ถูกต้องคืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ฟิต simple linear regression ด้วย lm(Cost~Miles) ต่อได้เลย เพราะรูปแบบความสัมพันธ์เข้ากับสมมติฐานของ SLR</button>
+  <button class="opt" data-correct="false">ต้องแปลงตัวแปร (log/sqrt) ก่อนเสมอไม่ว่าความสัมพันธ์จะเป็นแบบใด</button>
+  <button class="opt" data-correct="false">เก็บข้อมูลเพิ่มอีก 33 ช่วงเวลาก่อนจะฟิตโมเดลได้</button>
+  <button class="opt" data-correct="false">scatterplot บอกได้แค่ทิศทาง ต้องพล็อต residual ก่อนถึงจะสรุปได้ว่าเป็นเชิงเส้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>Part 4 — แปลผล Slope</span></div>
+  <div class="qtext">β̂1 = 0.44673 (หน่วย Cost = £100,000s, หน่วย Miles = ล้านไมล์) ข้อใดแปลผลถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Miles ที่เพิ่มขึ้นทำให้ Cost เพิ่มขึ้น £44,673 อย่างแน่นอนทุกครั้ง</button>
+  <button class="opt" data-correct="true">เมื่อ Miles เพิ่มขึ้น 1 ล้านไมล์ ค่าใช้จ่ายเฉลี่ย (mean Cost) คาดว่าจะเพิ่มขึ้น £44,673 จากข้อมูลตัวอย่างนี้ (ไม่ใช่ความสัมพันธ์เชิงเหตุผล เพราะข้อมูลเป็น observational)</button>
+  <button class="opt" data-correct="false">β1 บอกได้แค่ทิศทางบวก/ลบเท่านั้น ไม่ได้บอกขนาดของการเปลี่ยนแปลง</button>
+  <button class="opt" data-correct="false">0.44673 มีหน่วยเป็นล้านไมล์ ไม่ใช่ปอนด์</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Part 5 — Confidence Interval</span></div>
+  <div class="qtext">95% CI ของ β1 คือ (0.41, 0.49) และไม่ครอบคลุม 0 — ข้อสรุปใดถูกต้องโดยไม่ต้องดู p-value ของ Part 6 ซ้ำ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">สรุปไม่ได้ ต้องรอดู p-value จาก summary() ก่อนเสมอ</button>
+  <button class="opt" data-correct="true">ปฏิเสธ H0: β1=0 ได้ที่ α=0.05 ทันที เพราะ CI ไม่ครอบคลุมค่า 0</button>
+  <button class="opt" data-correct="false">ไม่ปฏิเสธ H0 เพราะ CI มีความกว้างแค่ 0.08 ซึ่งถือว่าแคบเกินไป</button>
+  <button class="opt" data-correct="false">CI นี้ใช้สรุปเกี่ยวกับ β0 ได้เท่านั้น ไม่เกี่ยวกับ β1</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response)</span><span>Part 5–6 — CI กับ Hypothesis Test</span></div>
+  <div class="qtext">เขียนข้อสรุปแบบเต็มประโยคของการทดสอบใน Part 6 (H0: β1=0 vs H1: β1≠0, p-value &lt; 2e-16, α=0.05) แล้วอธิบายว่าทำไมผลจาก 95% CI ของ β1 ใน Part 5 (0.41, 0.49) จึงต้องให้ข้อสรุปตรงกันเสมอ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>"เนื่องจาก p-value (&lt; 2e-16) น้อยกว่าระดับนัยสำคัญ 0.05 เราปฏิเสธ H0: β1=0 และสรุปว่ามีหลักฐานหนักแน่นว่ามี linear association ระหว่าง Miles กับ Cost ที่ระดับนัยสำคัญ 5%"</p>
+  <p>เหตุผลที่ CI กับ p-value ต้องสอดคล้องกันเสมอ: การทดสอบ H0: β1=0 ที่ α=0.05 กับการสร้าง 95% CI ของ β1 เป็นการคำนวณจากสถิติทดสอบ (t) ตัวเดียวกันโดยตรง — ถ้า p-value &lt; 0.05 (ปฏิเสธ H0) แปลว่าค่า β1=0 อยู่นอกช่วงที่ "เป็นไปได้" ที่ระดับความเชื่อมั่น 95% พอดี ดังนั้น 0 จะไม่อยู่ใน CI เสมอ (และในทางกลับกันก็จริงเช่นกัน)</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Part 7 — Mean Response vs Prediction</span></div>
+  <div class="qtext">Ŷ = 2.266793 ที่ Miles=3.62 ใน Part 7 เป็น point estimate ของอะไร และถ้าต้องการ interval ของค่าใช้จ่ายจริงในช่วงเวลาใหม่หนึ่งช่วงที่ Miles=3.62 (ไม่ใช่ค่าเฉลี่ย) สูตร SE จะเปลี่ยนไปอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เป็น point estimate ของค่าเฉลี่ยเท่านั้น จะหา interval ของค่าสังเกตใหม่ไม่ได้เลยจากโมเดลนี้</button>
+  <button class="opt" data-correct="true">Point estimate เดียวกันใช้ได้ทั้ง mean response และ prediction แต่ prediction interval จะกว้างกว่า confidence interval เสมอ เพราะสูตร SE ของ prediction มีพจน์ "+1" เพิ่มเข้ามา</button>
+  <button class="opt" data-correct="false">ต้องฟิตโมเดลใหม่ด้วยข้อมูลที่ Miles=3.62 เพิ่มเข้าไปก่อนถึงจะทำนายค่าสังเกตใหม่ได้</button>
+  <button class="opt" data-correct="false">Prediction interval แคบกว่า confidence interval เสมอเพราะเจาะจงค่า X เดียว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>Part 8–9 — t-test vs F-test</span></div>
+  <div class="qtext">Part 8 ได้ F = 547.75 (df=1,31) ส่วน Part 2/6 ได้ t = 23.40 (df=31) จากการทดสอบ H0: β1=0 ตัวเดียวกัน ข้อใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">t กับ F เป็นการทดสอบคนละสมมติฐานกัน บังเอิญได้ข้อสรุปเดียวกันในข้อมูลชุดนี้เท่านั้น</button>
+  <button class="opt" data-correct="true">t² ≈ F (23.40² = 547.56 ≈ 547.75) เพราะในกรณี SLR การทดสอบ t สองด้านกับ F-test สมมูลกันทางคณิตศาสตร์ ให้ p-value เดียวกันเสมอ — ตรงกับที่ Part 9 สรุปว่าผลลัพธ์ "เหมือนกัน"</button>
+  <button class="opt" data-correct="false">F ต้องมีค่าน้อยกว่า t เสมอในทุกกรณี</button>
+  <button class="opt" data-correct="false">ความสัมพันธ์ t²=F ใช้ได้เฉพาะเมื่อ R² &gt; 0.9 เท่านั้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response)</span><span>Part 12 — ทำไม r เป็นบวก</span></div>
+  <div class="qtext">Part 12 ให้ r = +√0.9464 = 0.9728 ทำไมต้องใส่เครื่องหมายบวก ทั้งที่ R² มาจากการยกกำลังสอง (√R² ในทางคณิตศาสตร์ได้ทั้งค่าบวกและลบ)?</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">เพราะ R² เป็นค่ายกกำลังสองจึงไม่บอกทิศทางของความสัมพันธ์เอง (√0.9464 ให้ได้ทั้ง +0.9728 และ −0.9728 ในทางคณิตศาสตร์) ต้องดูเครื่องหมายของ β̂1 = 0.44673 จาก Part 2 ประกอบ (หรือทิศทางที่เห็นในสแคทเตอร์พล็อต Part 1/3) — เพราะ β1 เป็นบวก จึงเลือกเครื่องหมายบวกให้ r สอดคล้องกับสูตร β̂1 = r_xy × (S_y/S_x) ที่ S_y/S_x เป็นบวกเสมอ (เป็นอัตราส่วนของ standard deviation) เครื่องหมายของ r_xy จึงต้องตรงกับเครื่องหมายของ β̂1 เสมอ</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Part 13 — One-sided vs Two-sided</span></div>
+  <div class="qtext">Part 13 ใช้ H0: β1≤0 vs H1: β1&gt;0 (one-sided) ต่างจาก Part 6 (H0: β1=0 vs H1: β1≠0, two-sided) — ทำไมต้องเปลี่ยน H1 และทำไม one-sided p-value ในที่นี้ถึงปัดเป็น 0 พอดี?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ Part 13 ใช้ข้อมูลคนละชุดกับ Part 6 จึงได้ค่า t คนละตัว</button>
+  <button class="opt" data-correct="true">เพราะโจทย์ระบุทิศทางไว้ล่วงหน้า (ถามว่า β1>0 ไม่ใช่แค่ ≠0) จึงต้องทดสอบแบบ one-sided โดยใช้ t เดิม (23.40) แต่คำนวณ P(t31&gt;23.40) แทนสองด้าน — ค่านี้เล็กมากจนปัดเป็น 0 เพราะ t=23.40 อยู่ไกลศูนย์มากเทียบกับการแจกแจง t ที่ df=31</button>
+  <button class="opt" data-correct="false">one-sided test ให้ p-value มากกว่า two-sided test เสมอ กรณีนี้จึงปัดเป็น 0 ได้ยากกว่า</button>
+  <button class="opt" data-correct="false">ต้องฟิตโมเดลใหม่ด้วย one-sided assumption ก่อนถึงจะได้ t=23.40</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+คุณเพิ่งเดินผ่านทักษะทั้งหมดของ Lesson 1 บนโจทย์จริงหนึ่งชุดครบวงจร — ฟิตโมเดล อ่าน summary() ครบทุกบรรทัด แปลผล slope แบบไม่ใช้คำเชิงเหตุผล สร้างและตีความ CI, ทดสอบสมมติฐานทั้งแบบ two-sided (t-test) และ one-sided, เทียบผลกับ F-test/ANOVA, และอ่าน R² กับ correlation coefficient พร้อมเหตุผลเรื่องเครื่องหมาย — นี่คือรูปแบบคำตอบที่ข้อสอบคาดหวังเป๊ะเมื่อเจอโจทย์ SLR ข้อมูลจริง
+</div>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span>← <a href="0001-simple-linear-regression.html">Lesson 1: Simple Linear Regression</a></span>
+  <span><a href="../reference/0001-slr-formulas-and-r-output-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output</a> · <a href="../exams/drill-01-write-the-equation.html">Drill 1: Write the Equation →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

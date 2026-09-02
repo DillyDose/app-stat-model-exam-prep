@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 18: Lung Pressure — Influence Diagnostics Walkthrough (Assignment 4a-i)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="0004-regression-diagnostics-part-2.html">← Lesson 4: Regression Diagnostics (Part II)</a></span>
+  <span>ฝึกกับโจทย์จริง · Assignment 4 (a)-(i)</span>
+</nav>
+
+<p class="kicker">Second-wave lesson — โจทย์จริงคู่กับ Lecture 4</p>
+<h1>Lung Pressure: ไล่ Influence Diagnostics ทีละ Sub-part จากโจทย์จริง</h1>
+
+<p>บทนี้เอาทักษะจาก Lesson 4 (outlier vs leverage vs influential point, studentized deleted residual, DFFITS/DFBETAS, Cook's Distance) มาใช้กับโจทย์จริงจาก Assignment 4: ข้อมูล <code>lungpressure.csv</code> จากผู้ป่วย COPD 19 คน โดย Y = systolic pulmonary arterial pressure (วัดแบบ invasive) และตัวแปรอิสระ X1, X2 (จาก radionuclide imaging) กับ X3 (blood gas — ไม่ได้ใช้ในโมเดลนี้)</p>
+<p>เราจะไล่ทีละ sub-part (a) ถึง (i) ตามลำดับที่โจทย์ถาม — คำนวณ threshold เองแล้วเทียบกับ output จริงทุกจุด ไม่ข้ามสูตรไหนไปเฉย ๆ (ส่วน sub-part (j) ที่เป็น ridge regression ไม่รวมอยู่ในบทนี้ เพราะจับคู่กับบทเรียนเรื่อง penalized regression แยกต่างหาก)</p>
+
+<div class="box source">
+<div class="label">ที่มาของข้อมูลในบทนี้</div>
+ตัวเลขทั้งหมดในบทนี้ (coefficient, VIF, hat value, DFFITS, DFBETAS, Cook's D, cutoff) คัดลอกตรงจาก <code>Assignment4_Solution.pdf</code> sub-part (a)-(i) เท่านั้น n=19 เคส, โมเดลมี X1, X2, X1:X2 รวม p+1=4 พารามิเตอร์ (Intercept, X1, X2, X1:X2) — ใช้ p+1=4 นี้เช็ค threshold ทุกจุดในบทนี้ได้เลย
+</div>
+
+<h2>1. Fit โมเดลเบื้องต้น (part a)</h2>
+<p>โจทย์ให้ fit first-order term ของ X1, X2 บวก cross-product term X1X2:</p>
+<pre><code>> model<-lm(Y~X1*X2, data=lungpressure)
+> summary(model)
+
+Call:
+lm(formula = Y ~ X1 * X2, data = lungpressure)
+
+Residuals:
+     Min      1Q     Median        3Q      Max
+-14.3075 -6.6602    -0.5824    4.6284   24.0398
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 134.399866 15.981599    8.410 4.63e-07 ***
+X1           -2.133022   0.522157 -4.085 0.000975 ***
+X2           -1.699330   0.363669 -4.673 0.000300 ***
+X1:X2         0.033347   0.009283   3.592 0.002667 **
+---
+Residual standard error: 10.58 on 15 degrees of freedom
+Multiple R-squared: 0.7922,     Adjusted R-squared: 0.7507
+F-statistic: 19.06 on 3 and 15 DF, p-value: 2.233e-05</code></pre>
+<ul>
+<li>สัมประสิทธิ์ทั้ง 3 ตัว (X1, X2, X1:X2) significant ที่ α=0.05 ทุกตัว (p-value สูงสุดคือ X1:X2 ที่ 0.002667)</li>
+<li>R² = 0.7922 — โมเดลอธิบาย variance ของ Y ได้ราว 79% ด้วยตัวแปรแค่ 3 ตัว</li>
+<li>n=19, df residual=15 (19 − 4 พารามิเตอร์)</li>
+</ul>
+<div class="box win">
+สมการที่ solution PDF เขียนไว้: \( \hat{Y} = 134.4 - 21.3X_1 - 1.7X_2 + 0.03X_1X_2 \)
+</div>
+<p><strong>จุดที่ต้องระวัง:</strong> สังเกตว่าสัมประสิทธิ์ X1 ในตาราง (Estimate) คือ <strong>−2.133022</strong> แต่ในสมการสรุปท้ายข้อ (a) ของ PDF ต้นฉบับพิมพ์ไว้ว่า <strong>−21.3X1</strong> — ต่างกันสิบเท่า นี่คือ typo ในเอกสารต้นฉบับเอง (ปัดทศนิยมผิดตำแหน่ง) ค่าที่ถูกต้องคือ −2.13X1 ไม่ใช่ −21.3X1 — บทเรียนนี้ยกตัวอย่างนี้ไว้เป็นข้อเตือนใจว่าเวลาอ่านเฉลยจริง (แม้แต่ของอาจารย์) ต้องเช็คย้อนกับตาราง coefficient เสมอ อย่าเชื่อสมการสรุปแบบเปล่า ๆ</p>
+
+<h2>2. Residual Plots (part b)</h2>
+<p>โจทย์ให้พล็อต residual แยกกับ fitted(model), X1, X2, และ X1*X2:</p>
+<figure>
+<img src="../assets/exam-plots/ex-a4-lung-resid-4panel.png" alt="Four residual scatterplots for the lung pressure model: residual vs fitted, residual vs X1, residual vs X2, residual vs X1*X2">
+<figcaption>Assignment 4(b): residual vs fitted(model), X1, X2, X1*X2</figcaption>
+</figure>
+<p>อ่านทีละแผง: แผงบนซ้าย (residual vs fitted) และบนขวา (residual vs X1) กระจายตัวสมมาตรรอบ 0 ไม่มี pattern ชัดเจน แต่แผงบนขวามีจุดหนึ่งที่ X1 สูงสุดในชุดข้อมูล (X1≈55) ถูกวงกลมสีแดงไว้ในเฉลยต้นฉบับ เพราะมันอยู่โดดเดี่ยวห่างจากกลุ่มจุดอื่นบนแกน X1 อย่างชัดเจน (จุดรองลงมาอยู่ที่ X1≈45) — นี่คือสัญญาณ leverage point ตั้งแต่ขั้นดู residual plot แล้ว ก่อนจะคำนวณ hat value จริงในหัวข้อ 4</p>
+<p>แผงล่าง (residual vs X2 และ residual vs X1*X2) มีปัญหาต่างจากสองแผงบน: residual ที่ X2 หรือ X1*X2 ต่ำ (X2&lt;40, X1X2&lt;1500) กระจุกตัวแคบและมีค่าติดลบเป็นส่วนใหญ่ ในขณะที่ X2 หรือ X1X2 สูงกว่านั้น residual กระจายกว้างขึ้นทั้งบวกและลบ — spread ของ residual ไม่คงที่ตลอดช่วง X ซึ่งขัดกับ assumption ของ constant variance</p>
+<ul>
+<li><strong>ข้อสรุปจาก solution:</strong> แผงบน (fitted, X1) ไม่มีอะไรผิดปกติ แต่แผงล่าง (X2, X1X2) มีปัญหาเรื่อง constant variance assumption และมี outlier ในแกน X1 (จุดที่วงกลมแดง)</li>
+</ul>
+
+<h2>3. QQ-plot ตรวจ Normality (part c)</h2>
+<figure>
+<img src="../assets/exam-plots/ex-a4-lung-qqplot.png" alt="Normal QQ plot of standardized residuals for the lung pressure model, with cases 7, 1, and 8 labeled">
+<figcaption>Assignment 4(c): Normal Q-Q plot, <code>lm(Y ~ X1 * X2)</code></figcaption>
+</figure>
+<p>จุดส่วนใหญ่เกาะเส้นทแยงมุมได้ดีตลอดช่วงกลาง (theoretical quantile −1 ถึง 1) แต่มี 3 เคสที่หลุดออกจากเส้นตรงชัดเจนและถูกติดป้ายไว้ในกราฟ:</p>
+<ul>
+<li><strong>Case 7</strong> — standardized residual สูงสุด ≈2.6 (มุมขวาบน)</li>
+<li><strong>Case 1</strong> — standardized residual ≈2.0</li>
+<li><strong>Case 8</strong> — standardized residual ต่ำสุด ≈−1.7 (มุมซ้ายล่าง)</li>
+</ul>
+<p><strong>ข้อสรุปจาก solution:</strong> "Yes, the normality assumption seems to be okay although there are some outliers." — คำตอบนี้สอดคล้องกับภาพ: จุดส่วนใหญ่เกาะเส้นตรงดี normality โดยรวมผ่าน แต่ 3 เคสที่หลุดออกมา (7, 1, 8) คือผู้ต้องสงสัยที่จะถูกตรวจสอบซ้ำด้วย studentized deleted residual และ influence measure ในหัวข้อถัดไป — สังเกตว่า Case 7 และ Case 8 จะโผล่มาซ้ำอีกครั้งในหัวข้อ 6 (influence measures) เป็นสองในสี่เคสที่ถูกแฟล็กเป็น influential</p>
+
+<h2>4. Variance Inflation Factor (part d)</h2>
+<pre><code>> vif(predictors)
+  Variables       VIF
+1        X1  5.431477
+2        X2 11.639560
+3      X1X2 22.474469</code></pre>
+<ul>
+<li>Rule of thumb ทั่วไป: VIF &gt; 10 ถือว่ามี multicollinearity ที่ร้ายแรง</li>
+<li>X2 (11.64) และ X1X2 (22.47) เกิน 10 ทั้งคู่ — X1X2 สูงที่สุดเพราะเป็น cross-product term ที่ผูกกับทั้ง X1 และ X2 อยู่แล้วโดยธรรมชาติ (multicollinearity ระหว่าง main effect กับ interaction term เป็นเรื่องปกติเมื่อไม่ได้ center ตัวแปรก่อนคูณกัน)</li>
+</ul>
+<p><strong>ข้อสรุปจาก solution:</strong> "Yes, there is a serious multicollinearity problem." — จุดนี้สำคัญเพราะจะย้อนกลับมาอีกครั้งใน part (i) หลังตัดเคสที่มีปัญหาออก เพื่อดูว่าการตัด influential point ช่วยลด multicollinearity ได้หรือไม่</p>
+
+<h2>5. Studentized Deleted Residuals + Bonferroni Cutoff (part e)</h2>
+<p>ทวนสูตรจาก Lesson 4 หัวข้อ 4: studentized deleted residual \(t_i\) แก้ปัญหา masking effect ของ internally studentized residual โดยคำนวณ MSE แบบไม่รวมเคส i เอง โจทย์ให้ใช้ Bonferroni outlier test ที่ α=0.05:</p>
+<pre><code>> cutoff<-qt(1-0.05/(2*nrow(lungpressure)), model$df.residual-1)
+> abline(h=cutoff, col="blue", lty=2)
+> cutoff
+[1] 3.64871</code></pre>
+<ul>
+<li><strong>Decision rule:</strong> เคสใดมี |studentized deleted residual| &gt; 3.64871 ถือเป็น outlying Y observation</li>
+<li>cutoff นี้คำนวณจาก \( t(1 - \alpha/(2n);\ n-p-2-1) \) — ปรับสำหรับการทดสอบพร้อมกันทั้ง 19 เคส (multiple comparison) จึงเข้มงวดกว่า rule of thumb ง่าย ๆ ที่ใช้แค่ 3</li>
+</ul>
+<figure>
+<img src="../assets/exam-plots/ex-a4-lung-studentized-deleted-resid.png" alt="Bar plot of absolute studentized deleted residuals per case for the lung pressure model with a dashed cutoff line at 3.65">
+<figcaption>Assignment 4(e): |studentized deleted residual| ต่อเคส เทียบเส้นตัด Bonferroni ที่ 3.64871</figcaption>
+</figure>
+<ul>
+<li>แท่งที่สูงที่สุดในกราฟอยู่ที่ index 7 สูงประมาณ 3.3 — <strong>ยังไม่ถึง</strong>เส้นตัด 3.65</li>
+<li>แท่งรองลงมาคือ index 1 (≈2.2), index 8 (≈1.8), index 13 (≈1.5) — ทั้งหมดต่ำกว่าเส้นตัดชัดเจน</li>
+<li>ไม่มีแท่งใดในกราฟแตะหรือเกินเส้นตัดสีน้ำเงินเลย</li>
+</ul>
+<p><strong>สรุป:</strong> ตาม Bonferroni rule ที่ α=0.05 <strong>ไม่มีเคสใดถูกจัดเป็น outlying Y observation</strong> แม้ case 7 จะโดดเด่นที่สุดในกราฟ (และเป็นเคสเดียวกับที่หลุดเส้น QQ-plot ในหัวข้อ 3) ก็ยังไม่ผ่าน threshold ที่เข้มงวดแบบ Bonferroni (3.3 &lt; 3.65) — แต่ถ้าใช้ rule of thumb ง่าย ๆ ที่ \(t_i>3\) (ไม่ปรับ multiple comparison แบบ Bonferroni) case 7 จะ<strong>ผ่าน</strong>ทันที เพราะ 3.3 &gt; 3 — นี่คือตัวอย่างจริงที่สอง rule ให้ข้อสรุปต่างกันโดยสิ้นเชิงกับเคสเดียวกัน ตรงกับที่ Lesson 4 หัวข้อ 4 เตือนไว้ว่าการเลือก threshold มีผลต่อข้อสรุปโดยตรง</p>
+
+<h2>6. Leverage: หา Outlying X Observations (part f)</h2>
+<pre><code>> h<-hatvalues(model)
+> cutoff<-2*model$rank/nrow(lungpressure)
+> plot(h, ylab="Leverage", ylim=c(0,1), type="h")
+> abline(h=cutoff, col="blue", lty=2)
+> cutoff
+[1] 0.4210526</code></pre>
+<ul>
+<li>cutoff = 2(p+1)/n = 2×4/19 = <strong>0.4210526</strong></li>
+<li>Decision rule: h<sub>ii</sub> &gt; 0.4211 → outlying X observation</li>
+</ul>
+<figure>
+<img src="../assets/exam-plots/ex-a4-lung-leverage.png" alt="Bar plot of leverage (hat values) per case for the lung pressure model with a dashed cutoff line at 0.421">
+<figcaption>Assignment 4(f): leverage (h<sub>ii</sub>) ต่อเคส เทียบเส้นตัดที่ 0.4211</figcaption>
+</figure>
+<ul>
+<li><strong>Case 8</strong> พุ่งสูงสุดในกราฟไปเกือบถึง 0.88 — สูงกว่าเส้นตัดกว่าสองเท่า</li>
+<li><strong>Case 3</strong> อยู่ที่ราว 0.54 — เกินเส้นตัดชัดเจน</li>
+<li><strong>Case 15</strong> อยู่ที่ราว 0.49 — เกินเส้นตัดเล็กน้อย</li>
+<li>เคสอื่นทั้งหมดอยู่ต่ำกว่า 0.3</li>
+</ul>
+<p><strong>สรุปจาก solution:</strong> "Case 3, 8, and 15 are outliers in X" — ยืนยันตรงกับตัวเลขจริงในตาราง <code>influence.measures()</code> ของหัวข้อถัดไป (hat=0.5389, 0.8783, 0.4798 ตามลำดับ) สังเกตว่า Case 8 มี leverage สูงกว่า Case 3 และ 15 มาก (เกือบเท่าตัว) — เป็นสัญญาณล่วงหน้าว่า Case 8 น่าจะเป็นเคสที่ influential รุนแรงที่สุดในหัวข้อถัดไป</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>เช็คสูตร Leverage Cutoff</span></div>
+  <div class="qtext">โมเดลนี้มี n=19, p+1=4 พารามิเตอร์ (Intercept, X1, X2, X1:X2) เหตุใด cutoff ของ leverage จึงเท่ากับ 0.4211 ไม่ใช่ตัวเลขอื่น?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">0.4211 = 4/19 (จำนวนพารามิเตอร์หารด้วย n โดยตรง ไม่คูณ 2)</button>
+  <button class="opt" data-correct="true">0.4211 = 2×(p+1)/n = 2×4/19 — สูตร rule of thumb คูณ 2 เข้ากับสัดส่วนพารามิเตอร์ต่อจำนวนเคส</button>
+  <button class="opt" data-correct="false">0.4211 มาจาก Bonferroni correction เหมือนกับ cutoff ของ studentized deleted residual</button>
+  <button class="opt" data-correct="false">0.4211 คำนวณจาก F-distribution ที่ df=(4,15)</button>
+</div>
+  <div class="feedback">cutoff = 2(p+1)/n = 2×4/19 = 8/19 ≈ 0.42105</div>
+</div>
+
+<h2>7. Influence Measures ครบชุด: DFFITS, DFBETAS, Cook's Distance (part g)</h2>
+<p>โจทย์ระบุไว้ตรง ๆ ว่า Case 3, 8, 15 เป็นเคสที่ outlying ในแกน X (moderately far) และ Case 7 outlying ในแกน Y (relatively far) — ให้ตรวจสอบทั้ง 4 เคสด้วยชุด influence measure เต็มรูปแบบ:</p>
+<pre><code>> influence.measures(model)
+Influence measures of
+         lm(formula = Y ~ X1 * X2, data = lungpressure) :
+
+     dfb.1_    dfb.X1   dfb.X2 dfb.X1.X  dffit cov.r   cook.d    hat inf
+1 -0.74721 1.086986 0.22392 -0.59551 1.3632 0.550 0.369041 0.2757      *
+2   0.00722 0.030375 -0.00594 -0.02091 0.1203 1.374 0.003833 0.0834
+3 -0.65194 0.591913 0.43337 -0.48191 -0.6802 2.556 0.120516 0.5389     *
+4   0.04063 -0.040524 -0.10592 0.09287 -0.1842 1.299 0.008854 0.0848
+5 -0.04872 -0.000561 0.10888 -0.04217 0.2387 1.482 0.014982 0.1757
+6 -0.02764 -0.026282 0.07195 0.01040 0.3035 1.410 0.023920 0.1737
+7   1.45413 -1.277609 -0.74152 0.84752 1.7486 0.166 0.458917 0.2178    *
+8 -1.54691 1.186623 3.16227 -3.28579 -4.7798 4.790 4.990815 0.8783     *
+9   0.10208 -0.046089 -0.10509 0.07011 0.1650 1.580 0.007236 0.1925
+10 0.03588 -0.171698 0.00924 0.10165 -0.4116 0.977 0.040999 0.1017
+11 0.10895 -0.171977 -0.06084 0.11835 -0.2534 1.285 0.016600 0.1116
+12 0.00127 0.006001 0.00576 -0.00950 0.0346 1.407 0.000320 0.0680
+13 -0.12604 0.051336 -0.01204 0.03230 -0.4159 0.810 0.040228 0.0753
+14 -0.10749 0.144648 0.07972 -0.10974 0.2215 1.270 0.012712 0.0929
+15 -0.01551 -0.035251 0.07715 -0.01570 0.1749 2.510 0.008170 0.4798    *
+16 -0.02274 0.017421 -0.03719 0.02835 -0.1262 1.383 0.004218 0.0897
+17 0.05185 -0.018569 -0.19203 0.14258 -0.2914 1.337 0.021956 0.1444
+18 0.00912 -0.015709 -0.00358 0.00987 -0.0230 1.529 0.000142 0.1391
+19 0.08055 -0.124148 -0.08285 0.11431 -0.2314 1.193 0.013708 0.0768</code></pre>
+<div class="box win">
+<div class="label">RULE (ตามที่โจทย์ระบุ)</div>
+|DFFITS| &gt; 1<br>
+Cook's Distance &gt; qf(0.95,4,15) = 3.055568 (บาง reference ใช้ 50th percentile: qf(0.5,4,15) = 0.8783)<br>
+|DFBETAS| &gt; 1<br>
+|cov.r − 1| &gt; 0.632
+</div>
+<p>ไล่ทีละเคสที่โจทย์ให้จับตา (สังเกตว่าตาราง R เองก็แฟล็ก Case 1 ด้วย <code>*</code> เพิ่มมาอีกเคสหนึ่ง นอกเหนือจาก 3, 7, 8, 15 ที่โจทย์ระบุ — R ใช้ threshold ภายในของตัวเองซึ่งเข้มงวดกว่า rule ที่โจทย์กำหนดในบางเกณฑ์):</p>
+<ul>
+<li><strong>Case 3</strong> — |DFFITS|=0.68 (ไม่เกิน 1), DFBETAS ทุกตัว &lt;1, Cook's D=0.121 (ไม่เกินทั้งสอง cutoff) แต่ <strong>|cov.r−1| = |2.556−1| = 1.556 &gt; 0.632</strong> → ถูกแฟล็กผ่านเกณฑ์ COV RATIO เพียงเกณฑ์เดียว หมายความว่าการตัด Case 3 ออกจะเปลี่ยน<strong>ความแม่นยำ</strong>ของสัมประสิทธิ์มาก แต่ไม่ได้ดึงค่าประมาณ point estimate ให้เปลี่ยนไปมากนัก</li>
+<li><strong>Case 7</strong> — |DFFITS|=1.75 &gt; 1 ✓, |dfb.1_|=1.454 &gt; 1 ✓, |dfb.X1|=1.278 &gt; 1 ✓, Cook's D=0.459 (ไม่เกิน 0.8783 หรือ 3.056 เลยทั้งคู่ — <strong>ไม่ผ่านเกณฑ์ Cook's D แม้จะผ่าน DFFITS/DFBETAS</strong>), |cov.r−1|=|0.166−1|=0.834&gt;0.632 ✓ → flagged ผ่าน 3 ใน 4 เกณฑ์ ยกเว้น Cook's D</li>
+<li><strong>Case 8</strong> — |DFFITS|=4.78 ✓ (สูงสุดในชุดข้อมูลมาก), DFBETAS ทุกตัวเกิน 1 ทั้ง 4 ค่า (1.547, 1.187, 3.162, 3.286) ✓, Cook's D=4.99 &gt; 3.056 ✓ (ผ่านแม้เกณฑ์ที่เข้มงวดที่สุด), |cov.r−1|=|4.79−1|=3.79&gt;0.632 ✓ → <strong>ผ่านทั้ง 4 เกณฑ์พร้อมกัน</strong> เคสที่รุนแรงที่สุดในชุดข้อมูลนี้อย่างชัดเจน</li>
+<li><strong>Case 15</strong> — |DFFITS|=0.175 (ไม่เกิน 1), DFBETAS ทุกตัวเล็กมาก, Cook's D=0.008 (ต่ำมาก) แต่ |cov.r−1|=|2.510−1|=1.510&gt;0.632 → เหมือน Case 3 คือ flagged ผ่าน COV RATIO เพียงเกณฑ์เดียว</li>
+</ul>
+<p><strong>ข้อสรุปจาก solution:</strong> "It seems that all 4 observations are influential points." — แต่จากการไล่ทีละเกณฑ์ข้างต้นจะเห็นความต่างที่สำคัญ: Case 8 คือเคสที่ influential แบบ "เต็มรูปแบบ" (ผ่านทุกเกณฑ์ รวมถึง Cook's D ที่เข้มงวดที่สุด) ในขณะที่ Case 3 และ 15 influential ผ่านทาง<strong>ความแม่นยำของสัมประสิทธิ์ (COV RATIO)</strong> เท่านั้น ไม่ใช่ผ่านการเปลี่ยนค่าทำนายโดยตรง และ Case 7 influential ผ่าน DFFITS/DFBETAS/COV RATIO แต่<strong>ไม่ผ่านเกณฑ์ Cook's D เลยแม้แต่เกณฑ์ที่ผ่อนปรนที่สุด</strong> — นี่คือตัวอย่างจริงที่ตอกย้ำบทเรียนจาก Lesson 4 หัวข้อ 9 ว่าเคสหนึ่งอาจ "influential" ผ่านบางเกณฑ์แต่ไม่ผ่านเกณฑ์อื่น จึงต้องดูทุกมาตรวัดประกอบกัน ไม่ใช่สรุปจากตัวเดียว</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>อ่านตาราง influence.measures() จริง</span></div>
+  <div class="qtext">Case 8 มี hat=0.8783, cook.d=4.990815, dffit=−4.7798 ข้อสรุปใดสอดคล้องกับตัวเลขเหล่านี้มากที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">Case 8 เป็นทั้ง leverage point ที่รุนแรงที่สุด (hat สูงสุด) และ influential point ที่รุนแรงที่สุด (ผ่านทุกเกณฑ์ DFFITS, DFBETAS, Cook's D แม้เกณฑ์ที่เข้มงวดสุด, COV RATIO)</button>
+  <button class="opt" data-correct="false">Case 8 มี leverage สูงแต่ไม่ influential เลย เพราะ Cook's D ยังไม่เกิน 1</button>
+  <button class="opt" data-correct="false">ตัวเลขเหล่านี้บ่งชี้ว่า Case 8 เป็น outlier ในแกน Y เท่านั้น ไม่เกี่ยวกับ leverage</button>
+  <button class="opt" data-correct="false">cook.d=4.99 ต่ำกว่า cutoff ที่เข้มงวด (qf(0.95,4,15)=3.0556) จึงยังไม่ถือว่า influential ตามเกณฑ์นี้</button>
+</div>
+  <div class="feedback">4.99 > 3.0556 (เกณฑ์เข้มงวดสุด) และ hat=0.8783 คือค่าสูงสุดในทั้ง 19 เคส — Case 8 ผ่านทุกเกณฑ์พร้อมกัน</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Cook's D ไม่ผ่านแต่ DFFITS ผ่าน — เป็นไปได้อย่างไร</span></div>
+  <div class="qtext">Case 7 มี |DFFITS|=1.75 (เกิน cutoff 1) แต่ Cook's D=0.459 ไม่เกิน cutoff ใดเลย (ทั้ง 0.8783 และ 3.0556) เหตุใดจึงเป็นไปได้ที่เคสเดียวกันจะ "ผ่าน" เกณฑ์หนึ่งแต่ "ไม่ผ่าน" อีกเกณฑ์หนึ่ง?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">DFFITS วัดการเปลี่ยนแปลงเฉพาะค่าทำนายของเคสนั้นเพียงจุดเดียว ในขณะที่ Cook's D วัดผลรวมของการเปลี่ยนแปลงในค่าทำนายทั้ง n จุด — สองมาตรวัดนี้ไวต่อรูปแบบข้อมูลต่างกัน ไม่จำเป็นต้องให้ข้อสรุปตรงกันเสมอ</button>
+  <button class="opt" data-correct="false">เป็นไปไม่ได้ ต้องมีการคำนวณผิดพลาดในตาราง R</button>
+  <button class="opt" data-correct="false">DFFITS กับ Cook's D เป็นสูตรเดียวกันทุกประการ ต้องให้ผลตรงกันเสมอ</button>
+  <button class="opt" data-correct="false">เพราะ Case 7 มี leverage สูงเกินไปจนทำให้ Cook's D คำนวณไม่ได้</button>
+</div>
+  <div class="feedback">DFFITS = influence ต่อจุดเดียว, Cook's D = ผลรวม influence ต่อทุกจุด (aggregate measure) — ทวนสูตรได้จาก Lesson 4 หัวข้อ 5</div>
+</div>
+
+<h2>8. รีฟิตหลังตัดเคสที่มีปัญหา (part h)</h2>
+<p>โจทย์ให้ตัด Case 3, 7, 8, 15 ออกแล้ว fit ใหม่:</p>
+<pre><code>> newdata<-lungpressure[-c(3,7,8,15),]
+> newmodel<-lm(Y~X1*X2, data=newdata)
+> summary(newmodel)
+
+Call:
+lm(formula = Y ~ X1 * X2, data = newdata)
+
+Residuals:
+    Min     1Q     Median        3Q      Max
+-11.044 -4.840      1.544     4.669    9.199
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 135.69850   27.03786   5.019 0.000391 ***
+X1           -2.07803    0.79452 -2.615 0.024022 *
+X2           -2.54937    0.68565 -3.718 0.003393 **
+X1:X2         0.05518    0.01858   2.970 0.012745 *
+---
+Residual standard error: 7.196 on 11 degrees of freedom
+Multiple R-squared: 0.7478,       Adjusted R-squared: 0.6791
+F-statistic: 10.87 on 3 and 11 DF, p-value: 0.001281</code></pre>
+<ul>
+<li>n เหลือ 15 เคส (19−4), df residual=11</li>
+<li>สัมประสิทธิ์ทั้ง 3 ตัวยังคง significant ที่ α=0.05 ทุกตัว (แม้ p-value ของ X1 ขยับขึ้นจาก 0.000975 เป็น 0.024022)</li>
+<li>Residual standard error ลดลงชัดเจน: 10.58 → 7.196 (โมเดลพอดีกับข้อมูลที่เหลือดีขึ้นหลังตัด outlier/leverage ออก)</li>
+<li>R² ลดลงเล็กน้อย: 0.7922 → 0.7478 — สังเกตว่า Case 8 (leverage สูงสุด) มีส่วนช่วยดัน R² เดิมให้สูงขึ้นด้วย เพราะจุดที่ X ห่างไกลมักทำให้เส้นถดถอย fit ได้ "ดูดี" กว่าความเป็นจริง</li>
+<li>สัมประสิทธิ์ X2 เปลี่ยนไปมากที่สุด: −1.699 → −2.549 (เกือบ 1.5 เท่า) — บ่งชี้ว่า 4 เคสที่ตัดออกมีผลต่อสัมประสิทธิ์ X2 มากกว่าตัวอื่น</li>
+</ul>
+
+<h2>9. VIF หลังตัดเคส: Multicollinearity หายไปหรือไม่ (part i)</h2>
+<pre><code>> newpredictors<-data.frame(X1=newdata$X1, X2=newdata$X2, X1X2=newdata$X1*newdata$X2)
+> vif(newpredictors)
+  Variables       VIF
+1        X1  6.910971
+2        X2 38.151188
+3      X1X2 57.775690</code></pre>
+<ul>
+<li>VIF ของทั้ง 3 ตัวแปร<strong>สูงขึ้นกว่าเดิมทุกตัว</strong>: X1 (5.43→6.91), X2 (11.64→38.15), X1X2 (22.47→57.78)</li>
+<li>X2 และ X1X2 พุ่งขึ้นแรงมาก — X1X2 สูงกว่าเดิมเกือบ 3 เท่า</li>
+</ul>
+<div class="box win">
+ข้อสรุปจาก solution: "Yes, there is a serious multicollinearity problem." (รุนแรงกว่าเดิมด้วยซ้ำ)
+</div>
+<p><strong>ทำไม VIF ถึงแย่ลงหลังตัด leverage point ออก?</strong> Case 3, 8, 15 ที่ถูกตัดออกคือเคสที่มี X1, X2 อยู่ไกลจากค่าเฉลี่ยของกลุ่ม (leverage สูง = X ห่างจาก \(\bar{X}\) มาก) — การที่ค่า X กระจายกว้างเป็นสิ่งที่ช่วย "แยก" ผลของ X1 ออกจาก X2 ออกจาก X1X2 ได้ดีกว่า (multicollinearity น้อยกว่าเมื่อ X space กว้าง) เมื่อตัดเคสที่ทำให้ X space กว้างออกไป ตัวแปรที่เหลือจึงเกาะกลุ่มกันแน่นขึ้นและมีความสัมพันธ์เชิงเส้นต่อกันสูงขึ้น — นี่คือบทเรียนสำคัญ: <strong>การตัด influential/leverage point ไม่ได้แก้ปัญหา multicollinearity เสมอไป และบางครั้งยังทำให้แย่ลง</strong> เพราะ leverage point (แม้จะน่ารำคาญในแง่ influence) อาจเป็นเคสที่ช่วยให้ตัวแปรอิสระแยกออกจากกันได้ดีที่สุดในชุดข้อมูล</p>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response)</span><span>เชื่อมโยง Leverage กับ Multicollinearity</span></div>
+  <div class="qtext">จาก part (d) และ (i): VIF ของ X1X2 เพิ่มจาก 22.47 เป็น 57.78 หลังตัด Case 3, 7, 8, 15 ออก จงอธิบายกลไกที่ทำให้ตัดเคสที่มี leverage สูงออกแล้วกลับทำให้ multicollinearity แย่ลง</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">Leverage สูง (h_ii ใกล้ 1) แปลว่าค่า X ของเคสนั้นอยู่ห่างจากค่าเฉลี่ยของกลุ่มมาก — เคสแบบนี้ช่วยขยาย "ขอบเขต" (spread) ของ X1, X2, X1X2 ในข้อมูล ทำให้ตัวแปรทั้งสามแยกความสัมพันธ์เชิงเส้นออกจากกันได้ง่ายขึ้น (ความแปรปรวนร่วมสัมพัทธ์ระหว่างตัวแปรลดลง) เมื่อตัด Case 3, 8, 15 (leverage สูง) ออก ค่า X1, X2 ที่เหลือจะกระจุกตัวแคบลง ทำให้ X1, X2, X1X2 เคลื่อนไหวไปในทิศทางเดียวกันมากขึ้น (correlated กันมากขึ้น) VIF จึงพุ่งสูงขึ้น — บทเรียนคือการแก้ influential point กับการแก้ multicollinearity เป็นปัญหาคนละเรื่องกัน แก้อย่างหนึ่งไม่ได้แปลว่าอีกอย่างจะดีขึ้นตามไปด้วยเสมอ บางครั้งอาจต้องใช้ centering ตัวแปรก่อนคูณ หรือ ridge regression (ตามที่โจทย์ถามต่อใน part (j)) แทนการตัดข้อมูลทิ้ง</div>
+</div>
+
+<h2>10. สรุป: เคสไหน "influential" จริง และเพราะอะไร</h2>
+<ul>
+<li><strong>Case 8</strong> — leverage สูงสุด (hat=0.878) <em>และ</em> influential ผ่านทุกเกณฑ์ (DFFITS, DFBETAS ทั้ง 4 ตัว, Cook's D แม้เกณฑ์เข้มงวดสุด, COV RATIO) — เป็นทั้ง leverage point และ influential point เต็มรูปแบบ คือเคสที่ต้องตรวจสอบก่อนเป็นอันดับแรกว่าข้อมูลถูกบันทึกถูกต้องหรือไม่</li>
+<li><strong>Case 7</strong> — outlying ในแกน Y (เด่นที่สุดใน QQ-plot หัวข้อ 3) และ influential ผ่าน DFFITS/DFBETAS/COV RATIO แต่<strong>ไม่ผ่าน Cook's D เลย</strong> — เตือนว่าเกณฑ์ Cook's D อย่างเดียวไม่พอจะจับทุกเคสที่มีอิทธิพล</li>
+<li><strong>Case 3, 15</strong> — outlying ในแกน X (leverage เกิน cutoff) และ influential ผ่านทาง COV RATIO เท่านั้น — influence ของสองเคสนี้อยู่ที่<strong>ความแม่นยำของสัมประสิทธิ์</strong> ไม่ใช่ที่ตัวค่าประมาณโดยตรง</li>
+<li><strong>ผลกระทบต่อโมเดลโดยรวม</strong> — หลังตัดทั้ง 4 เคส: residual standard error ดีขึ้น (10.58→7.20) และสัมประสิทธิ์ยังคง significant แต่ VIF แย่ลงทุกตัว — สรุปว่าไม่มีทางแก้ปัญหาเดียวที่แก้ทุกอย่างพร้อมกันได้ ต้องชั่งน้ำหนักระหว่าง influence กับ multicollinearity เป็นกรณีไป</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response — รูปแบบข้อสอบจริง)</span><span>เขียนรายงานสรุปแบบข้อสอบ</span></div>
+  <div class="qtext">สมมติคุณเป็นนักวิเคราะห์ที่ต้องรายงานผลจากโจทย์นี้ให้คณะแพทย์ฟัง จงเขียนสรุปสั้น ๆ (3-4 ประโยค) ว่าเคสไหนน่าเป็นห่วง เพราะอะไร และคุณจะแนะนำขั้นตอนถัดไปอย่างไร (ตัดทิ้ง / ตรวจสอบข้อมูล / ใช้ robust regression / ใช้ ridge regression)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">จากการตรวจ influence diagnostics พบว่า Case 8 เป็นเคสที่น่าเป็นห่วงที่สุด เพราะมีทั้ง leverage สูงสุดในชุดข้อมูล (hat=0.88) และผ่านทุกเกณฑ์ influence (DFFITS, DFBETAS, Cook's D, COV RATIO) พร้อมกัน ควรตรวจสอบก่อนว่าค่า X1, X2 ของผู้ป่วยรายนี้ถูกบันทึกถูกต้องหรือไม่ (ไม่ใช่ความผิดพลาดจากการวัดหรือคีย์ข้อมูล) ส่วน Case 3, 7, 15 มีอิทธิพลน้อยกว่าและผ่านเพียงบางเกณฑ์เท่านั้น จึงยังไม่จำเป็นต้องตัดทิ้งทันที นอกจากนี้เนื่องจากข้อมูลมี multicollinearity รุนแรงอยู่แล้วตั้งแต่ก่อนตัดเคสใด ๆ (VIF ของ X1X2 สูงถึง 22.47) และยิ่งแย่ลงหลังตัด leverage point ออก จึงควรพิจารณาใช้ ridge regression แทนการตัดข้อมูลทิ้งไปเลย เพื่อจัดการทั้งปัญหา influential point และ multicollinearity ไปพร้อมกันโดยไม่สูญเสียขนาดตัวอย่าง</div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+คุณได้ไล่ influence diagnostics ครบวงจรบนโจทย์จริง: ตั้งแต่ residual plot เบื้องต้น (part b), QQ-plot (part c), VIF (part d), studentized deleted residual กับ Bonferroni cutoff (part e), leverage (part f), ไปจนถึง DFFITS/DFBETAS/Cook's D/COV RATIO ครบชุด (part g) — และเห็นด้วยตัวเลขจริงว่าเคสหนึ่งอาจ "ผ่าน" บางเกณฑ์แต่ "ไม่ผ่าน" อีกเกณฑ์ (Case 7 ไม่ผ่าน Cook's D, Case 3/15 ผ่านแค่ COV RATIO) และเห็นว่าการตัด influential point ออกอาจแก้ปัญหาหนึ่งได้แต่ทำให้อีกปัญหาแย่ลง (multicollinearity หลัง part h/i) — ทักษะอ่านตารางแล้วเทียบกับ threshold ที่คำนวณเองแบบนี้คือสิ่งที่ข้อสอบจะทดสอบโดยตรง
+</div>
+
+<p><strong>ความครอบคลุม:</strong> บทเรียนนี้ครอบคลุม Assignment 4 sub-part (a) ถึง (i) ครบทุกข้อ — sub-part (j) (ridge regression) ไม่ได้รวมอยู่ในบทนี้ เพราะจับคู่กับบทเรียนเรื่อง penalized regression แยกต่างหาก</p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="0004-regression-diagnostics-part-2.html">← Lesson 4: Regression Diagnostics (Part II)</a></span>
+  <span><a href="../reference/0004-influence-diagnostics-cheatsheet.html">Reference: สูตร + Threshold ทั้งหมด →</a></span>
+  <span><a href="../exams/drill-04-diagnose-from-plots.html">Drill: Diagnose from Plots →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

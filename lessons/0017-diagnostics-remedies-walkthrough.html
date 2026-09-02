@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 3+ Walkthrough: Diagnostics &amp; Remedies จากโจทย์จริง — Assignment 3 + 9</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>เสริม Lesson 3 · ฝึกกับโจทย์จริง (Assignment 3 + 9)</span>
+  <span><a href="../reference/0003-diagnostics-cheatsheet.html">Reference: Diagnostics Cheat Sheet →</a></span>
+</nav>
+
+<p class="kicker">Lecture 3 — Regression Diagnostics and Remedies (Walkthrough)</p>
+<h1>Diagnostics &amp; Remedies Walkthrough: 4 โจทย์จริงจาก Assignment 3 และ 9</h1>
+
+<p>บทเรียนนี้ต่อจาก <a href="0003-regression-diagnostics-and-remedies.html">Lesson 3</a> โดยตรง — แทนที่จะดูภาพสไลด์ที่ครูเตรียมไว้ เราจะไล่ดู <strong>โจทย์การบ้านจริงที่มีเฉลย</strong> 4 ข้อ ที่ต้องใช้ทักษะเดียวกันทุกอย่าง: อ่าน R output → เลือก diagnostic ที่ถูกต้อง → ตัดสินผ่าน/ไม่ผ่าน → เลือก remedy ที่เหมาะกับปัญหาที่เจอ. สามข้อแรกมาจาก Assignment 3 (Solution Concentration, Machine Speed, Rainfall &amp; Corn Yield) ข้อสุดท้ายมาจาก Assignment 9 ข้อ 3 (Rats/Poison) ซึ่งวนกลับมาใช้ Box-Cox และ interaction interpretation อีกครั้งในบริบทใหม่.</p>
+
+<div class="box source">
+<div class="label">ที่มา</div>
+<code>Assignment3_Solution.pdf</code> (ข้อ 1-3 ทั้งหมด) และ <code>Assignment9_Solution.pdf</code> (เฉพาะข้อ 3 — <em>rats</em> data จาก faraway package) — ตัวเลขทุกตัวคัดลอกจาก R output จริงในเฉลย ไม่มีตัวเลขแต่งขึ้น
+</div>
+
+<h2>1. Solution Concentration (<code>solution.csv</code>) — Transformation แก้ปัญหาซ้อนสองข้อพร้อมกัน</h2>
+<p>นักเคมีวัดความเข้มข้นของสารละลาย (Y) ตามเวลา (X) จาก 15 ตัวอย่าง (5 กลุ่มเวลา: 1, 3, 4, 7, 9 ชั่วโมง กลุ่มละ 3 ตัวอย่าง)</p>
+
+<h3>(a) Fit เชิงเส้นตรงก่อน</h3>
+<pre><code>&gt; summary(model)
+Call:
+lm(formula = Y ~ X, data = solution)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   2.5753     0.2487  10.354 1.20e-07 ***
+X            -0.3240     0.0433  -7.483 4.61e-06 ***
+---
+Residual standard error: 0.4743 on 13 degrees of freedom
+Multiple R-squared: 0.8116,     Adjusted R-squared: 0.7971
+F-statistic: 55.99 on 1 and 13 DF,  p-value: 4.611e-06</code></pre>
+<p>สมการ: \(\hat{Y} = 2.5753 - 0.324X\)</p>
+<ul>
+<li>R² = 0.8116 — ดูสูง สัมประสิทธิ์มีนัยสำคัญทั้งคู่ — ถ้าดูแค่ตัวเลขสรุปนี้ อาจรีบสรุปว่าโมเดล "ใช้ได้"</li>
+<li>แต่ R² สูงไม่ได้แปลว่า assumption ผ่าน — ต้องดู residual plot กับ QQ plot ต่อเสมอ (นี่คือกับดักที่ข้อสอบชอบทดสอบ)</li>
+</ul>
+
+<h3>(b) เช็ค Assumption จาก Residual Plot + QQ Plot</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-solution-resid-qq-violated.png" alt="Residuals vs Fitted plot showing a clear V-shape curve dipping from positive at low fitted values down to negative near fitted=1 then back up to positive at high fitted values, points 12, 13, 15 labeled; adjacent Normal QQ plot showing points forming an S-curve bending away from the diagonal line at both tails, points 12 and 13/15 labeled at the extremes">
+<figcaption>Residuals vs Fitted และ Normal Q-Q ของ <code>model</code> (Y ~ X ไม่แปลงตัวแปร) — Assignment 3 ข้อ 1(b)</figcaption>
+</figure>
+<p>อ่านตัวเลข/รูปทรงจริงจากภาพ:</p>
+<ul>
+<li><strong>Residuals vs Fitted (ซ้าย):</strong> เส้น smoother สีแดงเป็นรูปตัว V ชัดเจน — เริ่มจากบวก (~0.4) ที่ fitted ต่ำ ลดลงต่ำสุดที่ fitted ≈ 1 (residual ≈ -0.4) แล้วดีดกลับขึ้นไปเป็นบวกอีกครั้งที่ fitted สูง (จุด 15 residual ≈ 0.85) — รูปตัว V นี้คือสัญญาณ lack of fit ตรงไปตรงมา → <strong>linearity ถูกละเมิด</strong></li>
+<li>จุด 12 อยู่ต่ำสุดในกลุ่ม (fitted ≈ 1.6, residual ≈ -0.55) ส่วนจุด 15 อยู่สูงสุด (fitted ≈ 2.3, residual ≈ 0.85) — ช่วงของ residual ที่ fitted สูงกว้างกว่าช่วงที่ fitted ต่ำเล็กน้อย</li>
+<li><strong>Normal QQ (ขวา):</strong> จุดกลางเรียงตัวใกล้เส้นได้ในระดับหนึ่ง แต่จุด 12 (theoretical quantile ≈ -1.4, standardized residual ≈ -1.3) หลุดต่ำกว่าเส้น และจุด 15 (theoretical quantile ≈ 1.7, standardized residual = 2.0) หลุดสูงกว่าเส้นทั้งสองข้าง — รูปร่างโค้งแบบนี้เข้าข่าย skewed/long-tailed pattern</li>
+<li>สรุปตามเฉลย: <strong>Linearity assumption ถูกละเมิด</strong> และ <strong>Constant variance assumption ถูกละเมิด</strong></li>
+</ul>
+
+<h3>(c) Box-Cox หา λ ที่เหมาะสม</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-boxcox-loglik.png" alt="Box-Cox log-likelihood curve peaking sharply at lambda approximately 0, with narrow 95% confidence interval dashed lines very close together straddling 0">
+<figcaption>Box-Cox log-likelihood plot ของ <code>model</code> — Assignment 3 ข้อ 1(c)</figcaption>
+</figure>
+<ul>
+<li>จุดสูงสุดของ log-likelihood อยู่ที่ <strong>λ ≈ 0 พอดี</strong> — เส้นประ 95% CI ทั้งสามเส้นบีบตัวแคบมากรอบ λ=0 (ไม่ครอบคลุม λ=1 เลย ซึ่งหมายถึง "ไม่ต้องแปลง" ถูกปัดตกด้วย)</li>
+<li>ตามตารางกรณีพิเศษของ Box-Cox (Lesson 3 หัวข้อ 8.2): λ=0 คือกรณีนิยามพิเศษที่แทนด้วย <strong>log(Y)</strong></li>
+<li>เฉลย: <strong>Box-Cox procedure แนะนำ log transformation</strong></li>
+</ul>
+
+<h3>(d) Fit โมเดลกับ Y' = ln(Y)</h3>
+<pre><code>&gt; logmodel&lt;-lm(log(Y)~X, data=solution)
+&gt; summary(logmodel)
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)  1.50792    0.06028   25.01 2.22e-12 ***
+X           -0.44993    0.01049  -42.88 2.19e-15 ***
+---
+Residual standard error: 0.115 on 13 degrees of freedom
+Multiple R-squared: 0.993,       Adjusted R-squared: 0.9924
+F-statistic: 1838 on 1 and 13 DF,  p-value: 2.188e-15</code></pre>
+<p>สมการ: \(\ln(\hat{Y}) = 1.5079 - 0.4499X\)</p>
+<ul>
+<li>R² กระโดดจาก 0.8116 เป็น <strong>0.993</strong> — เพิ่มขึ้นเกือบ 18 percentage points จากการแปลงตัวแปรตามตัวเดียว</li>
+<li>Residual SE ลดลงจาก 0.4743 เหลือ 0.115 — โมเดลแม่นยำขึ้นมาก (แม้เทียบสเกลตรง ๆ ไม่ได้เพราะหน่วยเปลี่ยนเป็น log-scale)</li>
+</ul>
+
+<h3>(e) เช็ค Diagnostic ซ้ำหลังแปลง</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-solution-logmodel-resid-qq-ok.png" alt="Residuals vs Fitted plot for the log-transformed model showing points scattered without a clear curved pattern around a nearly flat smoother line near zero, points 2, 4, 8 labeled at mild extremes; adjacent Normal QQ plot showing points hugging the diagonal line closely across the whole range with points 2, 4, 8 only mildly deviating">
+<figcaption>Residuals vs Fitted และ Normal Q-Q ของ <code>logmodel</code> (log(Y) ~ X) — Assignment 3 ข้อ 1(e)</figcaption>
+</figure>
+<ul>
+<li>เทียบกับภาพก่อนแปลง (ข้อ 1b): เส้น smoother ตอนนี้ค่อนข้างราบใกล้ 0 ตลอดช่วง fitted (-2.5 ถึง 1.0) ไม่มีรูปตัว V แบบเดิม — จุด 8 อยู่สูงสุด (residual ≈ 0.2) และจุด 4 อยู่ต่ำสุด (residual ≈ -0.2) แต่ไม่ได้เรียงเป็นแนวโน้มเชิงระบบ</li>
+<li>QQ plot: จุดเกาะเส้นทแยงได้แนบสนิทมากตลอดช่วง มีแค่จุด 4 กับ 8 เบี่ยงเล็กน้อยที่หางทั้งสองข้าง (เบี่ยงน้อยกว่าภาพก่อนแปลงมาก)</li>
+<li>เฉลย: <strong>"No obvious pattern in the residuals plot. No assumptions are violated."</strong></li>
+</ul>
+
+<h3>(f) แปลผลกลับหน่วยเดิม</h3>
+<ul>
+<li>\(e^{\hat{\beta}_1} = e^{-0.44993} \approx 0.64\)</li>
+<li>แปลผล: การเพิ่มเวลา 1 ชั่วโมงสัมพันธ์กับการลดลงของค่าเฉลี่ยความเข้มข้นของสารละลาย (1-0.64)×100 = <strong>36%</strong></li>
+<li>นี่คือรูปแบบการแปลผลมาตรฐานของโมเดล log(Y) ~ X: สัมประสิทธิ์ดิบตีความตรง ๆ ไม่ได้ ต้อง exponentiate ก่อนแล้วอ่านเป็น "ร้อยละที่เปลี่ยนแปลง"</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Solution Concentration — Box-Cox</span></div>
+  <div class="qtext">Box-Cox log-likelihood plot ของ <code>model</code> (ข้อ 1) มีจุดสูงสุดที่ λ ≈ 0 พอดี พร้อม 95% CI ที่แคบมากรอบ 0 (ไม่ครอบคลุม λ=1) นี่แปลว่าอะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไม่ต้องแปลงตัวแปรใด ๆ เพราะ λ ใกล้ 1 มากกว่า 0</button>
+  <button class="opt" data-correct="true">ควรแปลง Y ด้วย log(Y) เพราะ λ=0 คือกรณีนิยามพิเศษของ Box-Cox ที่แทนด้วย log transformation และ CI ไม่ครอบคลุม λ=1 (ไม่แปลง) เลย</button>
+  <button class="opt" data-correct="false">ควรแปลง Y ด้วย √Y เพราะ λ ใกล้ 0.5</button>
+  <button class="opt" data-correct="false">Box-Cox procedure ใช้ไม่ได้กับข้อมูลชุดนี้เพราะ CI แคบเกินไป</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>R² สูงไม่ได้แปลว่าผ่าน</span></div>
+  <div class="qtext">โมเดลดิบในข้อ 1(a) มี R² = 0.8116 และสัมประสิทธิ์มีนัยสำคัญทางสถิติสูงมาก (p &lt; 0.0001 ทั้งคู่) แต่เฉลยสรุปว่า linearity และ constant variance ถูกละเมิดทั้งคู่ จงอธิบายว่าทำไมตัวเลขสรุป (R², p-value) เพียงอย่างเดียวไม่พอจะบอกว่าโมเดลใช้ได้ และต้องดูอะไรเพิ่ม</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">R² และ p-value ของสัมประสิทธิ์บอกแค่ว่า "มีความสัมพันธ์เชิงเส้นระหว่าง X กับ Y ในระดับที่แรงพอจะตรวจจับได้ทางสถิติ" แต่ไม่ได้บอกว่ารูปแบบความสัมพันธ์นั้นเป็น "เส้นตรง" จริงหรือไม่ หรือ variance ของ error คงที่หรือไม่ — สองอย่างนี้เป็นคำถามคนละมิติ โมเดลอาจอธิบายความแปรผันของ Y ได้มาก (R² สูง) ในขณะที่ยังพลาดรูปแบบโค้งที่แท้จริงไป (residual มีแนวโน้มเป็นระบบ) ในกรณีนี้ residual vs fitted เป็นรูปตัว V ชัดเจน — สัญญาณของ lack of fit ที่ไม่มีทางเห็นได้จาก R² หรือ p-value เพียงอย่างเดียว ต้องดู diagnostic plot เสมอไม่ว่าตัวเลขสรุปจะดูดีแค่ไหน (เป็นเหตุผลเดียวกับที่ Lesson 3 เตือนว่าต้อง plot ก่อนเชื่อค่าสรุปเสมอ)</div>
+</div>
+
+<h2>2. Machine Speed (<code>machinespeed.csv</code>) — Weighted Least Squares</h2>
+<p>จำนวนชิ้นงานเสีย (Y) สัมพันธ์กับความเร็วตั้งค่าเครื่องจักร (X) โดยมีข้อมูล X ที่ระดับ 200, 300, 400</p>
+
+<h3>(a) Scatter Plot</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-machinespeed-scatter.png" alt="Scatterplot of Y against X with three clusters of points at X=200 (Y ranging about 22 to 46), X=300 (Y ranging about 37 to 69), and X=400 (Y ranging about 52 to 96), showing an increasing trend from left to right">
+<figcaption>Scatter plot ดิบ X vs Y — Assignment 3 ข้อ 2(a)</figcaption>
+</figure>
+<ul>
+<li>ที่ X=200 กลุ่มจุด Y อยู่ในช่วงแคบ (~22-46) ที่ X=300 ช่วงกว้างขึ้น (~37-69) และที่ X=400 ช่วงกว้างที่สุด (~52-96)</li>
+<li>เฉลย: <strong>"X has a positive linear relationship with Y"</strong> — แต่สังเกตได้แล้วตั้งแต่ตรงนี้ว่าความกว้างของกลุ่มจุด (spread) เพิ่มขึ้นตาม X ด้วย เป็นสัญญาณเตือนล่วงหน้าของปัญหาในข้อถัดไป</li>
+</ul>
+
+<h3>(b) Fit OLS</h3>
+<pre><code>&gt; summary(model)
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) -5.75000   16.73052  -0.344  0.73820
+X            0.18750    0.05381   3.484  0.00588 **
+---
+Residual standard error: 15.22 on 10 degrees of freedom
+Multiple R-squared: 0.5484,     Adjusted R-squared: 0.5032
+F-statistic: 12.14 on 1 and 10 DF,  p-value: 0.005878</code></pre>
+<p>สมการ: \(\hat{Y} = -5.75 + 0.19X\)</p>
+
+<h3>(c) Residual vs X — เช็ค Constant Variance</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-machinespeed-resid-vs-x.png" alt="Scatterplot of residuals against X showing narrow spread of roughly -10 to 14 at X=200, wider spread of roughly -14 to 19 at X=300, and widest spread of roughly -17 to 27 at X=400, a classic widening funnel/megaphone pattern from left to right">
+<figcaption>resid(model) vs X — Assignment 3 ข้อ 2(c)</figcaption>
+</figure>
+<ul>
+<li>ที่ X=200 residual อยู่ในช่วงแคบประมาณ -10 ถึง 14 (กว้าง ~24)</li>
+<li>ที่ X=300 ช่วงกว้างขึ้นเป็นประมาณ -14 ถึง 19 (กว้าง ~33)</li>
+<li>ที่ X=400 ช่วงกว้างที่สุดประมาณ -17 ถึง 27 (กว้าง ~44) — เกือบสองเท่าของช่วงที่ X=200</li>
+<li>รูปทรง "กรวยบาน" (megaphone) นี้ตรงกับแผง ✗ ในหัวข้อ 5 ของ Lesson 3 เป๊ะ — เฉลย: <strong>"The constant variance assumption is violated"</strong></li>
+</ul>
+
+<h3>(d)-(e) ประมาณ Weight แล้วทำ Weighted Least Squares</h3>
+<ul>
+<li>ขั้นตอน: <code>e2&lt;-resid(model)^2</code> → fit <code>varfn&lt;-lm(e2~X)</code> → <code>w&lt;-1/fitted(varfn)</code></li>
+</ul>
+<pre><code>&gt; w
+          1           2           3           4           5           6
+0.014563107 0.003150433 0.005180229 0.003150433 0.014563107 0.005180229
+          7           8           9          10          11          12
+0.005180229 0.003150433 0.014563107 0.003150433 0.014563107 0.005180229</code></pre>
+<ul>
+<li>Observation ที่ X=200 (variance เล็กสุดจากภาพข้อ c) ได้ weight สูงสุด <strong>0.01456</strong>; ที่ X=400 (variance ใหญ่สุด) ได้ weight ต่ำสุด <strong>0.00315</strong>; ที่ X=300 อยู่ตรงกลาง <strong>0.00518</strong> — ตรงกับหลักการ \(w_i=1/\hat{v}_i\) ใน Lesson 3 หัวข้อ 9 พอดี: variance ยิ่งมาก weight ยิ่งน้อย</li>
+</ul>
+<pre><code>&gt; wtmodel&lt;-lm(Y~X, data=speed, weight=w)
+&gt; summary(wtmodel)
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) -6.23322   13.16843  -0.473  0.64613
+X            0.18911    0.05056   3.740  0.00385 **
+---
+Residual standard error: 1.109 on 10 degrees of freedom
+Multiple R-squared: 0.5831,     Adjusted R-squared: 0.5414
+F-statistic: 13.99 on 1 and 10 DF,  p-value: 0.003846</code></pre>
+<ul>
+<li>สัมประสิทธิ์ X แทบไม่เปลี่ยน: 0.18750 (OLS) → 0.18911 (WLS) — ค่าประมาณจุดใกล้เคียงกันมาก</li>
+<li>สิ่งที่เปลี่ยนคือ Std. Error ของ X ลดลงเล็กน้อย (0.05381 → 0.05056) และ p-value ดีขึ้น (0.00588 → 0.00385) — WLS ให้ inference ที่แม่นยำกว่าเพราะไม่ปล่อยให้ observation ที่มี variance สูง (X=400) มีอิทธิพลเท่ากับ observation ที่ variance ต่ำ (X=200) เหมือน OLS ธรรมดา</li>
+<li>เฉลยสรุปตรง ๆ ว่า: <strong>"Yes, there are similar"</strong> — ค่าประมาณ WLS กับ OLS ใกล้เคียงกัน (สอดคล้องกับทฤษฎีที่ว่า OLS ยัง unbiased แม้ constant variance จะพัง เพียงแต่ไม่ efficient เท่า WLS)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Machine Speed — Weight Formula</span></div>
+  <div class="qtext">จากผล <code>w</code> ในข้อ 2(d): observation ที่ X=200 ได้ weight ≈ 0.01456 (สูงสุด) ส่วน observation ที่ X=400 ได้ weight ≈ 0.00315 (ต่ำสุด) เพราะเหตุใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ X=200 มีจำนวน observation มากกว่า X=400</button>
+  <button class="opt" data-correct="true">เพราะ residual ที่ X=200 กระจายแคบกว่า (variance ต่ำกว่า) ตามภาพ residual-vs-X ในข้อ (c) — weight = 1/variance จึงสูงกว่าที่ X=400 ซึ่ง variance กว้างสุด</button>
+  <button class="opt" data-correct="false">เพราะ weight ถูกกำหนดแบบสุ่มไม่เกี่ยวกับ variance</button>
+  <button class="opt" data-correct="false">เพราะ X=200 อยู่ใกล้ค่าเฉลี่ยของ X มากกว่า</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Machine Speed — OLS vs WLS</span></div>
+  <div class="qtext">เปรียบเทียบ OLS (ข้อ b) กับ WLS (ข้อ e): สัมประสิทธิ์ X เปลี่ยนจาก 0.18750 เป็น 0.18911 (แทบไม่เปลี่ยน) แต่ Std. Error ลดลงจาก 0.05381 เป็น 0.05056 สรุปได้ว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">OLS ให้ค่าประมาณที่ผิด (biased) จึงต้องใช้ WLS แทน</button>
+  <button class="opt" data-correct="true">OLS ยังคงเป็น unbiased estimator (ค่าประมาณใกล้เคียงกัน) แต่ไม่ efficient เท่า WLS เมื่อ constant variance ถูกละเมิด — WLS ให้ SE ที่แม่นยำกว่าเพราะถ่วงน้ำหนักตาม variance ของแต่ละจุด</button>
+  <button class="opt" data-correct="false">ความแตกต่างนี้เกิดจาก sample size ที่ต่างกันระหว่างสองโมเดล</button>
+  <button class="opt" data-correct="false">WLS ใช้ไม่ได้กับข้อมูลชุดนี้เพราะให้ผลต่างจาก OLS มาก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>3. Rainfall and Corn Yield (<code>corn.csv</code>) — Time Trend + Interaction</h2>
+<p>ผลผลิตข้าวโพด (bu/acre) และปริมาณน้ำฝน (inches) รายปี 1890-1927 จาก 6 รัฐผลิตข้าวโพดหลักของสหรัฐฯ</p>
+
+<h3>(a) Scatter: Yield vs Rainfall</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-corn-yield-vs-rain.png" alt="Scatterplot of corn yield against rainfall, points scattered with a mild increasing then possibly flattening trend, ranging from about rainfall 7 to 17 inches and yield 19 to 38 bushels per acre, fairly noisy/scattered rather than a tight line">
+<figcaption>Scatter plot Yield vs Rainfall — Assignment 3 ข้อ 3(a)</figcaption>
+</figure>
+<ul>
+<li>จุดกระจายค่อนข้างมาก ไม่เป็นเส้นตรงชัดเจน — มีแนวโน้มเพิ่มขึ้นในช่วง rainfall ต่ำแล้วดูเหมือนจะลดความชันลงในช่วง rainfall สูง (~14-17) ซึ่งเป็นเหตุผลที่โจทย์ให้ fit ทั้ง rain และ rain² ในข้อถัดไป (สอดคล้องกับแผง (C) parabola ใน decision guide ของ Lesson 3 หัวข้อ 8)</li>
+</ul>
+
+<h3>(b) Fit กำลังสองของ Rainfall</h3>
+<pre><code>&gt; summary(model)
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   -5.01467   11.44158  -0.438  0.66387
+RAINFALL       6.00428    2.03895   2.945  0.00571 **
+I(RAINFALL^2) -0.22936    0.08864  -2.588  0.01397 *
+---
+Residual standard error: 3.763 on 35 degrees of freedom
+Multiple R-squared: 0.2967,     Adjusted R-squared: 0.2565
+F-statistic: 7.382 on 2 and 35 DF,  p-value: 0.002115</code></pre>
+<p>สมการ: \(\widehat{Yield} = -5.01 + 6\,Rainfall - 0.23\,Rainfall^2\)</p>
+<ul>
+<li>สัมประสิทธิ์ rain² ติดลบ (-0.22936, p=0.01397) — ยืนยันรูปโค้งแบบภูเขา (concave) ตามที่เห็นในภาพ scatter</li>
+<li>R² ค่อนข้างต่ำ (0.2967) — ยังมีความแปรผันเหลืออีกมากที่ rainfall เพียงอย่างเดียวอธิบายไม่ได้</li>
+</ul>
+
+<h3>(c) Residual vs Year — เช็ค Independence</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a3-corn-resid-vs-year.png" alt="Scatterplot of model residuals against year from 1890 to 1927, residuals mostly negative and clustered near -5 to 0 in the earlier years (1890-1900), and mostly positive up to about +7 in the later years (1915-1927), a clear upward drift over time">
+<figcaption>Residuals vs Year — Assignment 3 ข้อ 3(c)</figcaption>
+</figure>
+<ul>
+<li>ช่วงต้น (~1890-1900) residual ส่วนใหญ่ติดลบ (อยู่แถว -6 ถึง 0) ช่วงปลาย (~1915-1927) residual ส่วนใหญ่เป็นบวก (สูงถึง +7) — เห็นแนวโน้มไต่ระดับขึ้นชัดเจนตลอด 37 ปี</li>
+<li>ตรงกับรูปแบบ <strong>(B) Time Trend</strong> ใน Lesson 3 หัวข้อ 6 (ไม่ใช่ (C)/(D) ที่เป็นการแกว่งเป็นคลื่น) — เฉลย: <strong>"there is an increasing trend of residuals over time. This means that the independence assumption is violated and the corn yield may correlate with time"</strong></li>
+<li>เพราะเป็นแบบ (B) ไม่ใช่ (C)/(D) วิธีแก้ที่เหมาะคือ<strong>เติม YEAR เป็นตัวแปรอิสระเพิ่มเข้าไปในโมเดล</strong> (ไม่ต้องใช้ Cochrane-Orcutt เต็มรูปแบบ) — ตรงกับที่ทำในข้อ (d) พอดี</li>
+</ul>
+
+<h3>(d) เติม YEAR เข้าโมเดล</h3>
+<pre><code>&gt; summary(model2)
+Coefficients:
+                Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   -263.30324   98.24094  -2.680  0.01126 *
+RAINFALL         5.67038    1.88824   3.003  0.00499 **
+I(RAINFALL^2)   -0.21550    0.08207  -2.626  0.01286 *
+YEAR             0.13634    0.05156   2.644  0.01229 *
+---
+Residual standard error: 3.477 on 34 degrees of freedom
+Multiple R-squared: 0.4167,     Adjusted R-squared: 0.3652
+F-statistic: 8.095 on 3 and 34 DF,  p-value: 0.0003339</code></pre>
+<p>สมการ: \(\widehat{Yield} = -263.3 + 5.676\,Rainfall - 0.22\,Rainfall^2 + 0.13\,Year\)</p>
+<ul>
+<li>R² ขยับจาก 0.2967 เป็น <strong>0.4167</strong> — เพิ่มขึ้นถึง 12 percentage points หลังเติมตัวแปร YEAR ตัวเดียว</li>
+<li>YEAR มีนัยสำคัญ (p=0.01229) ยืนยันว่าการมีแนวโน้มตามเวลาไม่ใช่เรื่องบังเอิญ</li>
+</ul>
+
+<h3>(e) เพิ่ม Interaction RAINFALL × YEAR</h3>
+<pre><code>&gt; summary(model3)
+Coefficients:
+                Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)   -1.909e+03  4.862e+02  -3.927 0.000414 ***
+RAINFALL       1.588e+02  4.457e+01   3.564 0.001138 **
+I(RAINFALL^2) -1.862e-01  7.198e-02  -2.588 0.014257 *
+YEAR           1.001e+00  2.555e-01   3.919 0.000423 ***
+RAINFALL:YEAR -8.064e-02  2.345e-02  -3.439 0.001599 **
+---
+Residual standard error: 3.028 on 33 degrees of freedom
+Multiple R-squared: 0.5706,     Adjusted R-squared: 0.5185
+F-statistic: 10.96 on 4 and 33 DF,  p-value: 9.127e-06</code></pre>
+<p>สมการ: \(\widehat{Yield} = -1909 + 158.8\,Rainfall - 0.19\,Rainfall^2 + Year - 0.08\,(Rainfall \times Year)\)</p>
+<ul>
+<li>R² ขยับขึ้นอีกเป็น <strong>0.5706</strong> และพจน์ interaction <code>RAINFALL:YEAR</code> มีนัยสำคัญสูง (p=0.001599)</li>
+<li>ความหมายของสัมประสิทธิ์ interaction ติดลบ (-0.08064): <strong>"ผลของ rainfall ต่อ yield เปลี่ยนแปลงไปตามปี"</strong> — ถ้า effect ของ rainfall ต่อ yield ค่อย ๆ ลดลงเมื่อเวลาผ่านไป (ปีหลัง ๆ ผลผลิตพึ่งพาปริมาณฝนน้อยลงกว่าเดิม) นั่นอาจสะท้อนว่าเกษตรกรมีเทคโนโลยีการชลประทาน (irrigation) ที่ดีขึ้นเรื่อย ๆ ช่วยลดการพึ่งพาน้ำฝนธรรมชาติ</li>
+<li>เฉลย: <strong>"Yes, the interaction term could be something about technological improvements regarding irrigation"</strong></li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Corn Yield — Residual vs Year</span></div>
+  <div class="qtext">ภาพ residual vs year ของโมเดล (b) แสดงแนวโน้มไต่ระดับขึ้นจากติดลบในปี 1890 ไปเป็นบวกในปี 1927 (รูปแบบ (B) Time Trend ตาม Lesson 3) วิธีแก้ที่เหมาะสมที่สุดคือข้อใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ใช้ Cochrane-Orcutt Transformation เพราะเป็น time-series data ที่มี serial correlation</button>
+  <button class="opt" data-correct="true">เติม YEAR เป็นตัวแปรอิสระเพิ่มเข้าไปในโมเดล เพราะเป็น deterministic trend แบบ (B) ที่ regression ธรรมดาจับได้ ไม่ใช่ (C)/(D) ที่ต้องใช้ time series technique</button>
+  <button class="opt" data-correct="false">ใช้ Box-Cox แปลงตัวแปร Yield เพราะปัญหาคือ non-constant variance</button>
+  <button class="opt" data-correct="false">ไม่ต้องแก้อะไรเพราะ R-squared ของโมเดล (b) มากกว่า 0</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>Interaction × Irrigation</span></div>
+  <div class="qtext">จากโมเดล (e): สัมประสิทธิ์ของ <code>RAINFALL:YEAR</code> = -8.064e-02 (p=0.001599, มีนัยสำคัญ) จงอธิบายว่าทำไมสัมประสิทธิ์ interaction ที่ติดลบนี้ถึงตีความเชื่อมโยงกับ "เทคโนโลยีการชลประทานที่ดีขึ้น" ได้ (ใบ้: ลองคิดว่าอนุพันธ์ของ Yield เทียบกับ Rainfall เปลี่ยนไปอย่างไรเมื่อ Year เพิ่มขึ้น)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">Effect ส่วนเพิ่มของ Rainfall ต่อ Yield (ไม่นับพจน์ rain² ที่ตายตัว) มาจากผลรวมของสัมประสิทธิ์ RAINFALL (158.8) บวกกับ (สัมประสิทธิ์ interaction × YEAR) = 158.8 - 0.08064×Year กล่าวคือ ผลของฝน 1 นิ้วต่อ yield ไม่ใช่ค่าคงที่อีกต่อไป แต่ลดลงเรื่อย ๆ ทุกปีที่ Year เพิ่มขึ้น (เพราะสัมประสิทธิ์ interaction ติดลบ) — ถ้าปีหลัง ๆ ผลผลิตข้าวโพดเริ่ม "พึ่งพา" น้ำฝนธรรมชาติน้อยลงเมื่อเทียบกับปีก่อน ๆ คำอธิบายที่สมเหตุสมผลอย่างหนึ่งคือเกษตรกรเริ่มมีระบบชลประทาน (irrigation) ที่ทดแทนน้ำฝนได้มากขึ้นเรื่อย ๆ ตามกาลเวลา ทำให้ yield ไม่แกว่งตามปริมาณฝนธรรมชาติรุนแรงเท่าเดิม — นี่คือตัวอย่างว่าโจทย์ให้ "ตีความ" สัมประสิทธิ์ interaction ในบริบทของโดเมนความรู้จริง ไม่ใช่แค่บอกว่ามีนัยสำคัญทางสถิติ</div>
+</div>
+
+<h2>4. Rats: Poison &amp; Treatment (<code>rats</code>, faraway package) — Box-Cox + Interaction วนกลับมาอีกครั้ง</h2>
+<p>Assignment 9 ข้อ 3(a): การทดลองศึกษาเวลารอดชีวิต (survival time) ของหนูที่ได้รับพิษ (poison: I/II/III) และการรักษา (treat: A/B/C/D) ต่างกัน — ข้อนี้ใช้ทักษะชุดเดียวกับ Lesson 3 ทุกอย่าง (Box-Cox + residual diagnostics) แต่เพิ่มความซับซ้อนของ <strong>interaction term</strong> เข้ามา</p>
+
+<h3>สำรวจข้อมูลก่อน Fit</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a9-rats-scatterplot-matrix.png" alt="Scatterplot matrix of time, poison, and treat variables, showing time clustered at discrete low values around 0.2-1.1, and poison/treat as discrete factor levels 1-3 and 1-4 respectively">
+<figcaption>Scatterplot matrix ของ time, poison, treat — Assignment 9 ข้อ 3(a)</figcaption>
+</figure>
+<ul>
+<li>ทั้ง <code>poison</code> (3 ระดับ) และ <code>treat</code> (4 ระดับ) เป็นตัวแปร categorical — โครงสร้างข้อมูลเป็นแบบ 3×4 factorial design (12 กลุ่ม)</li>
+<li><code>time</code> เป็นตัวแปรตามต่อเนื่องแต่กระจุกตัวอยู่ในช่วงแคบ (~0.2-1.1) — บ่งชี้ล่วงหน้าว่าอาจมีปัญหาเรื่อง skewness เพราะ survival time มักเบ้ขวาโดยธรรมชาติ</li>
+</ul>
+
+<h3>Fit โมเดลดิบ + Interaction เต็มรูปแบบ</h3>
+<pre><code>&gt; model&lt;-lm(time~poison*treat, data=rats)
+&gt; summary(model)
+Coefficients:
+                 Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)       0.41250    0.07457   5.532 2.94e-06 ***
+poisonII         -0.09250    0.10546  -0.877   0.3862
+poisonIII        -0.20250    0.10546  -1.920   0.0628 .
+treatB            0.46750    0.10546   4.433 8.37e-05 ***
+treatC            0.15500    0.10546   1.470   0.1503
+treatD            0.19750    0.10546   1.873   0.0692 .
+poisonII:treatB   0.02750    0.14914   0.184   0.8547
+poisonIII:treatB -0.34250    0.14914  -2.297   0.0276 *
+poisonII:treatC  -0.10000    0.14914  -0.671   0.5068
+poisonIII:treatC -0.13000    0.14914  -0.872   0.3892
+poisonII:treatD   0.15000    0.14914   1.006   0.3212
+poisonIII:treatD -0.08250    0.14914  -0.553   0.5836
+---
+Residual standard error: 0.1491 on 36 degrees of freedom
+Multiple R-squared: 0.7335,     Adjusted R-squared: 0.6521
+F-statistic: 9.01 on 11 and 36 DF,  p-value: 1.986e-07</code></pre>
+<ul>
+<li>สังเกตว่า <code>poisonIII:treatB</code> มีนัยสำคัญ (estimate = -0.34250, p=0.0276) — เป็น interaction term เดียวที่นัยสำคัญที่ระดับ α=0.05 ในโมเดลบนสเกลดิบนี้ (จำจุดนี้ไว้ จะเทียบกับหลังแปลงตัวแปรด้านล่าง)</li>
+</ul>
+
+<h3>เช็ค Diagnostic ของโมเดลดิบ</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a9-rats-4panel-diagnostic-untransformed.png" alt="Four-panel diagnostic plot for the untransformed rats model: Residuals vs Fitted showing wider scatter at high fitted values, points 24, 30, 28 labeled; Normal QQ plot curving upward away from the diagonal at the upper tail with points 24, 28, 30 flagged; Scale-Location plot showing a clear upward-sloping red trend line from about 0.4 at low fitted values to about 1.1 at high fitted values; Cook's distance bar chart with observation 30 spiking to about 0.30, far above the rest which sit under 0.1">
+<figcaption>plot(model, 1:6 แบบย่อ) — diagnostic 4 แผงของ lm(time~poison*treat) — Assignment 9 ข้อ 3(a)</figcaption>
+</figure>
+<ul>
+<li><strong>Scale-Location (ล่างซ้าย):</strong> เส้นแดงลาดขึ้นชัดเจนจาก √|residual| ≈ 0.4 ที่ fitted ต่ำ ไปถึง ≈ 1.1 ที่ fitted สูง — สัญญาณ <strong>non-constant variance</strong> ตรงไปตรงมา (residual กระจายกว้างขึ้นเมื่อ fitted value / survival time เฉลี่ยสูงขึ้น)</li>
+<li><strong>Normal QQ (บนขวา):</strong> จุดส่วนใหญ่เกาะเส้นได้ในช่วงกลาง แต่โค้งชันขึ้นที่หางบน (จุด 24, 28, 30 เบี่ยงออกจากเส้น) — เข้าข่าย right-skewed pattern ซึ่งพบได้บ่อยกับข้อมูล survival time</li>
+<li><strong>Cook's Distance (ล่างขวา):</strong> จุด 30 มีค่าสูงผิดปกติ (≈0.30) เทียบกับจุดอื่นที่ต่ำกว่า 0.1 ทั้งหมด — เป็น observation ที่มีอิทธิพลสูงต่อการ fit</li>
+<li>สรุป: ทั้ง non-constant variance และ skewness ชี้ไปทางเดียวกัน — <strong>ต้องหา transformation ของ Y (time)</strong></li>
+</ul>
+
+<h3>Box-Cox บนโมเดลดิบ</h3>
+<figure>
+<img src="../assets/exam-plots/ex-a9-rats-boxcox-negative-lambda.png" alt="Box-Cox log-likelihood curve for the rats model, peaking at lambda approximately -1, with 95% confidence interval dashed lines spanning roughly -1.3 to -0.4, clearly excluding lambda=1 (no transformation) and lambda=0 (log)">
+<figcaption>Box-Cox log-likelihood plot ของ lm(time~poison*treat) — Assignment 9 ข้อ 3(a)</figcaption>
+</figure>
+<ul>
+<li>จุดสูงสุดอยู่ที่ <strong>λ ≈ -1</strong> พอดี ช่วง 95% CI (เส้นประ) ครอบคลุมประมาณ -1.3 ถึง -0.4 — ไม่ครอบคลุมทั้ง λ=1 (ไม่แปลง) และ λ=0 (log) เลย</li>
+<li>ตามตารางกรณีพิเศษของ Box-Cox: λ=-1 ตรงกับ \(Y'=1/Y\) — สอดคล้องกับที่เฉลยเลือกใช้ <code>I(1/time)</code> เป็นตัวแปรตามใหม่</li>
+</ul>
+
+<h3>Fit โมเดลหลังแปลง Y' = 1/time</h3>
+<pre><code>&gt; model2&lt;-lm(I(1/time)~poison*treat, data= rats)
+&gt; summary(model2)
+Coefficients:
+                 Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)       2.48688    0.24499  10.151 4.16e-12 ***
+poisonII          0.78159    0.34647   2.256 0.030252 *
+poisonIII         2.31580    0.34647   6.684 8.56e-08 ***
+treatB           -1.32342    0.34647  -3.820 0.000508 ***
+treatC           -0.62416    0.34647  -1.801 0.080010 .
+treatD           -0.79720    0.34647  -2.301 0.027297 *
+poisonII:treatB  -0.55166    0.48999  -1.126 0.267669
+poisonIII:treatB -0.45030    0.48999  -0.919 0.364213
+poisonII:treatC   0.06961    0.48999   0.142 0.887826
+poisonIII:treatC  0.08646    0.48999   0.176 0.860928
+poisonII:treatD  -0.76974    0.48999  -1.571 0.124946
+poisonIII:treatD -0.91368    0.48999  -1.865 0.070391 .
+---
+Residual standard error: 0.49 on 36 degrees of freedom
+Multiple R-squared: 0.8681,     Adjusted R-squared: 0.8277
+F-statistic: 21.53 on 11 and 36 DF,  p-value: 1.289e-12</code></pre>
+<figure>
+<img src="../assets/exam-plots/ex-a9-rats-4panel-diagnostic-transformed.png" alt="Two-panel diagnostic plot for model2 (1/time transformed): Residuals vs fitted showing much more even spread across the fitted range with no widening funnel; Normal QQ plot with points hugging the diagonal line much more closely than the untransformed version, only very mild deviation at both extreme tails">
+<figcaption>Residuals vs Fitted และ Normal Q-Q ของ model2 (1/time ~ poison*treat) — Assignment 9 ข้อ 3(a)</figcaption>
+</figure>
+<ul>
+<li>R² ขยับจาก 0.7335 (โมเดลดิบ) เป็น <strong>0.8681</strong> — เพิ่มขึ้นถึง 13 percentage points</li>
+<li>Residuals vs Fitted ตอนนี้กระจายสม่ำเสมอกว่าเดิมมาก ไม่เห็นรูปกรวยบานแบบก่อนแปลง — QQ plot จุดเกาะเส้นทแยงได้ดีขึ้นชัดเจนตลอดช่วง</li>
+</ul>
+
+<div class="box">
+<div class="label">จุดที่ต้องสังเกตให้ทัน — Interaction เปลี่ยนความหมายหลัง Transform</div>
+เทียบ <code>poisonIII:treatB</code> สองโมเดล: บนสเกลดิบ (time) estimate = -0.34250, <strong>p=0.0276 (มีนัยสำคัญ)</strong> — แต่บนสเกล 1/time หลัง Box-Cox estimate = -0.45030, <strong>p=0.364213 (ไม่มีนัยสำคัญ)</strong> พจน์ interaction เดียวกัน ข้อมูลชุดเดียวกัน แต่ "มีนัยสำคัญ" กลายเป็น "ไม่มีนัยสำคัญ" แค่เพราะเปลี่ยนสเกลของตัวแปรตาม — นี่คือเหตุผลสำคัญที่ต้องเลือก transformation จาก diagnostic (Box-Cox) ก่อนเสมอ แล้วค่อยตีความ interaction บนสเกลที่ assumption ผ่านแล้วเท่านั้น ไม่ใช่ตีความจากโมเดลดิบที่ variance ยังไม่คงที่ เพราะ SE (และ p-value ที่ตามมา) ของโมเดลที่ constant variance ถูกละเมิดนั้นเชื่อถือไม่ได้ตั้งแต่ต้น (ตรงกับตารางผลกระทบใน Lesson 3 หัวข้อ 7)
+</div>
+<ul>
+<li>บนสเกล 1/time ที่ assumption ผ่านแล้ว ไม่มี interaction term ไหนมีนัยสำคัญที่ α=0.05 เป๊ะ (ใกล้สุดคือ <code>poisonIII:treatD</code> p=0.070391) แต่ main effect ของทั้ง poison และ treat ยังมีนัยสำคัญแรงมาก — บ่งชี้ว่าผลของพิษกับการรักษาต่ออัตราการตาย (1/time) ค่อนไปทาง<strong>บวกกันแบบ additive</strong> มากกว่าจะมี synergy/antagonism ที่ชัดเจนระหว่างพิษบางชนิดกับการรักษาบางแบบ</li>
+<li>เฉลยตั้งข้อสังเกตเพิ่มว่าการตีความสัมประสิทธิ์บนสเกล 1/time (reciprocal ของเวลารอดชีวิต) ตีความตรง ๆ ยาก — เป็นเหตุผลที่ข้อ 3(b) ของ Assignment 9 ไปต่อด้วย inverse Gaussian GLM แทน — ดูต่อได้ที่ <a href="0026-corn-nitrogen-gamma-walkthrough.html">Lesson 26 หัวข้อ 5</a> (นอกขอบเขตบทเรียนนี้ซึ่งเน้นเฉพาะ diagnostics/remedies)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Rats — Box-Cox λ</span></div>
+  <div class="qtext">Box-Cox log-likelihood plot ของ <code>lm(time~poison*treat)</code> มีจุดสูงสุดที่ λ ≈ -1 (95% CI ประมาณ -1.3 ถึง -0.4 ไม่ครอบคลุม 0 หรือ 1) ตัวแปรตามที่ควรใช้แทน time เดิมคือข้อใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">log(time)</button>
+  <button class="opt" data-correct="true">1/time</button>
+  <button class="opt" data-correct="false">time²</button>
+  <button class="opt" data-correct="false">√time</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>Rats — Interaction ก่อน/หลัง Transform</span></div>
+  <div class="qtext"><code>poisonIII:treatB</code> มีนัยสำคัญ (p=0.0276) ในโมเดลดิบ (time~poison*treat) แต่ไม่มีนัยสำคัญ (p=0.364) ในโมเดลหลังแปลง (1/time~poison*treat) บทเรียนนี้อธิบายว่าทำไม?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะโมเดลหลังแปลงมีข้อมูลน้อยกว่าโมเดลดิบ ทำให้ power ต่ำลง</button>
+  <button class="opt" data-correct="false">เพราะ Box-Cox transformation ทำให้เกิด error ในการคำนวณ p-value</button>
+  <button class="opt" data-correct="true">เพราะ SE (และ p-value ที่ตามมา) ของโมเดลดิบไม่น่าเชื่อถือตั้งแต่ต้น — diagnostic ของโมเดลดิบแสดง non-constant variance ชัดเจน (Scale-Location ลาดขึ้น) จึงต้องตีความ interaction บนสเกลที่ assumption ผ่านแล้ว (1/time) เท่านั้น</button>
+  <button class="opt" data-correct="false">ทั้งสองผลลัพธ์ขัดแย้งกันเอง แปลว่าอย่างน้อยหนึ่งโมเดลคำนวณผิด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">สรุปสิ่งที่ต้องจับคู่ได้จาก 4 โจทย์นี้</div>
+Solution Concentration: residual รูปตัว V + QQ โค้ง → Box-Cox แนะนำ log(Y) → diagnostic ผ่านหลังแปลง, R² 0.81→0.99. Machine Speed: residual กรวยบานตาม X → ประมาณ variance function แล้วทำ WLS → point estimate เหมือนเดิม แต่ SE แม่นยำขึ้น. Rainfall/Corn Yield: residual vs year ไต่ระดับ (time trend แบบ B ไม่ใช่ C/D) → เติม YEAR เข้าโมเดล ไม่ต้องใช้ Cochrane-Orcutt → interaction rain×year ตีความเชิงโดเมนได้ (irrigation). Rats: Scale-Location ลาดขึ้น + QQ เบ้ขวา → Box-Cox ชี้ λ≈-1 → 1/time ทำให้ diagnostic ดีขึ้นและเปลี่ยนว่า interaction term ไหน "มีนัยสำคัญ" จริง — ต้องแปลงก่อนตีความเสมอ.
+</div>
+
+<p><em>หมายเหตุความครอบคลุม: บทเรียนนี้ใช้ทั้ง 3 ข้อของ Assignment 3 (Solution Concentration, Machine Speed, Rainfall &amp; Corn Yield) และเฉพาะข้อ 3(a) ของ Assignment 9 (Rats — OLS + transformation) — ข้อ 3(b) เดียวกัน (Rats ต่อด้วย inverse Gaussian GLM) อยู่ใน <a href="0026-corn-nitrogen-gamma-walkthrough.html">Lesson 26</a>, ข้อ 1 ของ Assignment 9 (pneumo) อยู่ใน <a href="0025-hsb-pneumo-multinomial-walkthrough.html">Lesson 25</a>, ข้อ 2 (corn/nitrogen) อยู่ใน Lesson 26 หัวข้อ 1-4</em></p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="0003-regression-diagnostics-and-remedies.html">← Lesson 3: Regression Diagnostics and Remedies</a></span>
+  <span><a href="../reference/0003-diagnostics-cheatsheet.html">Reference: Diagnostics Cheat Sheet →</a></span>
+  <span><a href="../exams/drill-04-diagnose-from-plots.html">Drill: Diagnose from Plots →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

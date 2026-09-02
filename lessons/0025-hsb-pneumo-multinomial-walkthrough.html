@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Worked Examples: HSB Program Choice + Pneumoconiosis — Multinomial Data จากข้อสอบจริง</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>ฝึกกับโจทย์จริง · Multinomial Data (Assignment 8#2 + 9#1)</span>
+  <span><a href="0012-multinomial-data.html">← Lesson 12: Multinomial Data</a></span>
+</nav>
+
+<p class="kicker">Second-Wave Lesson — Graded Assignment Walkthrough</p>
+<h1>HSB Program Choice + Pneumoconiosis: Multinomial Data จากข้อสอบจริง</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก <a href="0012-multinomial-data.html">Lesson 12</a> โดยตรง — ใช้กติกาเดียวกันทุกอย่าง (nominal → baseline-category logit ด้วย <code>multinom()</code>, ordinal → proportional odds ด้วย <code>polr()</code>, เช็ค assumption ด้วย Brant Test) แต่คราวนี้เดินผ่านโจทย์ข้อสอบจริง 2 ข้อที่มีเฉลยแบบละเอียด แทนที่จะเป็นตัวอย่างจากสไลด์ เป้าหมายคือฝึกอ่าน R output จริง แปลผลสัมประสิทธิ์เป็น relative risk ratio (RRR) และเขียน hypothesis test ครบ 4 ส่วนแบบที่ข้อสอบต้องการ</p>
+
+<div class="box source">
+<div class="label">แหล่งที่มา</div>
+โจทย์ข้อ 2 ของ Assignment 8 (<code>hsb</code> data, <code>faraway</code> package) และโจทย์ข้อ 1 ของ Assignment 9 (<code>pneumo</code> data, <code>faraway</code> package) — ตัวเลขทุกตัวคัดลอกตรงจากเฉลยที่อาจารย์แจก ไม่มีการปัดหรือคำนวณใหม่นอกเหนือจาก exp(β̂) ที่ระบุไว้ชัดเจนว่าเป็นการคำนวณเพิ่ม
+</div>
+
+<h2>1. Problem: HSB Program Choice (Assignment 8, Question 2)</h2>
+
+<h3>1.1 โจทย์และการตั้งโมเดล</h3>
+<ul>
+<li>ข้อมูล <code>hsb</code> จาก High School and Beyond study — response คือ <code>prog</code> (การเลือกโปรแกรมเรียน) มี 3 ระดับ nominal: <strong>academic, general, vocation</strong></li>
+<li>Predictor ที่ใช้ทั้งหมด (ยกเว้น <code>id</code>): <code>gender, race, ses, schtyp, read, write, math, science, socst</code></li>
+<li>เพราะ <code>prog</code> เป็น nominal (ไม่มีลำดับ) → ใช้ baseline-category logistic model ด้วย <code>multinom()</code> จากแพ็กเกจ <code>nnet</code> (ตรงกับกฎ nominal→multinom() ของ Lesson 12 หัวข้อ 1)</li>
+<li>Baseline category = <strong>academic</strong> (เพราะตาราง Coefficients มีแค่ 2 แถว: <code>general</code> กับ <code>vocation</code> — <code>academic</code> ไม่ปรากฏเพราะเป็นระดับอ้างอิงที่ถูกลบออกโดยอัตโนมัติเป็นค่าแรกตามลำดับ factor level)</li>
+</ul>
+
+<pre><code>> library(faraway); library(nnet); data(hsb)
+> model<-multinom(prog~gender+race+ses+schtyp+read+write+math+science+socst, data=hsb)
+# weights: 42 (26 variable)
+...
+final value 152.935256
+converged</code></pre>
+
+<p>ให้ \(\hat\pi_1=P(\text{academic})\), \(\hat\pi_2=P(\text{general})\), \(\hat\pi_3=P(\text{vocation})\) (สังเกต: ต้นฉบับเฉลยพิมพ์ชื่อ \(\pi_3\) ผิดซ้ำเป็น "general" แต่จากตารางสัมประสิทธิ์ที่มีแถว general/vocation ชัดเจนว่า \(\pi_3\) ต้องหมายถึง vocation):</p>
+<div class="box win">
+\[\log(\hat\pi_2/\hat\pi_1) = 3.63 - 0.09\text{Male} + 1.35\text{Asian} - 0.63\text{Hispanic} + 0.30\text{White} + 1.10\text{SesLow} + 0.70\text{SesMiddle}\]
+\[+\ 0.58\text{Public} - 0.04\text{Read} - 0.04\text{Write} - 0.11\text{Math} + 0.10\text{Science} - 0.02\text{Socst}\]
+\[\log(\hat\pi_3/\hat\pi_1) = 7.48 - 0.32\text{Male} - 0.70\text{Asian} - 0.20\text{Hispanic} + 0.34\text{White} + 0.05\text{SesLow} + 1.18\text{SesMiddle}\]
+\[+\ 2.06\text{Public} - 0.03\text{Read} - 0.03\text{Write} - 0.11\text{Math} + 0.05\text{Science} - 0.08\text{Socst}\]
+</div>
+<p>Residual Deviance = 305.8705, AIC = 357.8705 — ตรงตามรูปแบบ "2 สมการพร้อมกัน" ของ baseline-category logit (J=3 → J−1=2) ที่ Lesson 12 หัวข้อ 3 อธิบายไว้</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>หา Baseline Category จาก Output</span></div>
+  <div class="qtext">ตาราง Coefficients ของ <code>summary(model)</code> ในโจทย์ HSB มีแค่ 2 แถว คือ <code>general</code> และ <code>vocation</code> ไม่มีแถว <code>academic</code> เลย — สรุปได้ว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true"><code>academic</code> คือ baseline category ของโมเดลนี้ (เป็นระดับอ้างอิงที่ถูกลบออกจากตาราง เพราะทุกสมการเทียบกับ baseline เสมอ)</button>
+  <button class="opt" data-correct="false">ข้อมูลไม่มีนักเรียนที่เลือกโปรแกรม academic เลยในชุดข้อมูลนี้</button>
+  <button class="opt" data-correct="false"><code>multinom()</code> รายงานผลไม่ครบ ต้องเรียก <code>summary()</code> ซ้ำอีกครั้ง</button>
+  <button class="opt" data-correct="false">โมเดลนี้มีแค่ J−1=2 category ไม่ใช่ 3 category</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h3>1.2 Stepwise AIC Selection</h3>
+<ul>
+<li><code>step(model)</code> ตัดตัวแปรที่ไม่ช่วยลด AIC ออก — เหลือ <code>ses + schtyp + math + science + socst</code></li>
+<li>ตัวแปรที่ถูกตัดออกทั้งหมด: <code>gender, race, read, write</code></li>
+</ul>
+<pre><code>> stepmodel<-step(model)
+> summary(stepmodel)
+Coefficients:
+         (Intercept)      seslow sesmiddle schtyppublic       math    science      socst
+general     2.587029  0.87607389 0.6978995    0.6468812 -0.1212242 0.08209791 -0.04441228
+vocation    6.687272 -0.01569301 1.2065000    1.9955504 -0.1369641 0.03941237 -0.09363417
+
+Residual Deviance: 315.5511
+AIC: 343.5511</code></pre>
+<p>AIC ลดจาก 357.87 (full model) เหลือ 343.55 (stepmodel) — โมเดลย่อยังคุมทุกกลุ่มตัวแปรหลัก (SES, ประเภทโรงเรียน, ผลการเรียน 2 วิชา, และ socst) ไว้ครบ</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>อ่านผล step() Selection</span></div>
+  <div class="qtext">หลัง <code>step(model)</code> ตัวแปรใดต่อไปนี้ถูกตัดออกจากโมเดลเต็มทั้งหมด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ses, schtyp, math</button>
+  <button class="opt" data-correct="true">gender, race, read, write</button>
+  <button class="opt" data-correct="false">science, socst</button>
+  <button class="opt" data-correct="false">ไม่มีตัวแปรไหนถูกตัดเลย เพราะ step() แค่จัดเรียงลำดับใหม่</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h3>1.3 Goodness-of-Fit Test (Hosmer-Lemeshow แบบ Multinomial)</h3>
+<ul>
+<li>ข้อมูล <code>hsb</code> เป็น ungrouped data (รายบุคคล) → ใช้ <code>logitgof()</code> จากแพ็กเกจ <code>generalhoslem</code> ตามกฎที่ Lesson 12 หัวข้อ 7 วางไว้ ไม่ใช่ residual deviance ตรง ๆ</li>
+</ul>
+<pre><code>> library(generalhoslem)
+> logitgof(hsb$prog, fitted(stepmodel), ord=FALSE)
+X-squared = 17.725, df = 16, p-value = 0.3402
+Warning: At least one cell in the expected frequencies table is < 1.</code></pre>
+<ul>
+<li><strong>H0:</strong> โมเดล fit ข้อมูลดี (ทิศทางเดียวกับ GOF test ทุกตัวใน Lesson 12 — p-value สูง = ข่าวดี)</li>
+<li><strong>Test statistic:</strong> \(X^2 = 17.725\), \(df=16\)</li>
+<li><strong>Decision:</strong> \(p=0.3402 > 0.05\) → <strong>ไม่ปฏิเสธ H0</strong></li>
+<li><strong>Conclusion:</strong> โมเดลนี้ fit ข้อมูลได้ — แต่ต้องระวัง warning เรื่อง expected frequency บาง cell &lt; 1 ซึ่งทำให้ chi-square approximation ไม่แม่นยำเต็มที่ ต้องตีความ p-value นี้อย่างระมัดระวัง</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>ทิศทาง H0 ของ Goodness-of-Fit</span></div>
+  <div class="qtext">ผลการทดสอบ <code>logitgof()</code> ได้ p-value = 0.3402 ข้อสรุปใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">p-value ต่ำกว่า 0.5 จึงปฏิเสธ H0 — โมเดลไม่ fit ข้อมูล</button>
+  <button class="opt" data-correct="true">p-value = 0.3402 > 0.05 จึงไม่ปฏิเสธ H0 (H0: โมเดล fit ข้อมูลดี) — สรุปว่าโมเดลนี้ fit ข้อมูลได้ แม้ต้องระวัง warning เรื่อง expected frequency เล็ก</button>
+  <button class="opt" data-correct="false">การทดสอบนี้ไม่เกี่ยวกับ goodness-of-fit เป็นแค่การทดสอบสัมประสิทธิ์รายตัว</button>
+  <button class="opt" data-correct="false">ต้องปฏิเสธ H0 เสมอเมื่อมี warning message ปรากฏ ไม่ว่า p-value จะเป็นเท่าไหร่</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h3>1.4 LRT: ตัวแปร socst มีผลจริงหรือไม่</h3>
+<p>เทียบ full model (มี <code>socst</code>) กับ reduced model (ตัด <code>socst</code> ออก) ด้วย LRT — วิธีเดียวกับ Lesson 12 หัวข้อ 6:</p>
+<pre><code>> reducedmod<-multinom(prog~ses+schtyp+math+science, data=hsb)
+> anova(reducedmod, stepmodel, test="Chisq")
+  Model                                  Resid. df  Resid. Dev  Test    Df  LR stat.   Pr(Chi)
+1 ses + schtyp + math + science               388     330.1996
+2 ses + schtyp + math + science + socst        386     315.5511 1 vs 2   2  14.64848  0.0006593611</code></pre>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response)</span><span>เขียน LRT ครบ 4 ส่วน</span></div>
+  <div class="qtext">จากผล <code>anova(reducedmod, stepmodel, test="Chisq")</code> ข้างบน จงเขียนการทดสอบสมมติฐานว่าตัวแปร <code>socst</code> สัมพันธ์กับการเลือกโปรแกรมหรือไม่ ให้ครบ 4 ส่วน (H0/H1, test statistic + การแจกแจง, decision rule, ประโยคสรุปเชิงบริบท)</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>H0:</strong> \(\beta_{\text{socst,general}} = \beta_{\text{socst,vocation}} = 0\) (คะแนน social studies ไม่สัมพันธ์กับการเลือกโปรแกรมทั้งสองสมการ) &nbsp;vs&nbsp; <strong>H1:</strong> อย่างน้อยหนึ่งใน 2 สัมประสิทธิ์ไม่เท่ากับ 0</p>
+  <p><strong>Test statistic:</strong> \(G^2 = D_{reduced}-D_{full} = 330.1996-315.5511 = 14.64848 \sim \chi^2_{(2)}\) ภายใต้ H0 (df=2 เพราะตัดตัวแปรออก 1 ตัวแต่กระทบทั้ง 2 สมการพร้อมกัน — ตรงกับเหตุผลที่ Lesson 12 หัวข้อ 6 อธิบายว่าทำไมต้องใช้ LRT แทน Wald ทีละตัว)</p>
+  <p><strong>Decision:</strong> \(p=0.0006593611 < 0.05\) → <strong>ปฏิเสธ H0</strong></p>
+  <p><strong>Conclusion:</strong> มีหลักฐานเพียงพอว่าคะแนนสังคมศึกษา (socst) สัมพันธ์กับการเลือกประเภทโปรแกรมเรียนของนักเรียนอย่างมีนัยสำคัญทางสถิติที่ α=0.05 ควรเก็บตัวแปรนี้ไว้ในโมเดล</p>
+  </div>
+</div>
+
+<h3>1.5 การแปลผลแบบ Relative Risk Ratio (RRR)</h3>
+<p>สำหรับ baseline-category logit, \(\exp(\hat\beta)\) เรียกอีกชื่อว่า <strong>relative risk ratio (RRR)</strong> — ความหมายเดียวกับ template หัวข้อ 8 ของ Lesson 12 ("multiplicative factor ของ odds เทียบ baseline") เพียงแต่ในบริบทงานวิจัยด้านนี้นิยมเรียก RRR แทน odds ratio:</p>
+<ul>
+<li><strong>schtyppublic ในสมการ vocation:</strong> \(\hat\beta=1.9955504\) → RRR \(=\exp(1.9956)\approx 7.36\) — นักเรียนโรงเรียนรัฐบาลมี relative risk ของการเลือก vocation เทียบ academic (baseline) สูงกว่านักเรียนโรงเรียนเอกชนถึง 7.36 เท่า โดยคุมตัวแปรอื่นคงที่</li>
+<li><strong>seslow ในสมการ general:</strong> \(\hat\beta=0.87607\) → RRR \(=\exp(0.8761)\approx 2.40\) — นักเรียน SES ต่ำมี relative risk ของการเลือก general เทียบ academic สูงกว่านักเรียน SES สูง (baseline) 2.40 เท่า</li>
+<li><strong>sesmiddle ในสมการ vocation:</strong> \(\hat\beta=1.2065\) → RRR \(=\exp(1.2065)\approx 3.34\) — SES กลางมี relative risk เลือก vocation สูงกว่า SES สูง 3.34 เท่า</li>
+<li><strong>math ในสมการ general:</strong> \(\hat\beta=-0.1212\) → RRR \(=\exp(-0.1212)\approx 0.89\) — คะแนน math เพิ่มขึ้น 1 คะแนน relative risk ของการเลือก general เทียบ academic ลดลงเหลือ 0.89 เท่าของเดิม (คะแนน math สูง → มีแนวโน้มเลือก academic มากกว่า)</li>
+<li><strong>math ในสมการ vocation:</strong> \(\hat\beta=-0.1370\) → RRR \(=\exp(-0.1370)\approx 0.87\) — ทิศทางเดียวกัน คะแนน math สูงดึงนักเรียนไปทาง academic แรงกว่าทั้ง general และ vocation</li>
+</ul>
+<p>ข้อสังเกตสำคัญ: <strong>ทุกประโยคข้างบนต้องระบุ "เทียบ academic (baseline)"</strong> เสมอ — ตรงกับกฎของ Lesson 12 หัวข้อ 8 ที่บอกว่าขาดชื่อ baseline ข้อสอบจะไม่ให้คะแนนเต็ม</p>
+
+<h3>1.6 การทำนาย: นักเรียน id=99</h3>
+<pre><code>> student99<-hsb[hsb$id==99,]
+> predict(stepmodel, student99, type="prob")
+  academic    general   vocation
+0.64426309 0.27665609 0.07908082</code></pre>
+<ul>
+<li>ความน่าจะเป็นรวมกัน = 0.64426+0.27666+0.07908 = 1.00000 (ตรวจสอบ constraint \(\sum\hat\pi_j=1\) ของ Lesson 12 หัวข้อ 2 ได้จริง)</li>
+<li>Academic สูงสุด (64.4%) → ถ้าใช้กฎ "เลือกความน่าจะเป็นสูงสุด" (Lesson 12 หัวข้อ 7) นักเรียนคนนี้ถูกทำนายว่าจะเลือกโปรแกรม academic</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>อ่านค่า RRR</span></div>
+  <div class="qtext"><code>schtyppublic</code> ในสมการ vocation มี \(\hat\beta=1.9956\), \(\exp(1.9956)\approx7.36\) — ข้อใดแปลผลค่า RRR นี้ได้ถูกต้องและครบองค์ประกอบที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">โรงเรียนรัฐบาลทำให้ความน่าจะเป็นของ vocation เพิ่มขึ้น 7.36%</button>
+  <button class="opt" data-correct="false">นักเรียนโรงเรียนรัฐบาล 7.36 คน จะเลือก vocation จากทุก 10 คน</button>
+  <button class="opt" data-correct="true">นักเรียนโรงเรียนรัฐบาล (เทียบโรงเรียนเอกชน) มี relative risk ของการเลือก vocation เทียบ academic (baseline) เป็น 7.36 เท่าของนักเรียนโรงเรียนเอกชน โดยคุมตัวแปรอื่นให้คงที่</button>
+  <button class="opt" data-correct="false">ค่า RRR นี้บอกไม่ได้ว่าเทียบกับอะไร เพราะ multinom() ไม่มี baseline category</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>อ่านผล Prediction</span></div>
+  <div class="qtext">นักเรียน id=99 มีความน่าจะเป็นทำนาย academic=0.644, general=0.277, vocation=0.079 — <code>predict(stepmodel, student99)</code> (แบบไม่ระบุ type) จะตอบว่าอย่างไร และเพราะเหตุใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ตอบ "academic" เพราะมีความน่าจะเป็นสูงสุดในทั้งสามหมวด (0.644) — กฎของโมเดลหลาย category คือเลือกค่าที่มี \(\hat\pi\) สูงสุด ไม่ใช่ threshold 0.5</button>
+  <button class="opt" data-correct="false">ตอบไม่ได้ เพราะไม่มีหมวดไหนเกิน 0.5 เลย</button>
+  <button class="opt" data-correct="false">ตอบ "general" เพราะเป็นค่า baseline ของ step()</button>
+  <button class="opt" data-correct="false">ตอบเป็นตัวเลขความน่าจะเป็นเฉลี่ยของทั้ง 3 หมวด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<hr>
+
+<h2>2. Problem: Pneumoconiosis and Years of Service (Assignment 9, Question 1)</h2>
+
+<h3>2.1 โจทย์และข้อมูล</h3>
+<ul>
+<li>ข้อมูล <code>pneumo</code> (faraway) — คนงานเหมืองถ่านหินถูกจัดกลุ่มด้วยผล X-ray เป็น 3 ระดับ pneumonoconiosis (normal, mild, severe) ตามจำนวนปีที่ทำงาน (<code>year</code>) ซึ่งถูกจัดกลุ่มเป็น 8 ช่วง</li>
+<li>ข้อมูลเป็น grouped counts → ต้องใส่ <code>weights=Freq</code> ตอนฟิตโมเดลเสมอ (ตามคำใบ้ในโจทย์)</li>
+<li>โจทย์ให้ลองทั้ง 2 มุมมอง: (a) status เป็น <strong>nominal</strong> (b) status เป็น <strong>ordinal</strong> — เป็นตัวอย่างตรงจุดของกฎ "เลือกโมเดลจากธรรมชาติของ response" ใน Lesson 12 หัวข้อ 1</li>
+</ul>
+
+<h3>2.2 มุมมองที่ 1: Nominal (Baseline-Category Logit)</h3>
+<pre><code>> nmodel<-multinom(status~year, data=pneumo, weights=Freq)
+> summary(nmodel)
+Coefficients:
+       (Intercept)        year
+normal   4.2916723 -0.08356506
+severe  -0.7681706  0.02572027
+
+Residual Deviance: 417.4496
+AIC: 425.4496
+
+> predict(nmodel, newdata=data.frame(year=25))
+[1] normal</code></pre>
+<ul>
+<li>Baseline category = <strong>mild</strong> (ไม่ปรากฏแถวของตัวเอง เพราะเป็นระดับอ้างอิงตามลำดับ factor level เริ่มต้น: mild, normal, severe)</li>
+<li>ให้ \(\hat\pi_{\text{mild}}\) เป็น baseline: \(\log(\hat\pi_{\text{normal}}/\hat\pi_{\text{mild}}) = 4.29-0.0836\cdot\text{year}\), &nbsp; \(\log(\hat\pi_{\text{severe}}/\hat\pi_{\text{mild}}) = -0.77+0.0257\cdot\text{year}\)</li>
+<li>ทำนายที่ปีทำงาน=25 → คำตอบคือ <strong>normal</strong></li>
+</ul>
+
+<h3>2.3 มุมมองที่ 2: Ordinal (Proportional Odds)</h3>
+<ul>
+<li>ต้องสั่งลำดับ factor เองก่อน เพราะ severity ที่แท้จริงคือ normal &lt; mild &lt; severe (ไม่ใช่ลำดับตัวอักษร mild-normal-severe ที่ R ใช้ default) — ขั้นตอนนี้สำคัญ เพราะถ้าลืมสั่ง <code>ordered()</code> ให้ถูก ผลลัพธ์จะตีความ severity ผิดทิศทางทันที</li>
+</ul>
+<pre><code>> library(MASS)
+> status_order<-ordered(pneumo$status, levels=c("normal", "mild", "severe"))
+> pneumo<-cbind(pneumo, status_order)
+> omodel<-polr(status_order~year, data=pneumo, weights=Freq)
+> summary(omodel)
+Coefficients:
+      Value Std. Error t value
+year 0.0959    0.01194   8.034
+
+Intercepts:
+              Value   Std. Error t value
+normal|mild   3.9558  0.4097     9.6558
+mild|severe   4.8690  0.4411    11.0383
+
+Residual Deviance: 416.9188
+AIC: 422.9188
+
+> predict(omodel, newdata=data.frame(year=25))
+[1] normal</code></pre>
+<ul>
+<li>ตาราง Coefficients มีแค่ 1 แถว (year) — ตรงกับกฎของ proportional odds (Lesson 12 หัวข้อ 9): β ชุดเดียวใช้ร่วมกันทุก threshold</li>
+<li>Intercepts มี 2 แถว (\(J-1=2\)) — normal|mild และ mild|severe</li>
+<li>สมการเต็ม: \(\log[\hat\gamma_1/(1-\hat\gamma_1)] = 3.9558 - 0.0959\cdot\text{year}\), &nbsp; \(\log[\hat\gamma_2/(1-\hat\gamma_2)] = 4.8690 - 0.0959\cdot\text{year}\) (สังเกตเครื่องหมายลบหน้า β ตามสมการ proportional odds มาตรฐาน — <code>polr()</code> พิมพ์ \(\hat\beta=0.0959\) เป็นค่าบวกในตาราง แต่สมการใช้ \(\theta_j-\beta x\) ตามนิยามของ Lesson 12 หัวข้อ 9)</li>
+<li>ทำนายที่ปีทำงาน=25 → คำตอบคือ <strong>normal</strong> เหมือนกับโมเดล nominal</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>ทำไมต้องสั่ง ordered() เอง</span></div>
+  <div class="qtext">ทำไมโค้ดเฉลยต้องเขียน <code>ordered(pneumo$status, levels=c("normal","mild","severe"))</code> แทนที่จะใช้ <code>pneumo$status</code> ตรง ๆ ในการฟิต <code>polr()</code>?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ <code>polr()</code> รับเฉพาะตัวแปรชนิด numeric เท่านั้น</button>
+  <button class="opt" data-correct="true">เพราะลำดับ factor level เริ่มต้นของ status ในข้อมูล (ตามตัวอักษร: mild, normal, severe) ไม่ตรงกับลำดับความรุนแรงจริง (normal &lt; mild &lt; severe) proportional odds model ต้องใช้ลำดับที่มีความหมายจึงต้องสั่งเรียงเอง</button>
+  <button class="opt" data-correct="false">เพราะไม่ทำแบบนี้ <code>weights=Freq</code> จะใช้งานไม่ได้</button>
+  <button class="opt" data-correct="false">เป็นขั้นตอนที่ไม่จำเป็น ใส่หรือไม่ใส่ผลลัพธ์เหมือนกัน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h3>2.4 Brant Test — เช็ค Proportional Odds Assumption</h3>
+<pre><code>> library(brant)
+> brant(omodel)
+--------------------------------------------
+Test for        X2     df     probability
+--------------------------------------------
+Omnibus         0      1      1
+year            0      1      1
+--------------------------------------------
+H0: Parallel Regression Assumption holds</code></pre>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response)</span><span>เขียน Brant Test ครบ 4 ส่วน</span></div>
+  <div class="qtext">จากผล <code>brant(omodel)</code> ข้างบน จงเขียนการทดสอบ proportional odds assumption ให้ครบ 4 ส่วน (H0/H1, test statistic + การแจกแจง, decision rule, ประโยคสรุปเชิงบริบท)</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>H0:</strong> Proportional odds (parallel regression) assumption holds — สัมประสิทธิ์ของ <code>year</code> เท่ากันในทุก cumulative logit (normal|mild และ mild|severe) &nbsp;vs&nbsp; <strong>H1:</strong> สัมประสิทธิ์ของ year ต่างกันระหว่างสอง cutpoint (ละเมิด proportionality)</p>
+  <p><strong>Test statistic:</strong> Omnibus \(X^2=0\), \(df=1\), แจกแจงแบบ \(\chi^2_{(1)}\) ภายใต้ H0 (ในกรณีนี้มีแค่ตัวแปรเดียวคือ year โมเดลจึงมี df=1 เท่านั้น ต่างจากตัวอย่าง election study ใน Lesson 12 ที่มี 3 ตัวแปรจึง df=3)</p>
+  <p><strong>Decision:</strong> \(p=1 > 0.05\) → <strong>ไม่ปฏิเสธ H0</strong></p>
+  <p><strong>Conclusion:</strong> ไม่มีหลักฐานว่า proportional odds assumption ถูกละเมิด — assumption นี้ใช้ได้กับโมเดล <code>omodel</code> จึงยืนยันว่า <code>polr()</code> เป็นทางเลือกที่เหมาะสมสำหรับข้อมูลชุดนี้ (ทิศทาง p สูง=ข่าวดี ตรงกับกลุ่ม assumption test ทั้งหมดใน Lesson 12 หัวข้อ 12)</p>
+  </div>
+</div>
+
+<h3>2.5 เปรียบเทียบ: Nominal vs Ordinal โมเดลไหนเหมาะกว่า</h3>
+<ul>
+<li>AIC ของ nominal model (nmodel) = 425.4496 &nbsp;|&nbsp; AIC ของ ordinal model (omodel) = 422.9188 — ordinal AIC ต่ำกว่าเล็กน้อย</li>
+<li>แต่เฉลยข้อ (d) เลือกโมเดล ordinal โดย<strong>ไม่ได้อ้างอิงการทดสอบสถิติใด ๆ เลย</strong> — ใช้เหตุผลเชิงทฤษฎี 2 ข้อแทน:
+  <ol>
+    <li>ธรรมชาติของ response เป็น ordinal อยู่แล้ว (normal &lt; mild &lt; severe มีลำดับความรุนแรงจริง)</li>
+    <li>Proportional odds assumption ผ่านตาม Brant test ในหัวข้อ 2.4 (ไม่มีเหตุผลทางสถิติให้เลี่ยงโมเดล ordinal)</li>
+  </ol>
+</li>
+<li>ข้อคิดสำคัญ: <strong>AIC ต่ำกว่าไม่ใช่เหตุผลหลักที่เฉลยใช้เลือกโมเดล</strong> — เมื่อ response มีลำดับความหมายจริงและ assumption ผ่าน proportional odds ควรเป็นตัวเลือกโดยธรรมชาติอยู่แล้ว (parameter น้อยกว่า ตีความง่ายกว่า) AIC ที่ต่ำกว่าเป็นเพียงหลักฐานเสริมที่สอดคล้องกัน ไม่ใช่เกณฑ์ตัดสินเดี่ยว ๆ</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>เกณฑ์เลือกโมเดล Nominal vs Ordinal</span></div>
+  <div class="qtext">เฉลยข้อ (d) สรุปว่าโมเดล ordinal (omodel) เหมาะสมกว่าโมเดล nominal (nmodel) โดยให้เหตุผลอะไรเป็นหลัก?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะทำ LRT เทียบสองโมเดลแล้วปฏิเสธ H0</button>
+  <button class="opt" data-correct="true">เพราะธรรมชาติของ response เป็น ordinal จริง และ proportional odds assumption ผ่านตาม Brant test — ไม่ได้ใช้การทดสอบสถิติเปรียบเทียบสองโมเดลโดยตรง</button>
+  <button class="opt" data-correct="false">เพราะ residual deviance ของ ordinal model ต่ำกว่าเกณฑ์ chi-square ที่ α=0.05</button>
+  <button class="opt" data-correct="false">เพราะโมเดล nominal ทำนายค่า year=25 ผิด ในขณะที่ ordinal ทำนายถูก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรอ่านโจทย์ multinomial ข้อสอบจริงได้ครบ: จับ baseline category จากตาราง <code>summary()</code> ที่ขาดแถว, ใช้ <code>step()</code>+LRT+GOF (<code>logitgof()</code>) เลือกและตรวจโมเดล nominal, แปลผลสัมประสิทธิ์เป็น relative risk ratio (RRR) พร้อมระบุ baseline เสมอ, ตัดสินใจ nominal-vs-ordinal จากธรรมชาติของข้อมูลมากกว่า AIC เพียงอย่างเดียว, และเขียน Brant test ครบ 4 ส่วนเพื่อยืนยัน proportional odds assumption — ทักษะเหล่านี้คือสิ่งที่ข้อสอบจริงถามตรง ๆ ไม่ใช่แค่ทฤษฎีจากสไลด์
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="0012-multinomial-data.html">← Lesson 12: Multinomial Data</a></span>
+  <span><a href="../reference/0012-multinomial-cheatsheet.html">Reference: Multinomial Cheatsheet →</a></span>
+  <span><a href="../exams/drill-05-choose-the-tool.html">Drill 5: Choose the Tool →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

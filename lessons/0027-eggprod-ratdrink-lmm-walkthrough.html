@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Assignment 10 Walkthrough: Egg Production + Rat Weight Gain — โจทย์จริงของ Linear Mixed-Effects Models</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="0014-linear-mixed-effects-models.html">← Lesson 14: Linear Mixed-Effects Models</a></span>
+  <span><a href="../reference/0014-mixed-effects-cheatsheet.html">Reference: สูตร + คู่มืออ่าน lmer() output →</a></span>
+</nav>
+
+<p class="kicker">Worked Example — Assignment 10 Solution (อ่านต่อจาก Lesson 14)</p>
+<h1>Egg Production + Rat Weight Gain: ฝึกอ่าน <code>lmer()</code> Output กับโจทย์จริง</h1>
+
+<p>บทนี้ไม่มีทฤษฎีใหม่ — เป็นการเอาทักษะทั้งหมดจาก Lesson 14 (แยก fixed/random effect, เขียนสมการ <code>lmer()</code>, อ่านบล็อก <em>Random effects</em>/<em>Fixed effects</em> ของ <code>summary()</code>, เลือกวิธีทดสอบนัยสำคัญ) มาใช้กับ Assignment 10 จริงสองข้อ: <strong>eggprod</strong> (fixed treatment effect + random block effect, ทดสอบด้วย Kenward-Roger และ bootstrap CI) และ <strong>ratdrink</strong> (repeated-measures บนหนู 27 ตัว, เทียบ random intercept กับ random slope ด้วย AIC, แล้วทำนายค่าใหม่แบบเฉพาะบุคคล) ทุกตัวเลขในหน้านี้ copy มาจาก <code>Assignment10_Solution.pdf</code> ตรง ๆ ไม่มีตัวเลขที่แต่งขึ้นเอง</p>
+
+<h2>โจทย์ 1: Eggprod — Fixed Treatment Effect + Random Block Effect</h2>
+<p>ข้อมูล <code>eggprod</code> (package <code>faraway</code>): ไก่ 6 ตัวต่อกรง วาง 12 กรง แบ่งเป็น 4 block ตามทำเลที่ตั้ง (block ละ 3 กรง) แต่ละกรงได้รับ 1 ใน 3 treatment (E, F, O) นับจำนวนไข่ที่ได้</p>
+
+<h3>(a) ฟิตโมเดล: treatment เป็น fixed, block เป็น random</h3>
+<ul>
+<li>เหตุผลที่ block ต้องเป็น <strong>random effect</strong>: block คือ grouping factor ที่จับความคล้ายกันของกรงในทำเลเดียวกัน (แสงแดด อุณหภูมิ ความชื้นร่วมกัน) ไม่ใช่สิ่งที่สนใจเปรียบเทียบทีละ block</li>
+<li>treatment เป็น <strong>fixed effect</strong> เพราะเป็นตัวแปรที่สนใจโดยตรง อยากรู้ว่า treatment ไหนต่างจากไหนบ้าง</li>
+</ul>
+<pre><code>&gt; library(faraway); data(eggprod)
+&gt; library(lme4)
+&gt; lmmmodel &lt;- lmer(eggs~treat+(1|block), data=eggprod)
+&gt; summary(lmmmodel)
+Linear mixed model fit by REML ['lmerMod']
+Formula: eggs ~ treat + (1 | block)
+
+REML criterion at convergence: 85.4
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ block    (Intercept) 129.9    11.40
+ Residual             386.9    19.67
+Number of obs: 12, groups: block, 4
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept)   349.00      11.37 30.702
+treatF          -6.25      13.91 -0.449
+treatO         -42.50      13.91 -3.056</code></pre>
+
+<h4>อ่านบล็อก Random effects</h4>
+<ul>
+<li><code>block (Intercept)</code> variance = <strong>129.9</strong> (SD = 11.40) — ความแปรปรวนของ intercept เฉพาะ block แต่ละแห่ง รอบค่าเฉลี่ยประชากร</li>
+<li><code>Residual</code> variance = <strong>386.9</strong> (SD = 19.67) — ความแปรปรวนที่เหลือหลังหัก treatment กับ block ออกแล้ว</li>
+<li>ICC สไตล์ Lesson 14 หัวข้อ 7: \(\dfrac{129.9}{129.9+386.9} = \dfrac{129.9}{516.8} \approx 0.251\) — <strong>ประมาณ 25.1% ของความแปรปรวนรวมของจำนวนไข่มาจากความแตกต่างระหว่าง block</strong> ส่วนที่เหลือ (~75%) มาจากความแปรปรวนภายใน block เดียวกัน</li>
+<li><code>Number of obs: 12, groups: block, 4</code> — ตรงกับโครงสร้างโจทย์: 12 กรง จัดกลุ่มเป็น 4 block</li>
+</ul>
+
+<h4>อ่านบล็อก Fixed effects — treatment E คือ baseline</h4>
+<ul>
+<li><code>(Intercept) = 349.00</code> — จำนวนไข่เฉลี่ยของ treatment E (baseline ที่ R ตัดให้อัตโนมัติ)</li>
+<li><code>treatF = -6.25</code> — <strong>ไก่ที่ได้ treatment F ผลิตไข่น้อยกว่าไก่ที่ได้ treatment E โดยเฉลี่ย 6.25 ฟอง</strong></li>
+<li><code>treatO = -42.50</code> — <strong>ไก่ที่ได้ treatment O ผลิตไข่น้อยกว่าไก่ที่ได้ treatment E โดยเฉลี่ย 42.50 ฟอง</strong> (ขนาดผลใหญ่กว่า treatF มาก)</li>
+</ul>
+
+<h3>(b) ทดสอบนัยสำคัญของ treatment ด้วย Kenward-Roger</h3>
+<pre><code>&gt; library(lmerTest)
+&gt; summary(lmmmodel, ddf = "Kenward-Roger")
+
+Fixed effects:
+            Estimate Std. Error    df t value Pr(&gt;|t|)
+(Intercept)   349.00      11.37  7.99 30.702 1.4e-09 ***
+treatF          -6.25      13.91  6.00 -0.449    0.6690
+treatO         -42.50      13.91  6.00 -3.056    0.0224 *</code></pre>
+<ul>
+<li><code>treatF</code>: p = 0.6690 &gt; 0.05 — <strong>ไม่มีหลักฐานเพียงพอ</strong>ว่า treatment F ต่างจาก treatment E</li>
+<li><code>treatO</code>: p = 0.0224 &lt; 0.05 — <strong>มีนัยสำคัญที่ระดับ 5%</strong> สรุปว่า treatment มีผลต่อจำนวนไข่ (อย่างน้อย treatment O ต่างจาก E จริง)</li>
+<li>สังเกต <code>df</code> ที่ประมาณด้วย Kenward-Roger ไม่ใช่ \(n-p\) ธรรมดา — เหมือนที่ Lesson 14 หัวข้อ 10 อธิบายไว้ว่า mixed model ไม่มี df ชัดเจนแบบ <code>lm()</code></li>
+</ul>
+
+<h3>(c) ทดสอบ random effect (block) ด้วย bootstrap confidence interval</h3>
+<pre><code>&gt; confint(lmmmodel, method="boot", nsim=1000)
+                 2.5 %    97.5 %
+.sig01        0.000000 25.03390
+.sigma        9.130138 28.95898
+(Intercept) 325.413746 372.54506
+treatF      -33.463300 23.17780
+treatO      -70.998224 -13.52348</code></pre>
+<ul>
+<li><code>.sig01</code> = SD ของ random intercept (block) — 95% CI = <strong>(0, 25.03)</strong></li>
+<li>เพราะ 0 อยู่ในช่วง CI นี้ — <strong>fail to reject \(H_0: \sigma^2_{block}=0\)</strong></li>
+<li>สรุป: <strong>ไม่มีหลักฐานเพียงพอว่า random effect ของ block มีนัยสำคัญ</strong> (แม้ตัวแบบยังใส่ block ไว้เป็น random effect ตามโครงสร้างการทดลองจริงก็ตาม)</li>
+<li>เหตุผลที่ต้องใช้ bootstrap แทน \(\chi^2\) ตรง ๆ: \(\sigma^2=0\) อยู่ที่ขอบเขตพารามิเตอร์ — เหตุผลเดียวกับที่ Lesson 14 หัวข้อ 11 อธิบายไว้กับตัวอย่าง pulp</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Fixed vs Random ใน eggprod</span></div>
+  <div class="qtext">ในโมเดล <code>lmer(eggs~treat+(1|block), data=eggprod)</code> เหตุผลใดถูกต้องที่สุดที่ทำให้ <code>block</code> ควรเป็น random effect แทนที่จะเป็น fixed effect?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ block มีแค่ 4 ระดับ ซึ่งน้อยเกินกว่าจะเป็น fixed effect ได้</button>
+  <button class="opt" data-correct="true">เพราะ block เป็น grouping factor ที่จับความคล้ายกันของกรงในทำเลเดียวกันไว้ ไม่ใช่สิ่งที่นักวิจัยสนใจเปรียบเทียบทีละ block โดยเฉพาะ</button>
+  <button class="opt" data-correct="false">เพราะ block เป็นตัวแปรตัวเลขต่อเนื่อง</button>
+  <button class="opt" data-correct="false">เพราะ block ไม่มีผลต่อจำนวนไข่เลย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>อ่านค่า Variance Component</span></div>
+  <div class="qtext">จาก Random effects ของโมเดล eggprod (block variance = 129.9, Residual variance = 386.9) สัดส่วนความแปรปรวนรวมที่มาจากความแตกต่างระหว่าง block คือเท่าไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">129.9/386.9 ≈ 0.336 หรือ 33.6%</button>
+  <button class="opt" data-correct="true">129.9/(129.9+386.9) ≈ 0.251 หรือ 25.1%</button>
+  <button class="opt" data-correct="false">386.9/(129.9+386.9) ≈ 0.749 หรือ 74.9% (นี่คือส่วนของ Residual ไม่ใช่ block)</button>
+  <button class="opt" data-correct="false">คำนวณไม่ได้เพราะไม่มี ICC สำหรับข้อมูลที่ไม่สมดุล (unbalanced)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Kenward-Roger ของ eggprod</span></div>
+  <div class="qtext">จาก Kenward-Roger output: treatF มี p = 0.6690, treatO มี p = 0.0224 ข้อสรุปใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Treatment ไม่มีผลต่อจำนวนไข่เลยทั้งสองตัว เพราะ treatF ไม่มีนัยสำคัญ</button>
+  <button class="opt" data-correct="true">ไม่มีหลักฐานว่า treatment F ต่างจาก treatment E แต่มีหลักฐานที่ระดับ 5% ว่า treatment O ต่างจาก treatment E (น้อยกว่า 42.50 ฟองโดยเฉลี่ย)</button>
+  <button class="opt" data-correct="false">ต้องฟิตโมเดลใหม่ด้วย ML ก่อนถึงจะอ่านค่า p-value ได้</button>
+  <button class="opt" data-correct="false">Treatment E มีนัยสำคัญเพราะ (Intercept) มี p-value ต่ำที่สุด</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Bootstrap CI ของ Random Effect</span></div>
+  <div class="qtext">95% bootstrap CI ของ SD random intercept (block) คือ (0, 25.03) ข้อสรุปใดถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะ 0 อยู่ในช่วง CI จึง fail to reject \(H_0: \sigma^2_{block}=0\) — ไม่มีหลักฐานเพียงพอว่า random effect ของ block มีนัยสำคัญ</button>
+  <button class="opt" data-correct="false">เพราะ CI ไม่รวมค่าลบ จึงสรุปว่า block มีนัยสำคัญแน่นอน</button>
+  <button class="opt" data-correct="false">ต้องตัด block ออกจากโมเดลทันทีเพราะ CI แสดงว่า block ไม่มีผล</button>
+  <button class="opt" data-correct="false">CI นี้ใช้ตีความ fixed effect ไม่ใช่ random effect</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>โจทย์ 2: Ratdrink — Repeated Measures บนหนู 27 ตัว</h2>
+<p>ข้อมูล <code>ratdrink</code> (package <code>faraway</code>): น้ำหนักตัวหนู 27 ตัว วัดซ้ำ 5 ครั้งต่อสัปดาห์ (<code>weeks</code>) หนู 10 ตัวแรกเป็นกลุ่มควบคุม อีก 7 ตัวได้ thyroxine ในน้ำดื่ม และอีก 10 ตัวได้ thiouracil — นี่คือ <em>longitudinal data</em> ตรงตามนิยาม Lesson 14 หัวข้อ 1: วัดผลลัพธ์ซ้ำกับหน่วยเดิม (หนู) ข้ามเวลา</p>
+
+<h3>(a) พล็อตน้ำหนักตามสัปดาห์ แยกทีละตัว</h3>
+<pre><code>&gt; library(lattice)
+&gt; xyplot(wt ~ weeks| subject, ratdrink, type = c("g","p","r"))</code></pre>
+<figure>
+<img src="../assets/exam-plots/ex-a10-ratdrink-weight-by-week.png" alt="Lattice xyplot of body weight (wt, y-axis 50-150+) against weeks (x-axis 0-4) for all 27 rats, each panel with its own fitted regression line — lines share a similar starting weight around 50-75g at week 0 but reach noticeably different final weights by week 4">
+<figcaption>xyplot(wt ~ weeks | subject) — น้ำหนักตัวหนูทั้ง 27 ตัว ตามสัปดาห์ (Assignment 10, ข้อ 2a)</figcaption>
+</figure>
+<p>ทุกตัวเริ่มจากน้ำหนักใกล้เคียงกันที่สัปดาห์ 0 (ราว 50-75 กรัม) แต่เส้นแนวโน้มของแต่ละตัวชันไม่เท่ากัน — บางตัวน้ำหนักพุ่งขึ้นไปเกิน 150-180 กรัมภายในสัปดาห์ที่ 4 ในขณะที่บางตัว (ส่วนใหญ่อยู่ในกลุ่มที่ได้ thiouracil) น้ำหนักเพิ่มช้ากว่า จบที่ราว 120-140 กรัมเท่านั้น — ตรงกับที่เฉลยเขียนไว้ตรง ๆ ว่า <strong>"เห็นความแตกต่างของ slope ชัดเจน ส่วน intercept ใกล้เคียงกัน"</strong></p>
+<ul>
+<li>Intercept ใกล้เคียงกัน → ไม่จำเป็นต้องมี random intercept ที่ variance ใหญ่มาก</li>
+<li>Slope ต่างกันชัดเจน → สัญญาณตรง ๆ ว่าโมเดลต้องพิจารณา <strong>random slope</strong> ไม่ใช่ random intercept อย่างเดียว (เหมือนภาพ xyplot ของ sleepstudy ใน Lesson 14 หัวข้อ 8 ที่นำไปสู่ข้อสรุปเดียวกัน)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>อ่าน xyplot ของ ratdrink</span></div>
+  <div class="qtext">เฉลยสรุปจาก xyplot ว่า "เห็นความแตกต่างของ slope ชัดเจน ส่วน intercept ใกล้เคียงกัน" ข้อสรุปนี้ชี้นำการเลือกโครงสร้าง random effect อย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไม่ต้องใส่ random effect เลย เพราะ intercept เท่ากันหมดอยู่แล้ว</button>
+  <button class="opt" data-correct="false">ควรใส่ random intercept อย่างเดียวก็พอ เพราะ slope ไม่สำคัญต่อการทำนาย</button>
+  <button class="opt" data-correct="true">ควรพิจารณาใส่ random slope (นอกเหนือจาก random intercept) เพราะอัตราการเพิ่มน้ำหนักต่อสัปดาห์ต่างกันชัดเจนระหว่างหนูแต่ละตัว</button>
+  <button class="opt" data-correct="false">ควรเปลี่ยน weeks จาก fixed effect เป็น random effect แทน</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h3>(b) เทียบโมเดล: Random Intercept vs Random Slope</h3>
+
+<h4>Model 1 — Random Intercept เท่านั้น: <code>wt~treat+weeks+(1|subject)</code></h4>
+<pre><code>&gt; model1 &lt;- lmer(wt~treat+weeks+(1|subject), ratdrink)
+&gt; summary(model1)
+
+REML criterion at convergence: 1031.1
+
+Random effects:
+ Groups   Name        Variance Std.Dev.
+ subject (Intercept) 60.42      7.773
+ Residual             105.15   10.254
+Number of obs: 135, groups: subject, 27
+
+Fixed effects:
+                Estimate Std. Error       df t value Pr(&gt;|t|)
+(Intercept)      59.4770     3.1150 33.7809 19.094 &lt; 2e-16 ***
+treatthiouracil -13.9600     4.0361 24.0000 -3.459  0.00204 **
+treatthyroxine    0.5314     4.4476 24.0000    0.119  0.90588
+weeks            23.1815     0.6241 107.0000 37.146 &lt; 2e-16 ***</code></pre>
+<ul>
+<li><code>Number of obs: 135</code> = 27 หนู × 5 สัปดาห์ (135 แถว)</li>
+<li><code>weeks = 23.1815</code> — น้ำหนักเพิ่มขึ้นเฉลี่ย 23.18 กรัม/สัปดาห์ (fixed slope เดียว บังคับให้ทุกตัวเพิ่มอัตราเดียวกัน เพราะยังไม่มี random slope)</li>
+<li><code>treatthiouracil = -13.96</code>, p = 0.00204 ** — หนูกลุ่ม thiouracil หนักน้อยกว่ากลุ่มควบคุมโดยเฉลี่ย 13.96 กรัม (มีนัยสำคัญ)</li>
+<li><code>treatthyroxine = 0.5314</code>, p = 0.90588 — ไม่มีหลักฐานว่ากลุ่ม thyroxine ต่างจากกลุ่มควบคุม</li>
+</ul>
+
+<h4>Model 2 — Random Intercept + Random Slope: <code>wt~treat+weeks+(weeks|subject)</code></h4>
+<pre><code>&gt; model2 &lt;- lmer(wt~treat+weeks+(weeks|subject), ratdrink)
+&gt; summary(model2)
+
+REML criterion at convergence: 908.7
+
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr
+ subject (Intercept) 36.14     6.012
+          weeks       35.49    5.958    -0.33
+ Residual             18.91    4.348
+Number of obs: 135, groups: subject, 27
+
+Fixed effects:
+                Estimate Std. Error      df t value Pr(&gt;|t|)
+(Intercept)      54.2435     2.0848 24.3467 26.018    &lt;2e-16 ***
+treatthiouracil   0.9068     2.8670 23.9998   0.316     0.755
+treatthyroxine   -0.5203     3.1593 23.9998 -0.165     0.871
+weeks            23.1815     1.1767 26.0005 19.701    &lt;2e-16 ***
+
+&gt; AIC(model1, model2)
+       df       AIC
+model1 6 1043.0934
+model2 8  924.6622</code></pre>
+<ul>
+<li>บล็อก Random effects ตอนนี้มี 3 บรรทัด: variance ของ random intercept (36.14), variance ของ random slope สำหรับ weeks (35.49), และ <code>Corr = -0.33</code> ระหว่าง intercept กับ slope ของแต่ละตัว</li>
+<li><code>Residual</code> variance ลดฮวบจาก 105.15 (model1) เหลือ 18.91 (model2) — เพราะความแปรปรวนที่เคยถูกเหมารวมเป็น "noise" ใน model1 ถูกอธิบายได้ด้วย random slope แล้วส่วนใหญ่</li>
+<li><code>AIC</code>: model1 = 1043.09, model2 = 924.66 — <strong>model2 ต่ำกว่ามาก แม้จะมีพารามิเตอร์เพิ่ม (df=8 เทียบกับ 6)</strong> → เลือก model2</li>
+<li><strong>จุดที่ข้อสอบชอบถาม:</strong> นัยสำคัญของ <code>treatthiouracil</code> เปลี่ยนไปเมื่อโครงสร้าง random effect เปลี่ยน — significant ใน model1 (p=0.00204) แต่<strong>ไม่ significant ใน model2 (p=0.755)</strong> เพราะ model1 ไม่มี random slope จึงต้องยัดความแตกต่างของอัตราการโตระหว่างหนูแต่ละตัวไปไว้ในค่าประมาณของ treatment/intercept แทน ทำให้ SE ประเมินผิดทาง — นี่คือเหตุผลเดียวกับที่ Lesson 14 หัวข้อ 8 อธิบายไว้ว่า SE ของ Days เปลี่ยนเกือบเท่าตัวเมื่อเพิ่ม random slope เข้าไปในโมเดล sleepstudy</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>เลือกโมเดลด้วย AIC + อ่านผลที่เปลี่ยนไป</span></div>
+  <div class="qtext">จาก <code>AIC(model1, model2)</code> ของ ratdrink (model1 df=6 AIC=1043.0934, model2 df=8 AIC=924.6622) จงอธิบาย (ก) ทำไมเลือก model2 ทั้งที่มีพารามิเตอร์มากกว่า และ (ข) สังเกตอะไรเกี่ยวกับนัยสำคัญของ <code>treatthiouracil</code> ระหว่างสองโมเดล พร้อมเหตุผล</div>
+  <textarea rows="5" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>(ก) แม้ model2 จะมีพารามิเตอร์มากกว่า (df=8 เทียบกับ df=6 ของ model1) แต่ AIC ของ model2 (924.66) ต่ำกว่า model1 (1043.09) มาก — AIC ลงโทษความซับซ้อนของโมเดลไว้ในสูตรอยู่แล้ว (2×df) ดังนั้นส่วนต่าง ~118 หน่วยนี้มากเกินกว่าจะอธิบายได้ด้วยพารามิเตอร์ที่เพิ่มขึ้นเพียง 2 ตัว จึงสรุปว่า model2 (random intercept + random slope) เหมาะกับข้อมูลมากกว่าจริง ๆ ตรงกับที่เห็นในภาพ xyplot ว่าอัตราการโตต่างกันชัดเจนระหว่างหนู</p>
+  <p>(ข) <code>treatthiouracil</code> มีนัยสำคัญใน model1 (estimate=-13.96, p=0.00204) แต่<strong>ไม่มีนัยสำคัญใน model2</strong> (estimate=0.9068, p=0.755) — เพราะ model1 ไม่มี random slope จึงบังคับให้ความแตกต่างของอัตราการโตระหว่างหนูแต่ละตัว (ซึ่งจริง ๆ เป็นความแตกต่างระดับบุคคล ไม่ใช่ผลของ treatment) ไปปรากฏเป็นส่วนหนึ่งของค่าประมาณ treatment effect และ residual variance แทน ทำให้ผลลัพธ์คลาดเคลื่อน — เมื่อใส่ random slope เข้าไปถูกต้องแล้ว (model2) ตัวแปร treatment แสดงว่าไม่มีผลต่อ<em>อัตราการโต</em>อย่างมีนัยสำคัญจริง ๆ</p>
+  </div>
+</div>
+
+<h3>(c) ทำนายน้ำหนักหนู #27 ที่สัปดาห์ 5 และ 6</h3>
+<p>หนู #27 อยู่ในกลุ่ม thiouracil ข้อมูลจริงมีแค่สัปดาห์ 0-4 ต่อตัว การทำนายที่สัปดาห์ 5-6 จึงเป็น <strong>extrapolation</strong> (นอกช่วงข้อมูลที่สังเกตมา — คำเตือนเดียวกับ Lesson 1)</p>
+<pre><code>&gt; newdata &lt;- data.frame(weeks=5:6,
++   subject=factor(c(27,27), levels=levels(ratdrink$subject)),
++   treat=factor(c("thiouracil","thiouracil"), levels=levels(ratdrink$treat)))
+&gt; predict(model2, newdata)
+       1        2
+139.4674 156.5095</code></pre>
+<ul>
+<li>ต้องระบุ <code>subject=27</code> ใน <code>newdata</code> ไม่ใช่แค่ <code>weeks</code> กับ <code>treat</code> — เพราะ <code>predict()</code> ต้องรู้ว่าจะดึง BLUP (ค่าประมาณ random intercept + random slope) ของหนูตัวไหนมาบวกกับ fixed effect ถ้าไม่ระบุ subject จะได้แค่ค่าทำนายระดับประชากรเฉลี่ย (fixed effect อย่างเดียว) เหมือนตัวอย่าง subject 308 ใน Lesson 14 หัวข้อ 13</li>
+<li>ที่สัปดาห์ 5 ทำนายได้ 139.4674 กรัม เพิ่มเป็น 156.5095 กรัมที่สัปดาห์ 6 — ห่างกัน 17.04 กรัม/สัปดาห์ ซึ่งคือ<strong>อัตราการโตเฉพาะตัวของหนู #27</strong> (fixed slope 23.1815 บวกกับ random slope เฉพาะตัวของหนู #27 ที่ทำให้อัตราของมันต่ำกว่าค่าเฉลี่ยประชากร) ไม่ใช่ 23.18 กรัม/สัปดาห์ตรง ๆ แบบค่าเฉลี่ยประชากร — นี่คือจุดต่างสำคัญระหว่าง <code>fixef()</code> อย่างเดียวกับ <code>predict()</code> ที่ระบุ subject: อย่างหลังให้คำทำนาย "เฉพาะบุคคล" ไม่ใช่ "ค่าเฉลี่ยประชากร"</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 7 (Free response)</span><span>ทำไมต้องระบุ subject ใน newdata</span></div>
+  <div class="qtext">จากการทำนายน้ำหนักหนู #27 ด้วย <code>predict(model2, newdata)</code> จงอธิบาย (ก) ทำไม <code>newdata</code> ต้องมีคอลัมน์ <code>subject=27</code> ไม่ใช่แค่ <code>weeks</code> กับ <code>treat</code> และ (ข) ทำไมการทำนายที่สัปดาห์ 5 และ 6 ถือเป็น extrapolation</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>(ก) โมเดล <code>model2</code> มี random intercept และ random slope เฉพาะแต่ละ subject (BLUP จาก <code>ranef()</code>) ถ้า <code>newdata</code> ไม่ระบุ <code>subject</code> ฟังก์ชัน <code>predict()</code> จะไม่รู้ว่าต้องใช้ค่าเบี่ยงเบนเฉพาะตัวของหนูตัวไหนมาบวกกับ fixed effect ได้แค่คำนวณค่าทำนายระดับ "ค่าเฉลี่ยประชากร" จาก fixed effect อย่างเดียว (เหมือน <code>fixef()</code>) การระบุ <code>subject=27</code> ทำให้ได้คำทำนายที่จำเพาะเจาะจงกับหนูตัวนี้จริง ๆ</p>
+  <p>(ข) ข้อมูลจริงของ ratdrink มีแค่ 5 ครั้งวัดต่อหนูหนึ่งตัว ครอบคลุมสัปดาห์ 0 ถึง 4 เท่านั้น การทำนายที่สัปดาห์ 5 และ 6 จึงเป็นค่านอกช่วงข้อมูลที่เคยสังเกตมา (extrapolation) เหมือนตัวอย่าง sleepstudy ใน Lesson 14 ที่ทำนาย Days=10-12 ทั้งที่ข้อมูลจริงมีแค่ Days=0-9 — ต้องระวังว่าความสัมพันธ์เชิงเส้นที่ฟิตในช่วงข้อมูลจริงอาจไม่ต่อเนื่องแบบเดิมนอกช่วงนั้น</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>อ่าน Random Effects ของ model2</span></div>
+  <div class="qtext">ใน Random effects ของ model2 (ratdrink) มีคอลัมน์ <code>Corr = -0.33</code> ระหว่าง random intercept กับ random slope ของ <code>weeks</code> ค่านี้ตีความว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Weeks กับ wt มีความสัมพันธ์เชิงลบโดยรวม</button>
+  <button class="opt" data-correct="true">หนูที่มี baseline น้ำหนัก (intercept) สูงกว่าค่าเฉลี่ยประชากร มีแนวโน้มมีอัตราการโต (slope) ต่ำกว่าค่าเฉลี่ยประชากรเล็กน้อย (ความสัมพันธ์ทางลบระหว่าง intercept กับ slope เฉพาะตัวของแต่ละหนู)</button>
+  <button class="opt" data-correct="false">Treatment thiouracil กับ treatment thyroxine มีสหสัมพันธ์กัน -0.33</button>
+  <button class="opt" data-correct="false">โมเดลนี้ใช้ไม่ได้เพราะ correlation ติดลบ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="box win">
+<div class="label">สรุปสั้น ๆ ก่อนไปข้อสอบจริง</div>
+<ul>
+<li>เขียน <code>lmer()</code> formula ให้ตรงกับโครงสร้างข้อมูลก่อนเสมอ (grouping factor ไหนเป็น random, ตัวแปรไหนควรมี random slope ด้วย — plot แยกทีละกลุ่ม/บุคคลก่อนตัดสินใจ)</li>
+<li>อ่าน Random effects block เพื่อแตกความแปรปรวน แล้วอ่าน Fixed effects block เพื่อแปลผลสัมประสิทธิ์ตามปกติ</li>
+<li>ทดสอบนัยสำคัญของ fixed effect ด้วย Kenward-Roger/Satterthwaite, ทดสอบ random effect ด้วย bootstrap CI หรือ parametric bootstrap LRT — ไม่ใช้ \(\chi^2\) มาตรฐานตรง ๆ กับ random effect</li>
+<li>เปรียบเทียบโครงสร้าง random effect ที่ต่างกันด้วย AIC ได้ (ทั้งสองโมเดลฟิตด้วย REML=TRUE เหมือนกัน) และต้องเช็คว่านัยสำคัญของ fixed effect เปลี่ยนไปหรือไม่เมื่อโครงสร้าง random effect เปลี่ยน</li>
+<li>ทำนายค่าเฉพาะบุคคล/กลุ่มต้องระบุ grouping factor ใน <code>newdata</code> เสมอ ไม่งั้นจะได้แค่ค่าเฉลี่ยประชากร</li>
+</ul>
+</div>
+
+<p><em>บทนี้ครอบคลุมทั้งสองข้อของ Assignment 10 (eggprod และ ratdrink) ครบทุกข้อย่อย (a)-(c) จาก <code>Assignment10_Solution.pdf</code> ทั้ง 4 หน้า</em></p>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<nav class="lesson-nav">
+  <span><a href="0014-linear-mixed-effects-models.html">← Lesson 14: Linear Mixed-Effects Models</a></span>
+  <span><a href="../reference/0014-mixed-effects-cheatsheet.html">Reference: Mixed Effects Cheat Sheet</a> · <a href="../exams/drill-06-predict-and-explain.html">Drill 6: Predict and Explain →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

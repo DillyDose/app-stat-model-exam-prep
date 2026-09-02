@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ฝึกกับโจทย์จริง: Moth Coloration — Grouped Binomial Regression (Assignment 7#2)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Worked Example · หลัง Lesson 10</span>
+  <span><a href="0010-binomial-counts.html">← กลับไป Lesson 10: Binomial Counts</a></span>
+</nav>
+
+<p class="kicker">Assignment 7, Problem 2 — Worked Solution Walkthrough</p>
+<h1>Moth Coloration: ฝึก Grouped Binomial Regression กับโจทย์จริงเต็มข้อ</h1>
+
+<p>Lesson 10 สอนไวยากรณ์ <code>cbind(successes, failures) ~ x</code> สำหรับ binomial counts ที่ถูกจัดกลุ่มไว้แล้ว (n<sub>i</sub> ต่างกันได้ต่อแถว) ผ่านตัวอย่าง O-rings และ Bird Extinction บทนี้เอาทักษะเดียวกันมาฝึกกับโจทย์ข้อสอบจริง — Assignment 7 ข้อ 2 (Moth Coloration) ซึ่งมีทั้งการฟิตโมเดล, goodness-of-fit test, likelihood ratio test (drop-in-deviance), และการเช็ค extra-binomial variation ด้วย quasibinomial ครบทุกขั้นตอนในข้อเดียว — ตัวเลขทุกตัวในบทนี้คัดลอกตรงจากเฉลยจริงของอาจารย์ ไม่มีตัวเลขสมมติ</p>
+
+<h2>โจทย์และการเตรียมข้อมูล</h2>
+<p>บริเวณ Liverpool ประเทศอังกฤษ มีมอดกลางคืน (moth) สองสีมอร์ฟ (light / dark) เกาะพักบนต้นไม้ในตอนกลางวัน — ต้นไม้ใกล้ Liverpool เป็นสีดำเพราะควันจากโรงงาน ทำให้มอดสีเข้ม (dark morph) พรางตัวได้ดีกว่า นักวิจัยนับจำนวนมอดแต่ละสีที่ถูกนกจับไป (<code>REMOVED</code>) ที่ระยะทางต่าง ๆ จาก Liverpool (<code>DISTANCE</code>) โจทย์กำหนดให้ <strong>response = จำนวนมอดสีอ่อน (light) ที่ถูกจับ</strong> และ <strong>binomial denominator = จำนวนมอดทั้งหมด (light + dark) ที่ถูกจับ</strong> ที่แต่ละสถานที่</p>
+
+<ul>
+<li>ข้อมูลดิบ <code>moth.csv</code> มี 1 แถวต่อ (สี × สถานที่) — ต้องจัดรูปใหม่เป็น 1 แถวต่อสถานที่ก่อน โดยแยกคอลัมน์ <code>light_removed</code> กับ <code>dark_removed</code></li>
+<li>ใช้ <code>unique(moth$DISTANCE)</code> ดึงระยะทางที่ไม่ซ้ำ 7 ค่า — ได้ผลลัพธ์ 7 แถว (7 สถานที่)</li>
+</ul>
+
+<pre><code>> moth<-read.csv('moth.csv')
+> head(moth)
+  MORPH DISTANCE PLACED REMOVED
+1 light       0.0    56      17
+2  dark       0.0    56      14
+3 light       7.2    80      28
+4  dark       7.2    80      20
+5 light      24.1    52      18
+6  dark      24.1    52      22
+
+> newdata<-data.frame(light_removed=moth$REMOVED[moth$MORPH=="light"],
+dark_removed=moth$REMOVED[moth$MORPH=="dark"], distance=unique(moth$DISTANCE))
+> head(newdata)
+  light_removed dark_removed distance
+1            17           14      0.0
+2            28           20      7.2
+3            18           22     24.1
+4             9           16     30.2
+5            16           23     36.4
+6            20           40     41.5</code></pre>
+
+<p>ตารางเต็ม 7 แถว (จากคำใบ้ของโจทย์):</p>
+<pre><code>  light_removed dark_removed distance
+1            17           14      0.0
+2            28           20      7.2
+3            18           22     24.1
+4             9           16     30.2
+5            16           23     36.4
+6            20           40     41.5
+7            24           39     51.2</code></pre>
+
+<p>ตั้งโมเดล: ให้ π = ความน่าจะเป็นที่มอดที่ถูกจับเป็นมอดสีอ่อน (light) ที่สถานที่หนึ่ง ๆ เพราะแต่ละสถานที่มีจำนวนมอดที่ถูกจับทั้งหมด (n<sub>i</sub> = light + dark) ไม่เท่ากัน จึงเป็น <strong>binomial count</strong> แบบเดียวกับ O-rings/Bird Extinction ใน Lesson 10 พอดี ไม่ใช่ binary (n=1)</p>
+
+<div class="box">
+\(Y_i = \text{light\_removed}_i \sim \text{Binomial}(n_i, \pi_i)\) &nbsp; โดย \(n_i = \text{light\_removed}_i + \text{dark\_removed}_i\)
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>ทำไมต้องเป็น Binomial count</span></div>
+  <div class="qtext">ทำไมข้อมูล Moth Coloration จึงต้องมองเป็น <code>cbind(light_removed, dark_removed)</code> ไม่ใช่ response ตัวเดียวแบบ binary logistic regression?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะมีตัวแปรอิสระ (distance) เพียงตัวเดียวในโมเดล</button>
+  <button class="opt" data-correct="true">เพราะแต่ละแถวคือจำนวนมอดสีอ่อนที่ถูกจับจาก n<sub>i</sub> ตัวที่ถูกจับทั้งหมดต่อสถานที่ (n<sub>i</sub> ต่างกันในแต่ละแถว) ไม่ใช่ผลลัพธ์ 0/1 ของสัตว์ตัวเดียว</button>
+  <button class="opt" data-correct="false">เพราะข้อมูลมีแค่ 7 แถว จึงต้องรวมกลุ่มเพื่อให้พอสำหรับการทดสอบทางสถิติ</button>
+  <button class="opt" data-correct="false">เพราะ distance เป็นตัวแปรต่อเนื่อง จึงบังคับให้ต้องใช้ cbind() เสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>Part (a) — Plot logit ของสัดส่วน vs. Distance</h2>
+<p>ก่อนฟิตโมเดล สไลด์และแนวปฏิบัติจาก Lesson 10 (หัวข้อ 5) เตือนให้ plot sample logit เทียบกับตัวแปรอิสระก่อนเสมอ เพื่อเช็คว่าความสัมพันธ์เชิงเส้นบน logit scale สมเหตุสมผลหรือไม่:</p>
+<pre><code>> attach(newdata)
+> plot(distance, log(light_removed/dark_removed), ylab="log(y/(n-y))")
+> detach(newdata)</code></pre>
+<p>คำนวณ sample logit \(\log(y_i/(n_i-y_i)) = \log(\text{light\_removed}_i/\text{dark\_removed}_i)\) ทีละแถวจากตัวเลขจริงในตาราง (ตรวจสอบได้ตรง ๆ ด้วยเครื่องคิดเลข):</p>
+<table>
+<tr><th>distance</th><th>light</th><th>dark</th><th>log(light/dark)</th></tr>
+<tr><td>0.0</td><td>17</td><td>14</td><td>0.1942</td></tr>
+<tr><td>7.2</td><td>28</td><td>20</td><td>0.3365</td></tr>
+<tr><td>24.1</td><td>18</td><td>22</td><td>&minus;0.2007</td></tr>
+<tr><td>30.2</td><td>9</td><td>16</td><td>&minus;0.5754</td></tr>
+<tr><td>36.4</td><td>16</td><td>23</td><td>&minus;0.3629</td></tr>
+<tr><td>41.5</td><td>20</td><td>40</td><td>&minus;0.6931</td></tr>
+<tr><td>51.2</td><td>24</td><td>39</td><td>&minus;0.4855</td></tr>
+</table>
+<ul>
+<li>ที่ distance=0 และ 7.2 (ใกล้ Liverpool) sample logit เป็นบวก (0.194, 0.337) — สัดส่วนมอดสีอ่อนที่ถูกจับ<strong>มากกว่า</strong>สีเข้ม</li>
+<li>ตั้งแต่ distance=24.1 กม.ขึ้นไป sample logit กลายเป็นลบทุกจุด (&minus;0.20 ถึง &minus;0.69) — สัดส่วนมอดสีอ่อนที่ถูกจับ<strong>น้อยกว่า</strong>สีเข้ม</li>
+<li>แนวโน้มรวมเป็นขาลงตามระยะทาง สอดคล้องกับสมมติฐานทางชีววิทยาของโจทย์ (ไกลจาก Liverpool มากขึ้น ต้นไม้สะอาดขึ้น มอดสีเข้มพรางตัวได้แย่ลง จึงถูกจับมากขึ้นเทียบกับมอดสีอ่อน) — แม้จุดสุดท้าย (51.2 กม.) จะขยับกลับขึ้นมาเล็กน้อยจากจุด 41.5 กม. ซึ่งเป็นความผันผวนปกติเมื่อมีแค่ n=7 กลุ่ม</li>
+</ul>
+
+<h2>Part (b) — ฟิตโมเดลด้วย <code>cbind()</code> และเขียนสมการ</h2>
+<pre><code>> model<-glm(cbind(light_removed,dark_removed)~distance, data=newdata, family=binomial)
+> summary(model)
+
+Call:
+glm(formula = cbind(light_removed, dark_removed) ~ distance,
+    family = binomial, data = newdata)
+
+Deviance Residuals:
+      1        2       3           4         5         6        7
+-0.2388   0.6545 -0.0947     -0.7059    0.1163   -0.7264   0.7350
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 0.28048     0.23090   1.215 0.22447
+distance    -0.01872    0.00675 -2.773 0.00556 **
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 9.8997    on 6   degrees of freedom
+Residual deviance: 2.0741    on 5     degrees of freedom
+AIC: 35.105
+
+Number of Fisher Scoring iterations: 3</code></pre>
+
+<p>อ่าน output:</p>
+<ul>
+<li>\(\hat{\beta}_0 = 0.28048\) (ไม่มีนัยสำคัญ, p=0.22447) และ \(\hat{\beta}_1 = -0.01872\) (มีนัยสำคัญที่ α=0.05, p=0.00556)</li>
+<li>Null deviance = 9.8997 บน 6 df (7 กลุ่ม &minus; 1 พารามิเตอร์), Residual deviance = 2.0741 บน 5 df (7 กลุ่ม &minus; 2 พารามิเตอร์) — deviance ลดลงมากเมื่อใส่ distance เข้าไป สัญญาณว่าตัวแปรนี้ช่วยอธิบายข้อมูลได้</li>
+<li>Dispersion parameter ที่รายงาน (=1) ยังเป็นค่าตั้งต้น ยังไม่ได้เช็คจริง (จะเช็คใน Part (e)-(f))</li>
+</ul>
+
+<div class="box win">
+Let π เป็นความน่าจะเป็นที่มอดที่ถูกจับเป็นมอดสีอ่อน สมการที่ฟิตได้คือ
+\[\text{logit}(\hat{\pi}) = 0.28 - 0.02\,\text{distance}\]
+</div>
+
+<h3>แปลผลสัมประสิทธิ์ของ distance — Odds Ratio</h3>
+<p>ใช้ template แปลผลจาก Lesson 10 หัวข้อ 4 (odds ratio scale): odds คูณด้วย \(e^{\hat{\beta}_1}\) ทุก 1 หน่วยของ X ที่เพิ่มขึ้น</p>
+<ul>
+<li>\(e^{\hat{\beta}_1} = e^{-0.01872} \approx 0.9815\)</li>
+<li><strong>ทุก 1 กิโลเมตรที่ห่างจาก Liverpool เพิ่มขึ้น odds ที่มอดถูกจับจะเป็นสีอ่อน (เทียบกับสีเข้ม) ลดลงเหลือประมาณ 98.15% ของเดิม (ลดลง ~1.85%)</strong> โดยมีนัยสำคัญทางสถิติ (p=0.00556 &lt; 0.05)</li>
+<li>ตัวเลขต่อ 1 กม. เล็กเพราะสเกลของ distance กว้าง (0–51.2 กม.) ลองขยายสเกลเพื่ออ่านง่ายขึ้น: ทุก <strong>10 กม.</strong> ที่ห่างเพิ่มขึ้น odds คูณด้วย \(e^{-0.01872\times10} = e^{-0.1872} \approx 0.8293\) กล่าวคือ<strong>ลดลงประมาณ 17.1%</strong> — และเทียบสุดขั้วของข้อมูล (0 กม. vs 51.2 กม.) odds คูณด้วย \(e^{-0.01872\times51.2} \approx 0.3835\) คือ<strong>ลดลงเหลือ ~38.4% ของเดิม</strong> เมื่อไปไกลสุดในข้อมูล</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>แปลผล β̂ ของ distance</span></div>
+  <div class="qtext">จาก \(\hat{\beta}_1 = -0.01872\) ของโมเดล Moth Coloration จงเขียนประโยคแปลผลด้วย odds ratio scale สำหรับการเพิ่มขึ้น <strong>5 กิโลเมตร</strong> (ไม่ใช่ 1 กม. หรือ 10 กม.) พร้อมแสดงวิธีคำนวณ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">\(e^{-0.01872\times5} = e^{-0.0936} \approx 0.9106\) — ทุก 5 กิโลเมตรที่ห่างจาก Liverpool เพิ่มขึ้น odds ที่มอดถูกจับจะเป็นสีอ่อน (เทียบกับสีเข้ม) ลดลงเหลือประมาณ 91.06% ของเดิม (ลดลงประมาณ 8.94%) โดยคุมทุกอย่างอื่นให้คงที่ (ในที่นี้คือไม่มีตัวแปรอื่นในโมเดล)</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>อ่าน summary(model)</span></div>
+  <div class="qtext">ข้อใดอ่านผลจาก <code>summary(model)</code> ของ Moth Coloration ได้ถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Intercept (0.28048) มีนัยสำคัญทางสถิติที่ α=0.05 เพราะ p=0.22447 &lt; 1</button>
+  <button class="opt" data-correct="true">สัมประสิทธิ์ของ distance (&minus;0.01872) มีนัยสำคัญทางสถิติที่ α=0.05 เพราะ p=0.00556 &lt; 0.05</button>
+  <button class="opt" data-correct="false">Residual deviance (2.0741) สูงกว่า Null deviance (9.8997) แปลว่าโมเดลนี้แย่กว่าโมเดลว่าง</button>
+  <button class="opt" data-correct="false">Dispersion parameter ที่รายงานในตารางนี้ (=1) คือค่าที่ประมาณได้จริงจากข้อมูล ยืนยันว่าไม่มี overdispersion</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>Part (c) — Goodness-of-Fit Test ที่ α=0.05</h2>
+<p>ใช้ deviance-based χ² test แบบเดียวกับ Lesson 10 หัวข้อ 6 — <strong>ระวังทิศทางของ H<sub>0</sub>:</strong> ที่นี่ H<sub>0</sub> คือ "โมเดล fit ข้อมูลได้ดี" จึงอยากได้ p-value <strong>สูง</strong> (ไม่ปฏิเสธ) ตรงข้ามกับการทดสอบสัมประสิทธิ์ใน Part (b) ที่อยากได้ p-value ต่ำ</p>
+<pre><code>> 1-pchisq(deviance(model), 5)
+[1] 0.8388016</code></pre>
+<ol>
+<li><strong>H<sub>0</sub> vs H<sub>1</sub>:</strong> \(H_0:\) โมเดล fit ข้อมูล (Model fits data) &nbsp;vs&nbsp; \(H_1:\) not \(H_0\)</li>
+<li><strong>Test statistic:</strong> Deviance = 2.0741 ภายใต้ \(H_0\) มีการแจกแจงประมาณ \(\chi^2_{(5)}\) (df = 7 กลุ่ม &minus; 2 พารามิเตอร์)</li>
+<li><strong>Decision rule:</strong> p-value = 0.8388 &gt; α = 0.05 → ไม่ปฏิเสธ \(H_0\)</li>
+<li><strong>Conclusion:</strong> ไม่มีหลักฐานเพียงพอที่จะปฏิเสธว่าโมเดลนี้ fit ข้อมูลได้ดี — สรุปว่าโมเดล logistic ที่มี distance เป็นตัวแปรอิสระเพียงพอสำหรับข้อมูลชุดนี้</li>
+</ol>
+
+<h2>Part (d) — Likelihood Ratio Test (Drop-in-Deviance): distance มีผลจริงหรือไม่</h2>
+<p>เปรียบเทียบโมเดลเต็ม (มี distance) กับโมเดลลดรูป (intercept-only) — เทคนิคเดียวกับ Lesson 10 หัวข้อ 7:</p>
+<pre><code>> model<-glm(cbind(light_removed,dark_removed)~distance, data=newdata, family=binomial)
+> reducedmodel<-glm(cbind(light_removed,dark_removed)~1, data=newdata, family=binomial)
+> anova(reducedmodel, model, test="Chisq")
+Analysis of Deviance Table
+
+Model 1: cbind(light_removed, dark_removed) ~ 1
+Model 2: cbind(light_removed, dark_removed) ~ distance
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
+1         6     9.8997
+2         5     2.0741 1    7.8256 0.005151 **</code></pre>
+<p>ตรวจสอบเลขที่มา: \(LRT = 9.8997 - 2.0741 = 7.8256\) ตรงกับคอลัมน์ Deviance เป๊ะ, \(df = 6-5=1\) (ต่างกัน 1 พารามิเตอร์คือ distance)</p>
+<ol>
+<li><strong>H<sub>0</sub> vs H<sub>1</sub>:</strong> \(H_0: \beta_{\text{distance}}=0\) &nbsp;vs&nbsp; \(H_1: \beta_{\text{distance}}\neq0\)</li>
+<li><strong>Test statistic:</strong> LRT = 7.8256 ภายใต้ \(H_0\) มีการแจกแจงประมาณ \(\chi^2_{(1)}\)</li>
+<li><strong>Decision rule:</strong> p-value = 0.005151 &lt; α = 0.05 → ปฏิเสธ \(H_0\)</li>
+<li><strong>Conclusion:</strong> มีหลักฐานเพียงพอสรุปว่าระยะทางจาก Liverpool มีความสัมพันธ์กับสัดส่วนของมอดสีอ่อนที่ถูกจับ ที่ระดับนัยสำคัญ α=0.05</li>
+</ol>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>LRT vs Wald's Test</span></div>
+  <div class="qtext">ในโมเดล Moth Coloration, Wald's test ของ distance ให้ p=0.00556 (จาก Part (b)) ส่วน LRT ให้ p=0.005151 (จาก Part (d)) ทั้งสองค่าใกล้เคียงแต่ไม่เท่ากันเป๊ะ เพราะอะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะมีการคำนวณผิดพลาดในหนึ่งในสองวิธี ควรใช้ค่าที่ต่ำกว่าเสมอ</button>
+  <button class="opt" data-correct="true">เพราะ Wald's test กับ LRT เป็นการประมาณ asymptotic คนละแบบ (z² จาก normal approximation vs deviance difference) จึงให้ p-value ไม่เท่ากันเป๊ะแม้ทดสอบ H₀ เดียวกัน</button>
+  <button class="opt" data-correct="false">เพราะ Wald's test ใช้ได้เฉพาะกับ binary data ส่วน LRT ใช้ได้เฉพาะ binomial counts</button>
+  <button class="opt" data-correct="false">เพราะ LRT ทดสอบสัมประสิทธิ์ทั้งหมดพร้อมกัน (β₀ และ β₁) ในขณะที่ Wald's test ทดสอบทีละตัว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>Part (e) — Quasibinomial Model + LRT (F-test)</h2>
+<p>ก่อนเชื่อ p-value จาก Part (d) ตรง ๆ ต้องเช็ค overdispersion ก่อน (เหมือน Lesson 10 หัวข้อ 9) — โจทย์ให้ฟิต quasibinomial แล้วทดสอบซ้ำด้วย F-test:</p>
+<pre><code>> qmodel<-glm(cbind(light_removed,dark_removed)~distance, data=newdata,
+family=quasibinomial)
+> summary(qmodel)
+
+Call:
+glm(formula = cbind(light_removed, dark_removed) ~ distance,
+    family = quasibinomial, data = newdata)
+
+Deviance Residuals:
+      1        2       3           4           5         6         7
+-0.2388   0.6545 -0.0947     -0.7059      0.1163   -0.7264    0.7350
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 0.280476    0.148388   1.890 0.11734
+distance    -0.018716   0.004338 -4.314 0.00761 **
+---
+Signif. codes:   0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for quasibinomial family taken to be 0.4130138)
+
+    Null deviance: 9.8997   on 6   degrees of freedom
+Residual deviance: 2.0741   on 5   degrees of freedom
+AIC: NA
+
+Number of Fisher Scoring iterations: 3
+
+> qredmodel<-glm(cbind(light_removed,dark_removed)~1, data=newdata, family=quasibinomial)
+> anova(qredmodel, qmodel, test="F")
+Analysis of Deviance Table
+
+Model 1: cbind(light_removed, dark_removed) ~ 1
+Model 2: cbind(light_removed, dark_removed) ~ distance
+  Resid. Df Resid. Dev Df Deviance      F   Pr(>F)
+1         6     9.8997
+2         5     2.0741 1    7.8256 18.948 0.007339 **</code></pre>
+<ul>
+<li>β̂ เหมือนเดิมทุกประการเทียบกับโมเดล binomial ธรรมดา (0.280476 ≈ 0.28048, &minus;0.018716 ≈ &minus;0.01872) — ยืนยันหลักการจาก Lesson 10 ว่า φ ไม่กระทบค่าประมาณ β̂ กระทบแค่ SE</li>
+<li>Dispersion parameter ที่ประมาณได้จริง = 0.4130138 (ต่างจากค่าตั้งต้น =1 ที่รายงานในโมเดล binomial)</li>
+<li>Test statistic เปลี่ยนจาก z เป็น t, จาก χ² เป็น F — สอดคล้องกับ Lesson 10 หัวข้อ 9</li>
+</ul>
+
+<ol>
+<li><strong>H<sub>0</sub> vs H<sub>1</sub>:</strong> \(H_0: \beta_{\text{distance}}=0\) &nbsp;vs&nbsp; \(H_1: \beta_{\text{distance}}\neq0\)</li>
+<li><strong>Test statistic:</strong> F = 18.948 ภายใต้ \(H_0\) มีการแจกแจงประมาณ \(F_{(1,5)}\)</li>
+<li><strong>Decision rule:</strong> p-value = 0.007339 &lt; α = 0.05 → ปฏิเสธ \(H_0\)</li>
+<li><strong>Conclusion:</strong> มีหลักฐานเพียงพอสรุปว่าระยะทางจาก Liverpool มีความสัมพันธ์กับสัดส่วนของมอดสีอ่อนที่ถูกจับ ที่ระดับนัยสำคัญ α=0.05 — ข้อสรุปเดียวกับ Part (d) แม้จะปรับ dispersion แล้วก็ตาม</li>
+</ol>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>β̂ เปลี่ยนหรือไม่</span></div>
+  <div class="qtext">เมื่อเปลี่ยนจาก <code>family=binomial</code> เป็น <code>family=quasibinomial</code> ในโมเดล Moth Coloration ข้อใดถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">β̂ ของ distance เปลี่ยนจาก &minus;0.01872 เป็น &minus;0.018716 ซึ่งต่างกันมากพอจะเปลี่ยนข้อสรุป</button>
+  <button class="opt" data-correct="true">β̂ ของ distance แทบไม่เปลี่ยน (&minus;0.01872 vs &minus;0.018716) แต่ SE เปลี่ยนจาก 0.00675 เป็น 0.004338 และสถิติทดสอบเปลี่ยนจาก z เป็น t</button>
+  <button class="opt" data-correct="false">AIC ของ quasibinomial model ต่ำกว่า binomial model มาก แสดงว่า quasibinomial fit ดีกว่าเสมอ</button>
+  <button class="opt" data-correct="false">Quasibinomial model ให้ deviance residuals ต่างจากโมเดล binomial ธรรมดาโดยสิ้นเชิง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>Part (f) — ควรพิจารณา Extra-Binomial Variation หรือไม่</h2>
+<p>คำถามสุดท้ายของโจทย์ถามตรง ๆ ว่าควรพิจารณา extrabinomial (overdispersion/underdispersion) หรือไม่ พร้อมเหตุผล:</p>
+<ul>
+<li>φ̂ ที่ประมาณได้ = 0.4130138 ซึ่ง<strong>น้อยกว่า 1</strong> — ตามเกณฑ์ของ Lesson 10 (φ &gt; 1.5 คือ overdispersion) นี่คือ <em class="term">underdispersion</em> ไม่ใช่ overdispersion (variance จริงน้อยกว่าที่ทฤษฎี binomial ทำนายไว้)</li>
+<li>แม้ φ̂ จะห่างจาก 1 พอสมควร (0.413) แต่ SE และ p-value ระหว่างโมเดล binomial (SE=0.00675, p=0.00556) กับ quasibinomial (SE=0.004338, p=0.00761) ยังใกล้เคียงกัน — ข้อสรุปเรื่องนัยสำคัญของ distance <strong>ไม่เปลี่ยน</strong>ไม่ว่าจะเลือกใช้โมเดลไหน</li>
+<li>สรุปตามเฉลย: <strong>เลือกใช้โมเดลไหนก็ได้ (binomial หรือ quasibinomial)</strong> เพราะผลสรุปทางสถิติไม่ต่างกันในทางปฏิบัติ แม้ φ̂ จะไม่เท่ากับ 1 พอดี</li>
+</ul>
+
+<div class="box win">
+<div class="label">ข้อสังเกตที่เชื่อมกับ Lesson 10</div>
+กรณีนี้คู่ขนานกับตัวอย่าง Bird Extinction ใน Lesson 10 (φ̂ = 0.7326, underdispersion เล็กน้อย) — ทั้งสองกรณีย้ำหลักการเดียวกัน: <strong>φ̂ ≠ 1 พอดีไม่ได้แปลว่าต้องแก้ไขทันที</strong> ต้องดูว่าห่างจากเกณฑ์ (1.5 สำหรับ overdispersion) มากแค่ไหน และดูว่าข้อสรุปการทดสอบเปลี่ยนไปจริงหรือไม่ก่อนตัดสินใจ
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>สรุปข้อ (f) เป็นคำตอบข้อสอบ</span></div>
+  <div class="qtext">จงเขียนคำตอบสั้น ๆ (2-3 ประโยค) ตอบคำถาม "Should we consider extrabinomial here? Why?" สำหรับโมเดล Moth Coloration โดยอ้างอิงค่า φ̂ จริงและเหตุผลประกอบ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">เนื่องจากค่าประมาณ dispersion parameter (φ̂ = 0.413) น้อยกว่า 1 จึงเกิด underdispersion เล็กน้อย ไม่ใช่ overdispersion อย่างไรก็ตาม standard error และ p-value ของสัมประสิทธิ์ distance ใกล้เคียงกันมากระหว่างโมเดล binomial ธรรมดาและ quasibinomial (0.00556 vs 0.00761 ทั้งคู่ยังน้อยกว่า 0.05) จึงสามารถเลือกใช้โมเดลใดก็ได้ ข้อสรุปทางสถิติไม่เปลี่ยน</div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Overdispersion vs Underdispersion</span></div>
+  <div class="qtext">φ̂ = 0.4130138 ในโมเดล Moth Coloration บ่งชี้อะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Overdispersion รุนแรง เพราะ φ̂ ห่างจาก 1 มาก ต้องแก้ไขด้วย negative binomial ทันที</button>
+  <button class="opt" data-correct="true">Underdispersion (variance จริงน้อยกว่าที่ทฤษฎี binomial ทำนายไว้) เพราะ φ̂ &lt; 1</button>
+  <button class="opt" data-correct="false">ไม่สามารถตีความได้เพราะ φ̂ ต้องมีค่าระหว่าง 1 ถึง 2 เท่านั้นจึงจะมีความหมาย</button>
+  <button class="opt" data-correct="false">Overdispersion เล็กน้อย เพราะ φ̂ ใกล้เคียง 0.5 ซึ่งอยู่ในเกณฑ์ overdispersion ปานกลาง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>ภาพรวมทั้งข้อ</span></div>
+  <div class="qtext">รวมทุก part ของโจทย์ Moth Coloration ข้อสรุปใดสอดคล้องกับผลทุกส่วนที่คำนวณไปมากที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">โมเดลไม่ fit ข้อมูล (Part c) และ distance ไม่มีผลต่อสัดส่วนมอดสีอ่อน (Part d, e)</button>
+  <button class="opt" data-correct="true">โมเดล fit ข้อมูลได้ดี (Part c, p=0.84), distance มีผลอย่างมีนัยสำคัญต่อสัดส่วนมอดสีอ่อนทั้งด้วย Wald's test, LRT, และ F-test แม้ปรับ dispersion แล้ว (Part b, d, e) และไม่จำเป็นต้องกังวลเรื่อง overdispersion (Part f, φ̂&lt;1)</button>
+  <button class="opt" data-correct="false">โมเดล fit ข้อมูลได้ดีแต่ distance ไม่มีนัยสำคัญทางสถิติเลยในทุกการทดสอบ</button>
+  <button class="opt" data-correct="false">ต้องทิ้งโมเดล binomial ไปใช้ negative binomial แทนเพราะพบ overdispersion รุนแรง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+บทนี้ครอบคลุมเฉพาะ<strong>ข้อ 2 (Moth Coloration) ของ Assignment 7</strong> — ข้อ 1 (Breast Cancer, binary logistic regression) ถูกฝึกแยกไว้คู่กับ Lesson 9 ในบทอื่น ตอนนี้คุณควรจัดรูปข้อมูล grouped binomial ด้วย <code>cbind()</code>, อ่าน <code>summary()</code> ของ binomial GLM, ทำ goodness-of-fit test และ LRT ครบ 4 ส่วนตามฟอร์แมตข้อสอบ, แปลผล odds ratio ของสัมประสิทธิ์ต่อหน่วยที่กำหนดเองได้ (ไม่ใช่แค่ 1 หน่วย), และตัดสินใจเรื่อง extra-binomial variation จากค่า φ̂ จริงได้แล้ว
+</div>
+
+<nav class="lesson-nav">
+  <span><a href="0010-binomial-counts.html">← Lesson 10: Binomial Counts</a></span>
+  <span><a href="../reference/0010-binomial-counts-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output →</a></span>
+  <span><a href="../exams/drill-03-hypothesis-testing.html">ฝึกด้วย Drill 3: Hypothesis Testing →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

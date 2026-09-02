@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Assignment 7#1 Walkthrough: Breast Cancer Diagnosis — Binary Logistic Regression</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>โจทย์จริง · Assignment 7 #1 · Breast Cancer Diagnosis (Binary Logistic Regression)</span>
+  <span><a href="../reference/0009-logistic-regression-cheatsheet.html">Reference: สูตร + Interpretation Template →</a></span>
+</nav>
+
+<p class="kicker">Assignment 7, Problem 1 — Worked Solution Walkthrough</p>
+<h1>Breast Cancer Diagnosis: เดินตามโจทย์จริงทีละข้อ (Binary Logistic Regression)</h1>
+
+<p>บทเรียนนี้ต่อยอดจาก <a href="0009-binary-data.html">Lesson 9: Binary Data</a> โดยตรง — เอาทุกทักษะที่เรียนไป (เขียนสมการ logistic regression, อ่าน <code>summary(glm(family=binomial))</code>, Hosmer-Lemeshow, AIC-based model selection, interpretation template แบบ log-odds/odds ratio/probability, confusion matrix, และ ROC/AUC) มาใช้กับโจทย์ข้อสอบจริงข้อเดียวแบบครบทุกข้อย่อย (a)–(g) เพื่อฝึกลำดับการคิดที่ข้อสอบจะถามจริง ๆ ไม่ใช่แค่เนื้อหาแยกส่วนแบบใน Lesson 9.</p>
+
+<p><strong>ที่มาของข้อมูล:</strong> <code>data(wbca, package="faraway")</code> — การศึกษามะเร็งเต้านมที่วิสคอนซิน มีเนื้องอกที่สงสัยว่าอาจเป็นมะเร็ง 681 ก้อน ซึ่ง 238 ก้อนเป็นมะเร็งจริง (malignant) วิธีมาตรฐานในการวินิจฉัยคือการผ่าตัดตรวจชิ้นเนื้อ (invasive) งานวิจัยนี้ทดสอบว่าวิธีใหม่ที่เรียกว่า fine needle aspiration (เจาะดูดตัวอย่างเนื้อเยื่อปริมาณน้อย ไม่ต้องผ่าตัด) จะใช้ทำนายสถานะเนื้องอกได้แม่นยำแค่ไหน — ตัวแปรตาม <code>Class</code> คือผลวินิจฉัย (1=benign ไม่ใช่มะเร็ง, 0=malignant เป็นมะเร็ง) และตัวแปรอิสระ 9 ตัวเป็นคะแนนลักษณะเซลล์จากการดูด้วยกล้องจุลทรรศน์ (สเกล 1–10 ยิ่งสูงยิ่งผิดปกติ): <code>Adhes</code> (marginal adhesion), <code>BNucl</code> (bare nuclei), <code>Chrom</code> (bland chromatin), <code>Epith</code> (epithelial cell size), <code>Mitos</code> (mitoses), <code>NNucl</code> (normal nucleoli), <code>Thick</code> (clump thickness), <code>UShap</code> (cell shape uniformity), <code>USize</code> (cell size uniformity).</p>
+
+<nav class="lesson-nav">
+  <span><a href="0009-binary-data.html">← Lesson 9: Binary Data</a></span>
+  <span><a href="../reference/0009-logistic-regression-cheatsheet.html">Reference Cheatsheet →</a></span>
+  <span><a href="../exams/drill-02-interpretation.html">Drill 2: Interpretation →</a></span>
+</nav>
+
+<h2>(a) Fit ตัวแบบเต็ม 9 ตัวแปร และเขียนสมการ</h2>
+<p>ให้ π = ความน่าจะเป็นที่เนื้องอกเป็น <strong>benign</strong> (ไม่ใช่มะเร็ง) — โจทย์ให้ fit binomial regression โดยใส่ตัวแปรอิสระทั้ง 9 ตัวพร้อมกัน (<code>Class ~ .</code>):</p>
+<pre><code>> summary(model)
+
+Call:
+glm(formula = Class ~ ., family = binomial, data = wbca)
+
+Deviance Residuals:
+     Min        1Q     Median         3Q        Max
+-2.48282 -0.01179     0.04739     0.09678    3.06425
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.16678    1.41491   7.892 2.97e-15 ***
+Adhes       -0.39681    0.13384  -2.965  0.00303 **
+BNucl       -0.41478    0.10230  -4.055 5.02e-05 ***
+Chrom       -0.56456    0.18728  -3.014  0.00257 **
+Epith       -0.06440    0.16595  -0.388  0.69795
+Mitos       -0.65713    0.36764  -1.787  0.07387 .
+NNucl       -0.28659    0.12620  -2.271  0.02315 *
+Thick       -0.62675    0.15890  -3.944 8.01e-05 ***
+UShap       -0.28011    0.25235  -1.110  0.26699
+USize        0.05718    0.23271   0.246  0.80589
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 881.388  on 680  degrees of freedom
+Residual deviance:  89.464  on 671  degrees of freedom
+AIC: 109.46
+
+Number of Fisher Scoring iterations: 8</code></pre>
+
+<h3>อ่านตาราง coefficient — ใครมีนัยสำคัญที่ α=0.05</h3>
+<ul>
+<li><strong>มีนัยสำคัญ (p &lt; 0.05):</strong> <code>Adhes</code> (p=0.00303), <code>BNucl</code> (p=5.02e-05), <code>Chrom</code> (p=0.00257), <code>NNucl</code> (p=0.02315), <code>Thick</code> (p=8.01e-05) — ทั้ง 5 ตัวมีเครื่องหมายลบ</li>
+<li><strong>ไม่มีนัยสำคัญ:</strong> <code>Epith</code> (p=0.698), <code>UShap</code> (p=0.267), <code>USize</code> (p=0.806) — p สูงมากทั้งสามตัว</li>
+<li><strong>ก้ำกึ่ง (marginal, มีแค่ "." กำกับ):</strong> <code>Mitos</code> (p=0.07387) — มากกว่า 0.05 เล็กน้อย จึงยังไม่ปฏิเสธ H₀ ที่ α=0.05 มาตรฐาน</li>
+<li><strong>ทิศทางของสัมประสิทธิ์:</strong> ตัวแปรอิสระทุกตัว (ยกเว้น <code>USize</code>) มีเครื่องหมายลบ — สอดคล้องกับความหมายทางคลินิก: ยิ่งคะแนนลักษณะเซลล์ (adhesion, bare nuclei, chromatin, mitoses, nucleoli, thickness, shape) สูงขึ้น (ยิ่งผิดปกติ) ยิ่งลด log-odds ของการเป็น <strong>benign</strong> ลง — พูดอีกแบบคือยิ่งเพิ่มโอกาสเป็นมะเร็ง</li>
+</ul>
+
+<h3>อ่านบรรทัดล่างของ output</h3>
+<ul>
+<li><strong>Dispersion parameter = 1:</strong> ตรึงไว้ที่ 1 เสมอสำหรับ binomial family (ตามที่ Lesson 9 อธิบาย)</li>
+<li><strong>Null deviance = 881.388 (df=680):</strong> deviance ของโมเดลที่มีแค่ intercept — baseline สำหรับเทียบว่าตัวแบบเต็มลด deviance ได้เท่าไร</li>
+<li><strong>Residual deviance = 89.464 (df=671):</strong> deviance ของตัวแบบเต็ม ลดลงจาก null deviance อย่างมาก (881.388 → 89.464) บ่งชี้ว่าตัวแปรอิสระทั้ง 9 ตัวรวมกันช่วยอธิบายผลลัพธ์ได้ดีมาก</li>
+<li><strong>AIC = 109.46:</strong> ใช้เทียบกับตัวแบบอื่นที่ไม่ nested กัน (จะใช้เทียบกับผลจาก <code>step()</code> ในข้อ (c))</li>
+</ul>
+
+<p>สมการที่ fit ได้ (ปัดเศษตามที่โจทย์เขียน):</p>
+<div class="box win">
+\[\text{logit}(\hat{\pi}) = 11.17 - 0.40\,\text{Adhes} - 0.41\,\text{BNucl} - 0.56\,\text{Chrom} - 0.06\,\text{Epith} - 0.66\,\text{Mitos}\]
+\[- 0.29\,\text{NNucl} - 0.63\,\text{Thick} - 0.28\,\text{UShap} + 0.06\,\text{USize}\]
+</div>
+
+<h3>แปลผล Odds Ratio ของตัวแปรที่มีนัยสำคัญ (แสดงเลขจริง)</h3>
+<p>ใช้ interpretation template จาก Lesson 9: odds ของ [outcome=1] เปลี่ยนเป็น \(\exp(\hat\beta_k)\) เท่า ทุก 1 หน่วยที่ X_k เพิ่มขึ้น โดยตัวแปรอื่นคงที่ — คำนวณ \(\exp(\hat\beta_k)\) จากสัมประสิทธิ์จริงในตารางข้างบน:</p>
+<ul>
+<li><strong>Adhes</strong> (β̂=−0.39681): \(\exp(-0.39681) = 0.6725\) — เมื่อ marginal adhesion เพิ่มขึ้น 1 หน่วย (ตัวแปรอื่นคงที่) odds ของการเป็น benign ลดลงเหลือ 67.25% ของเดิม หรือกลับเศษส่วน \(1/0.6725 \approx 1.487\) — odds ของการเป็นมะเร็งเพิ่มขึ้นประมาณ 1.49 เท่าต่อคะแนน adhesion ที่เพิ่มขึ้น 1 หน่วย</li>
+<li><strong>BNucl</strong> (β̂=−0.41478): \(\exp(-0.41478) = 0.6605\) — odds ของ benign ลดลงเหลือ 66.05% ของเดิมต่อคะแนน bare nuclei ที่เพิ่มขึ้น 1 หน่วย (ตัวแปรอื่นคงที่) — นี่คือตัวแปรที่มีนัยสำคัญที่สุดในตาราง (p=5.02e-05)</li>
+<li><strong>Chrom</strong> (β̂=−0.56456): \(\exp(-0.56456) = 0.5686\) — odds ของ benign ลดลงเหลือ 56.86% ของเดิม (เกือบครึ่งหนึ่ง) ต่อคะแนน bland chromatin ที่เพิ่มขึ้น 1 หน่วย</li>
+<li><strong>NNucl</strong> (β̂=−0.28659): \(\exp(-0.28659) = 0.7508\) — odds ของ benign ลดลงเหลือ 75.08% ของเดิมต่อคะแนน normal nucleoli ที่เพิ่มขึ้น 1 หน่วย</li>
+<li><strong>Thick</strong> (β̂=−0.62675): \(\exp(-0.62675) = 0.5343\) — odds ของ benign ลดลงเหลือ 53.43% ของเดิม (ลดลงเกือบครึ่ง) ต่อคะแนน clump thickness ที่เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่ — effect size ใหญ่เป็นอันดับสองรองจาก Chrom</li>
+</ul>
+<p>ตัวแปรทั้งห้าตัวนี้ล้วนมีเครื่องหมายลบและ \(\exp(\hat\beta_k) &lt; 1\) สอดคล้องกัน — ยิ่งคะแนนลักษณะเซลล์เหล่านี้สูง (ยิ่งดูผิดปกติ) โอกาสที่เนื้องอกจะเป็น benign ยิ่งลดลง ตรงตามความคาดหวังทางคลินิก</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>อ่านตาราง Coefficient เต็ม</span></div>
+  <div class="qtext">ในตัวแบบเต็ม 9 ตัวแปร ตัวแปรใดต่อไปนี้ <strong>ไม่มี</strong>นัยสำคัญทางสถิติที่ α=0.05?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Thick, BNucl, Chrom</button>
+  <button class="opt" data-correct="true">Epith, UShap, USize</button>
+  <button class="opt" data-correct="false">Adhes, NNucl, Mitos</button>
+  <button class="opt" data-correct="false">ทุกตัวแปรมีนัยสำคัญหมด เพราะ Residual deviance ต่ำมาก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>แปลผล β̂_Thick แบบครบ 2 รูปแบบ</span></div>
+  <div class="qtext">จากตัวแบบเต็ม β̂_Thick = −0.62675 (p=8.01e-05) จงเขียนประโยคแปลผล (1) แบบ log-odds และ (2) แบบ odds ratio พร้อมแสดงการคำนวณ exp(β̂) ให้ครบ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>(1) Log-odds:</strong> "เมื่อคะแนน clump thickness เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่น (Adhes, BNucl, Chrom, Epith, Mitos, NNucl, UShap, USize) คงที่ log-odds ของการเป็น benign ลดลงโดยเฉลี่ย 0.62675 หน่วย (มีนัยสำคัญทางสถิติมาก, p=8.01e-05)"</p>
+  <p><strong>(2) Odds ratio:</strong> <code>exp(-0.62675) = 0.5343</code> — "เมื่อคะแนน clump thickness เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นคงที่ odds ของการเป็น benign เปลี่ยนเป็น 0.5343 เท่าของเดิม หรือลดลงประมาณ 46.6% (=(1−0.5343)×100%) ต่อคะแนน thickness ที่เพิ่มขึ้น 1 หน่วย"</p>
+  <p>องค์ประกอบที่ขาดไม่ได้: หน่วยของ X_k (1 คะแนน), "โดยตัวแปรอื่นคงที่", ใช้ exp(β) ไม่ใช่ β ตรง ๆ สำหรับ odds ratio</p>
+  </div>
+</div>
+
+<h2>(b) Goodness of Fit Test ที่ α=0.05</h2>
+<p>เนื่องจากข้อมูลนี้เป็น binary แท้ (n_i=1 ทุกจุด) ต้องใช้ Hosmer-Lemeshow test แทน deviance goodness-of-fit test ปกติ:</p>
+<pre><code>> hosmerlem(wbca$Class, model$fitted.values)
+      X^2        Df   P(>Chi)
+3.9019449 8.0000000 0.8658601</code></pre>
+<ul>
+<li><strong>H₀:</strong> โมเดล fit ข้อมูล vs <strong>H₁:</strong> โมเดลไม่ fit</li>
+<li><strong>สถิติทดสอบ:</strong> X² = 3.9019, df = 8</li>
+<li><strong>p-value = 0.8659</strong> ซึ่งมากกว่า 0.05 มาก → <strong>ไม่ปฏิเสธ H₀</strong></li>
+<li><strong>ข้อสรุป:</strong> โมเดลนี้ fit ข้อมูลได้ดีเพียงพอ (ตรงกับที่ residual deviance ลดลงมากในข้อ (a) อยู่แล้ว)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Hosmer-Lemeshow Test</span></div>
+  <div class="qtext">ทำไมโจทย์ข้อ (b) ถึงต้องใช้ Hosmer-Lemeshow test แทนที่จะดู deviance goodness-of-fit test ปกติ (1−pchisq(deviance, df))?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ wbca มีตัวแปรมากกว่า 5 ตัว</button>
+  <button class="opt" data-correct="true">เพราะทุก n_i = 1 (ข้อมูล binary แท้ ไม่ใช่ binomial counts ที่รวมกลุ่ม) การประมาณ chi-square ของ deviance goodness-of-fit จะไม่แม่นยำอีกต่อไปในกรณีนี้ ต้องจัดกลุ่มข้อมูลก่อนด้วย Hosmer-Lemeshow</button>
+  <button class="opt" data-correct="false">เพราะ AIC ของโมเดลนี้สูงเกินไป</button>
+  <button class="opt" data-correct="false">เพราะ Class เป็นตัวแปร categorical มากกว่า 2 กลุ่ม</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(c) เลือกตัวแบบที่ดีที่สุดด้วย AIC (<code>step()</code>)</h2>
+<pre><code>> step(model, trace=F)
+Call: glm(formula = Class ~ Adhes + BNucl + Chrom + Mitos + NNucl +
+    Thick + UShap, family = binomial, data = wbca)
+
+Coefficients:
+(Intercept)       Adhes       BNucl       Chrom       Mitos       NNucl
+    11.0333     -0.3984     -0.4192     -0.5679     -0.6456     -0.2915
+      Thick       UShap
+    -0.6216     -0.2541
+
+Degrees of Freedom: 680 Total (i.e. Null);      673 Residual
+Null Deviance:      881.4
+Residual Deviance: 89.66     AIC: 105.7</code></pre>
+<ul>
+<li><strong>ตัวแปรที่ถูกตัดออก:</strong> <code>Epith</code> และ <code>USize</code> — สองตัวที่ p-value สูงที่สุดในตัวแบบเต็ม (0.698 และ 0.806)</li>
+<li><strong>ตัวแปรที่เหลือ 7 ตัว:</strong> Adhes, BNucl, Chrom, Mitos, NNucl, Thick, UShap — สังเกตว่า <code>Mitos</code> และ <code>UShap</code> ยังอยู่ในตัวแบบ แม้ในตัวแบบเต็มจะไม่มีนัยสำคัญเต็มที่ (p=0.074 และ p=0.267) เพราะเกณฑ์ AIC พิจารณาว่าตัดออกแล้ว AIC แย่ลงหรือไม่ ไม่ใช่แค่ดู p-value ทีละตัว</li>
+<li><strong>เทียบ AIC:</strong> ตัวแบบเต็ม AIC=109.46 (ข้อ a) vs ตัวแบบลดรูป AIC=105.7 — <strong>ตัวแบบลดรูปดีกว่า</strong> (AIC ต่ำกว่า) แม้ residual deviance เพิ่มขึ้นเล็กน้อย (89.464 → 89.66) เพราะแลกกับการลดพารามิเตอร์ 2 ตัว คุ้มกว่าในแง่ AIC</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>ผลของ step() เทียบตัวแบบเต็ม</span></div>
+  <div class="qtext">ตัวแบบลดรูปจาก step() มี Residual Deviance สูงกว่าตัวแบบเต็มเล็กน้อย (89.66 vs 89.464) แต่ทำไม step() ถึงยังเลือกตัวแบบลดรูปว่า "ดีกว่า"?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">step() เลือกผิด ควรใช้ตัวแบบเต็มเสมอเพราะ deviance ต่ำกว่า</button>
+  <button class="opt" data-correct="true">เกณฑ์ที่ใช้คือ AIC = Deviance + 2(p+1) ไม่ใช่ deviance ตรง ๆ — ตัวแบบลดรูปมีพารามิเตอร์น้อยกว่า 2 ตัว ทำให้ AIC ต่ำกว่า (105.7 < 109.46) แม้ deviance จะสูงกว่าเล็กน้อย เพราะ AIC ลงโทษความซับซ้อนของโมเดลด้วย</button>
+  <button class="opt" data-correct="false">เพราะ Hosmer-Lemeshow test ของตัวแบบลดรูปให้ p-value สูงกว่า</button>
+  <button class="opt" data-correct="false">เพราะตัวแบบลดรูปมี Null Deviance ต่ำกว่า</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(d) ทำนายผู้ป่วยใหม่ด้วยตัวแบบลดรูป — Point Estimate และ CI</h2>
+<p>ผู้ป่วยใหม่มีค่าตัวแปร (ตามลำดับ Adhes, BNucl, Chrom, Epith, Mitos, NNucl, Thick, UShap, USize) = 1, 1, 3, 2, 1, 1, 4, 1, 1 — สังเกตว่า <code>reducedmod</code> ไม่ได้ใช้ Epith กับ USize เลย (ถูกตัดออกในข้อ c) แต่ในโค้ด <code>newdata</code> ยังใส่ครบทุกตัวได้เพราะ R จะเลือกใช้เฉพาะคอลัมน์ที่โมเดลต้องการ:</p>
+<pre><code>> newdata<-data.frame(Adhes=1, BNucl=1, Chrom=3, Epith=2, Mitos=1, NNucl=1, Thick=4,
+UShap=1, USize=1)
+
+> # Point estimate
+> predict(reducedmod, newdata, type="response")
+        1
+0.9921115
+
+> # Confidence interval (บน scale ของ eta ก่อน แล้วค่อยแปลงกลับ)
+> eta<-predict(reducedmod, newdata=newdata, se.fit=TRUE)
+> eta
+$fit
+        1
+4.750162
+$se.fit
+[1] 0.5775932
+
+> eta_CI<-c(eta$fit-1.96*eta$se.fit, eta$fit+1.96*eta$se.fit)
+> ilogit(eta_CI)
+        1         1
+0.9738671 0.9972192</code></pre>
+<ul>
+<li><strong>ทำไมต้องคำนวณ CI บน scale ของ η ก่อน:</strong> \(\hat\beta\) มีการแจกแจงแบบ normal โดยประมาณ (asymptotic MLE property) แต่ \(\hat\pi\) ไม่ได้เป็น normal เพราะผ่าน logistic function ที่ไม่เชิงเส้น — ต้องสร้าง CI บน η ก่อนด้วย \(\hat\eta \mp 1.96 \times SE(\hat\eta)\) แล้วค่อยแปลงกลับด้วย logistic function (การแปลงแบบ monotonic รักษาลำดับ endpoint)</li>
+<li><strong>คำนวณตรวจสอบ:</strong> η̂ = 4.750162, SE = 0.5775932 → η_lower = 4.750162 − 1.96×0.5775932 = 3.6181, η_upper = 4.750162 + 1.96×0.5775932 = 5.8822</li>
+<li><strong>แปลงกลับด้วย ilogit:</strong> π_lower = e^3.6181/(1+e^3.6181) = 0.9739, π_upper = e^5.8822/(1+e^5.8822) = 0.9972 — ตรงกับผลลัพธ์ในสไลด์</li>
+<li><strong>ประโยคแปลผล:</strong> "สำหรับผู้ป่วยที่มีคะแนน Adhes=1, BNucl=1, Chrom=3, Mitos=1, NNucl=1, Thick=4, UShap=1 ตัวแบบลดรูปทำนายความน่าจะเป็นที่เนื้องอกจะเป็น benign อยู่ที่ 0.9921 (มั่นใจ 95% ว่าความน่าจะเป็นที่แท้จริงอยู่ระหว่าง 0.9739 ถึง 0.9972)" — ช่วง CI แคบมาก (ทั้งคู่ใกล้ 1) สะท้อนว่าโมเดลมั่นใจสูงมากว่าผู้ป่วยรายนี้เป็น benign</li>
+</ul>
+
+<h2>(e) Confusion Matrix ที่ Cutoff = 0.5</h2>
+<pre><code>> pred_prob<-predict(reducedmod, newdata=wbca, type="response")
+> pred_class<-rep(0, length(pred_prob))
+> pred_class[pred_prob>0.5]<-1
+>
+> table(wbca$Class, pred_class)
+    pred_class
+       0   1
+  0 228  10
+  1   9 434</code></pre>
+<ul>
+<li><strong>แถว 0 (truth=malignant, รวม 238):</strong> ทำนายถูก (0,0)=228 ราย, ทำนายผิดเป็น benign (0,1)=10 ราย — <strong>เนื้องอกมะเร็งจริง 10 ก้อนถูกจัดว่าไม่เป็นมะเร็ง</strong></li>
+<li><strong>แถว 1 (truth=benign, รวม 443):</strong> ทำนายผิดเป็นมะเร็ง (1,0)=9 ราย, ทำนายถูก (1,1)=434 ราย</li>
+<li><strong>อัตราความผิดพลาดรวม:</strong> (10+9)/681 = 19/681 ≈ 2.79%</li>
+<li><strong>ประเด็นสำคัญทางคลินิก:</strong> ความผิดพลาดสองแบบไม่เท่ากันในแง่ผลกระทบ — จัดเนื้องอกมะเร็งว่าเป็น benign (10 ราย) อันตรายกว่าการจัดเนื้องอก benign ว่าเป็นมะเร็ง (9 ราย) มาก เพราะรายแรกอาจทำให้ผู้ป่วยพลาดการรักษา ส่วนรายหลังแค่ทำให้ต้องตรวจเพิ่มเติมโดยไม่จำเป็น</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>อ่าน Confusion Matrix (cutoff=0.5)</span></div>
+  <div class="qtext">จากตาราง <code>table(wbca$Class, pred_class)</code> ที่ cutoff=0.5 จำนวนเนื้องอกที่เป็นมะเร็งจริง (Class=0) แต่ถูกโมเดลจัดว่าเป็น benign (predicted=1) มีกี่ราย?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">9 ราย</button>
+  <button class="opt" data-correct="true">10 ราย</button>
+  <button class="opt" data-correct="false">228 ราย</button>
+  <button class="opt" data-correct="false">19 ราย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(f) เปลี่ยน Cutoff เป็น 0.9 — Confusion Matrix ใหม่และประเด็นการเลือก Cutoff</h2>
+<pre><code>> pred_prob<-predict(reducedmod, newdata=wbca, type="response")
+> pred_class<-rep(0, length(pred_prob))
+> pred_class[pred_prob>0.9]<-1
+>
+> table(wbca$Class, pred_class)
+   pred_class
+      0   1
+  0 236   2
+  1  18 425</code></pre>
+<ul>
+<li><strong>แถว 0 (malignant, 238 ราย):</strong> ทำนายผิดเป็น benign ลดลงจาก 10 → <strong>2 ราย</strong> เท่านั้น — คุมความผิดพลาดที่อันตรายที่สุดได้ดีขึ้นมาก</li>
+<li><strong>แถว 1 (benign, 443 ราย):</strong> ทำนายผิดเป็นมะเร็งเพิ่มขึ้นจาก 9 → <strong>18 ราย</strong> — แลกมาด้วยการส่งคนไข้ที่จริง ๆ ไม่เป็นมะเร็งไปตรวจเพิ่มโดยไม่จำเป็นมากขึ้น</li>
+<li><strong>อัตราความผิดพลาดรวม:</strong> (2+18)/681 = 20/681 ≈ 2.94% — สูงกว่า cutoff=0.5 เล็กน้อย (2.79%) แต่ <strong>โครงสร้างของความผิดพลาดเปลี่ยนไปในทางที่ปลอดภัยกว่าทางคลินิก</strong></li>
+<li><strong>ประเด็นในการเลือก cutoff:</strong> การเลือก cutoff ไม่ควรดูแค่ "อัตราความผิดพลาดรวมต่ำสุด" เพราะความผิดพลาดสองแบบมีต้นทุนไม่เท่ากัน — cutoff สูงขึ้น (0.9) ทำให้เกณฑ์ตัดสินว่า "benign" เข้มงวดขึ้น (ต้องมั่นใจมากถึงจะจัดว่าไม่เป็นมะเร็ง) ซึ่งเหมาะกับสถานการณ์ที่การพลาดวินิจฉัยมะเร็ง (false negative ในแง่การเป็นมะเร็ง) มีต้นทุนสูงกว่าการส่งตรวจเพิ่มเติมโดยไม่จำเป็น (false positive) มาก — การเลือก cutoff ที่ "ดีที่สุด" จึงขึ้นกับต้นทุนสัมพัทธ์ของความผิดพลาดแต่ละแบบ ไม่ใช่แค่ค่าเริ่มต้น 0.5 เสมอไป</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 6 (Free response)</span><span>ทำไมเปลี่ยน cutoff จาก 0.5 เป็น 0.9</span></div>
+  <div class="qtext">เปรียบเทียบ confusion matrix ที่ cutoff=0.5 (ข้อ e) กับ cutoff=0.9 (ข้อ f) จงอธิบายว่าทำไมแพทย์อาจเลือกใช้ cutoff=0.9 ทั้งที่อัตราความผิดพลาดรวมสูงกว่า</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>ที่ cutoff=0.5 มีเนื้องอกมะเร็งจริง 10 ก้อนถูกจัดว่า benign (พลาดวินิจฉัยมะเร็ง) เทียบกับที่ cutoff=0.9 เหลือเพียง 2 ก้อน — แม้อัตราความผิดพลาดรวมจะเพิ่มขึ้นเล็กน้อย (จาก 19/681≈2.79% เป็น 20/681≈2.94%) เพราะมีเนื้องอก benign ถูกจัดผิดเป็นมะเร็งเพิ่มขึ้น (9→18 ราย) แต่ต้นทุนของความผิดพลาดสองแบบไม่เท่ากันทางคลินิก: การจัดเนื้องอกมะเร็งว่าเป็น benign อาจทำให้ผู้ป่วยไม่ได้รับการรักษาทันเวลา ซึ่งร้ายแรงกว่าการส่งผู้ป่วยที่จริง ๆ ไม่เป็นมะเร็งไปตรวจชิ้นเนื้อเพิ่มเติม (แค่เสียเวลา/ค่าใช้จ่าย ไม่ถึงชีวิต) ดังนั้นการยกระดับ cutoff เป็น 0.9 (ต้องมั่นใจสูงมากก่อนจะฟันธงว่า benign) จึงเป็นการยอมรับ false positive ที่เพิ่มขึ้นเพื่อแลกกับ false negative ที่ลดลง — สอดคล้องกับหลักการที่ว่าการเลือก cutoff ควรพิจารณาต้นทุนสัมพัทธ์ของความผิดพลาดแต่ละแบบ ไม่ใช่แค่ minimize อัตราความผิดพลาดรวม</p>
+  </div>
+</div>
+
+<h2>(g) Train/Test Split, ROC Curve, และ Best Cutoff จากข้อมูลจริง</h2>
+<p>ข้อ (e) และ (f) ใช้ข้อมูลชุดเดียวกันทั้ง fit และทดสอบ ซึ่งมักให้ผลดีเกินจริง (overly optimistic) — ข้อ (g) แก้ปัญหานี้ด้วยการแบ่งข้อมูล: ทุกๆ ตัวที่ 3 (observation ที่ 3, 6, 9, …) เป็น test set ที่เหลือ 2 ใน 3 เป็น training set:</p>
+<pre><code>> testindex<-seq(3, nrow(wbca), 3)
+> traindata<-wbca[-testindex,]
+> testdata<-wbca[testindex,]
+>
+> fullmodel<-glm(Class~., data=traindata, family=binomial)
+> modelAIC<-step(fullmodel, direction="both", trace=F)
+> summary(modelAIC)
+
+Call:
+glm(formula = Class ~ Adhes + BNucl + Chrom + Mitos + NNucl +
+    Thick + UShap, family = binomial, data = traindata)
+
+Coefficients:
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 11.5571    1.8285    6.321  2.6e-10 ***
+Adhes       -0.4249    0.1441   -2.949  0.00318 **
+BNucl       -0.3341    0.1187   -2.815  0.00487 **
+Chrom       -0.5963    0.2422   -2.462  0.01382 *
+Mitos       -0.5822    0.4872   -1.195  0.23207
+NNucl       -0.4192    0.1604   -2.614  0.00895 **
+Thick       -0.6037    0.1924   -3.138  0.00170 **
+UShap       -0.2943    0.2034   -1.447  0.14795
+---
+(Dispersion parameter for binomial family taken to be 1)
+    Null deviance: 592.796  on 453  degrees of freedom
+Residual deviance:  59.536  on 446  degrees of freedom
+AIC: 75.536</code></pre>
+<ul>
+<li><strong>step() บน training data เลือกตัวแปรชุดเดียวกับข้อ (c)</strong> (Adhes, BNucl, Chrom, Mitos, NNucl, Thick, UShap) — แม้ตัวเลขสัมประสิทธิ์จะต่างกันบ้าง (เช่น β̂_BNucl เปลี่ยนจาก −0.4192 เป็น −0.3341) เพราะ fit จากข้อมูลแค่ 454 ราย (training) ไม่ใช่ 681 รายทั้งหมด</li>
+</ul>
+
+<h3>ROC Curve บน Test Set</h3>
+<pre><code>> library(pROC)
+> prob<-predict(modelAIC, testdata, type="response")
+> roc(testdata$Class, prob, plot=TRUE)
+
+Data: prob in 75 controls (testdata$Class 0) < 152 cases (testdata$Class 1).
+Area under the curve: 0.9976</code></pre>
+<ul>
+<li><strong>Test set มี 227 ราย</strong> (75 malignant + 152 benign) — คือ 1 ใน 3 ของ wbca ทั้งหมด ตามที่แบ่งไว้</li>
+<li><strong>AUC = 0.9976</strong> ใกล้ 1.0 มาก (สมบูรณ์แบบ) — แม้ fit บน training set แล้วเอาไปทดสอบกับ test set ที่ไม่เคยเห็นมาก่อน ตัวแบบยังแยกแยะ malignant/benign ได้แม่นยำสูงมาก ยืนยันว่าตัวแบบนี้ generalize ได้ดี ไม่ใช่แค่ overfit กับข้อมูลที่ใช้ fit</li>
+</ul>
+
+<h3>หา Best Threshold และ Confusion Matrix สุดท้าย</h3>
+<pre><code>> tmp<-roc(testdata$Class, prob, plot=TRUE)
+> tmp$specificities[76]
+[1] 0.97333333
+> tmp$sensitivities[76]
+[1] 0.98026316
+> tmp$thresholds[76]
+[1] 0.830947
+> bestthreshold<-tmp$thresholds[76]
+
+> pred_class<-rep(0, nrow(testdata))
+> pred_class[prob>bestthreshold]<-1
+> table(testdata$Class, pred_class)
+    pred_class
+       0   1
+  0  73   2
+  1   2 150</code></pre>
+<ul>
+<li><strong>Threshold ที่เลือก = 0.830947</strong> — จุดที่ specificity (0.9733) และ sensitivity (0.9803) ทั้งคู่สูงมากพร้อมกัน (สมดุลกันดีตามหลัก Youden's index ที่ Lesson 9 อธิบาย)</li>
+<li><strong>Confusion matrix สุดท้าย:</strong> malignant 75 ราย ทำนายถูก 73, ผิด 2 (false negative); benign 152 ราย ทำนายถูก 150, ผิด 2 (false positive)</li>
+<li><strong>อัตราความผิดพลาดรวม:</strong> (2+2)/227 = 4/227 ≈ 1.76% — <strong>ต่ำกว่าทั้งข้อ (e) และ (f)</strong> และความผิดพลาดสองแบบสมดุลกันพอดี (2 ราย เท่ากันทั้งคู่) เพราะ threshold นี้เลือกมาจากข้อมูล test set จริง ผ่าน ROC curve ไม่ใช่ค่าคงที่ตายตัวแบบ 0.5 หรือ 0.9 ที่เดาเอาแบบข้อ (e)/(f)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>ทำไมต้อง Train/Test Split</span></div>
+  <div class="qtext">ทำไมข้อ (g) ต้องแบ่งข้อมูลเป็น training/test set แทนที่จะใช้ confusion matrix จากข้อ (e)/(f) ที่ fit และทดสอบด้วยข้อมูลชุดเดียวกันไปเลย?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ R ไม่อนุญาตให้ทดสอบโมเดลด้วยข้อมูลที่ใช้ fit</button>
+  <button class="opt" data-correct="true">เพราะการใช้ข้อมูลชุดเดียวกันทั้ง fit และทดสอบมักให้ผลดีเกินจริง (overly optimistic) — โมเดลจะดูแม่นยำกว่าความสามารถจริงในการทำนายข้อมูลใหม่ ต้องแยก test set ที่โมเดลไม่เคยเห็นมาประเมินถึงจะสะท้อนประสิทธิภาพจริง</button>
+  <button class="opt" data-correct="false">เพราะ AIC คำนวณไม่ได้ถ้าไม่แบ่งข้อมูล</button>
+  <button class="opt" data-correct="false">เพราะ Hosmer-Lemeshow test ต้องใช้ training set เท่านั้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>ROC/AUC และการเลือก Threshold</span></div>
+  <div class="qtext">AUC=0.9976 บน test set และ threshold ที่เลือกได้คือ 0.830947 (ไม่ใช่ 0.5) ข้อใดอธิบายผลลัพธ์นี้ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">AUC ใกล้ 1 แปลว่าโมเดลนี้ overfit จนใช้งานจริงไม่ได้</button>
+  <button class="opt" data-correct="true">AUC=0.9976 บ่งชี้ว่าตัวแบบแยกแยะ malignant/benign บน test set ที่ไม่เคยเห็นได้เกือบสมบูรณ์แบบ; threshold=0.830947 มาจากการหาจุดที่ sensitivity และ specificity สูงพร้อมกันบน ROC curve ของ test set จริง แทนที่จะเดาค่าคงที่ (0.5 หรือ 0.9) แบบข้อ (e)/(f) — ทำให้ confusion matrix สุดท้ายมีความผิดพลาดรวมต่ำที่สุดในบรรดาทั้ง 3 วิธี</button>
+  <button class="opt" data-correct="false">AUC วัด goodness-of-fit ไม่เกี่ยวกับ threshold เลย จึงเลือก threshold เท่าไรก็ได้ผลเหมือนกัน</button>
+  <button class="opt" data-correct="false">threshold=0.830947 คือค่า p-value ของ Hosmer-Lemeshow test บน test set</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">สรุปโจทย์ข้อนี้</div>
+เดินตามลำดับข้อสอบจริงข้อเดียวครบ 7 ข้อย่อย (a)–(g): fit ตัวแบบเต็ม+เขียนสมการ → เช็ค goodness-of-fit (Hosmer-Lemeshow) → เลือกตัวแบบด้วย AIC (step()) → ทำนายจุดเดียวพร้อม CI (แปลงผ่าน eta ก่อนเสมอ) → confusion matrix ที่ cutoff มาตรฐาน → เปรียบเทียบ cutoff อื่นพร้อมเหตุผลเชิงต้นทุนของความผิดพลาด → train/test split + ROC/AUC + best threshold จากข้อมูลจริง — นี่คือลำดับการคิดที่ครบเกือบทุกทักษะจาก Lesson 9 ในโจทย์เดียว
+</div>
+
+<p><em>บทเรียนนี้ครอบคลุมเฉพาะ Problem 1 (Breast Cancer) ของ Assignment 7 เท่านั้น — Problem 2 (Moth Coloration, binomial counts) อยู่ในบทเรียนแยกต่างหากที่จับคู่กับ Lesson 10</em></p>
+
+<nav class="lesson-nav">
+  <span><a href="0009-binary-data.html">← Lesson 9: Binary Data</a></span>
+  <span><a href="../reference/0009-logistic-regression-cheatsheet.html">Reference Cheatsheet →</a></span>
+  <span><a href="../exams/drill-02-interpretation.html">Drill 2: Interpretation →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

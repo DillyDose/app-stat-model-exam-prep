@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Walkthrough: Assignment 2 — Grocery Retailer + Muscle Mass MLR</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="0002-multiple-linear-regression.html">← Lesson 2: Multiple Linear Regression</a></span>
+  <span>แบบฝึกจริง · Assignment 2 (Grocery Retailer + Muscle Mass)</span>
+</nav>
+
+<p class="kicker">Assignment 2 Solution — 2603645 APP STAT MODEL</p>
+<h1>ฝึกกับโจทย์จริง: Grocery Retailer + Muscle Mass (Assignment 2)</h1>
+
+<p>บทนี้เอากรอบ MLR จาก <a href="0002-multiple-linear-regression.html">Lesson 2</a> ไปใช้กับโจทย์การบ้านจริงที่อาจารย์เฉลยเอง 2 ข้อ — ข้อ 1 (Grocery Retailer) ฝึก dummy variable กับการแปลผล partial-slope "holding other variables constant" แบบเต็มรูป ส่วนข้อ 2 (Muscle Mass) ฝึก polynomial regression ที่ปูพื้นไว้ในหัวข้อ 7-8 ของ Lesson 2 พอดี ตัวเลขทุกตัวในหน้านี้คัดลอกตรงจาก <code>Assignment2_Solution.pdf</code> (6 หน้า) ทีละบรรทัด ไม่มีการคำนวณเพิ่มเองที่ไหน</p>
+
+<h2>1. Grocery Retailer (grocery.csv)</h2>
+<p>ผู้ค้าปลีกร้านของชำรายใหญ่เก็บข้อมูลผลิตภาพและต้นทุนของศูนย์กระจายสินค้าเป็นรายสัปดาห์ ตัวแปรมี:</p>
+<ul>
+<li><strong>X1</strong> = จำนวนกล่องสินค้าที่จัดส่ง (cases shipped)</li>
+<li><strong>X2</strong> = ต้นทุนแรงงานทางอ้อมคิดเป็น % ของชั่วโมงแรงงานรวม (indirect labor cost, %)</li>
+<li><strong>X3</strong> = ตัวแปร dummy บอกว่าสัปดาห์นั้นมีวันหยุดหรือไม่ (1 = มีวันหยุด, 0 = ไม่มี)</li>
+<li><strong>Y</strong> = ชั่วโมงแรงงานรวม (total labor hours)</li>
+</ul>
+
+<h3>(a) Scatterplot matrix — อ่านความสัมพันธ์เบื้องต้น</h3>
+<p>จากสไลด์ scatterplot matrix เฉลยสรุปไว้ 3 ข้อ:</p>
+<ul>
+<li>X1 มีความสัมพันธ์เชิงบวกกับ Y</li>
+<li>ความสัมพันธ์ระหว่าง X2 กับ Y ไม่ชัดเจน</li>
+<li>X3 มีความสัมพันธ์เชิงบวกกับ Y โดยเฉพาะ mean response สูงกว่าในสัปดาห์ที่มีวันหยุด</li>
+</ul>
+<p>สังเกตว่าข้อสรุปเรื่อง X2 ("ไม่ชัดเจน") ตรงกับสิ่งที่จะเห็นในตาราง coefficient ของข้อ (b) พอดี — X2 จะเป็นตัวเดียวที่ไม่มีนัยสำคัญทางสถิติ เพราะความสัมพันธ์เชิงเดี่ยว (marginal) ของมันกับ Y ก็ไม่ชัดเจนตั้งแต่ scatterplot แล้ว</p>
+
+<h3>(b) ฟิตโมเดลเต็ม 3 ตัวแปร</h3>
+<pre><code>&gt; model&lt;-lm(Y~., data=grocery)
+&gt; summary(model)
+Call:
+lm(formula = Y ~ ., data = grocery)
+
+Residuals:
+    Min      1Q        Median       3Q       Max
+-264.05 -110.73        -22.52    79.29    295.75
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 4.150e+03 1.956e+02 21.220 &lt; 2e-16 ***
+X1           7.871e-04 3.646e-04    2.159   0.0359 *
+X2          -1.317e+01 2.309e+01 -0.570     0.5712
+X3           6.236e+02 6.264e+01    9.954 2.94e-13 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 143.3 on 48 degrees of freedom
+Multiple R-squared: 0.6883,     Adjusted R-squared: 0.6689
+F-statistic: 35.34 on 3 and 48 DF, p-value: 3.316e-12</code></pre>
+<p>สมการที่ฟิตได้:</p>
+<div class="box">
+\(\hat{Y} = 4150 + 0.0007871\,X_1 - 13.17\,X_2 + 623.6\,X_3\)
+</div>
+<p>อ่านสัมประสิทธิ์ทีละตัวแบบ "holding other variables constant":</p>
+<ul>
+<li><strong>\(\hat{\beta}_0 = 4150\)</strong> — ชั่วโมงแรงงานเฉลี่ยที่คาดการณ์เมื่อ X1=X2=X3=0 (ไม่มีความหมายทางปฏิบัติตรง ๆ เพราะไม่มีสัปดาห์ไหนที่จัดส่งสินค้า 0 กล่องจริง — เป็น extrapolation)</li>
+<li><strong>\(\hat{\beta}_1 = 0.0007871\)</strong> — เมื่อ X1 เพิ่มขึ้น 1 หน่วย โดยคุม X2 และ X3 ให้คงที่ ชั่วโมงแรงงานเฉลี่ยเพิ่มขึ้น 0.0007871 ชั่วโมง</li>
+<li><strong>\(\hat{\beta}_2 = -13.17\)</strong> — เมื่อ X2 เพิ่มขึ้น 1 หน่วย โดยคุม X1 และ X3 ให้คงที่ ชั่วโมงแรงงานเฉลี่ยลดลง 13.17 ชั่วโมง แต่สัมประสิทธิ์นี้ <strong>ไม่มีนัยสำคัญทางสถิติ</strong> (p=0.5712) — ตรงกับที่ scatterplot ในข้อ (a) บอกไว้แล้วว่าความสัมพันธ์ X2-Y ไม่ชัดเจน</li>
+<li><strong>\(\hat{\beta}_3 = 623.6\)</strong> — สำหรับสัปดาห์ที่มีวันหยุด (X3=1) เทียบกับสัปดาห์ไม่มีวันหยุด (X3=0, ระดับอ้างอิง/reference level) โดยคุม X1 และ X2 ให้คงที่ ชั่วโมงแรงงานเฉลี่ยสูงกว่า 623.6 ชั่วโมง</li>
+</ul>
+
+<h3>(c) แปลผลสัมประสิทธิ์ของ X1 (เฉลยต้นฉบับ)</h3>
+<blockquote>เมื่อจำนวนกล่องสินค้าที่จัดส่ง (X1) เพิ่มขึ้น 1 หน่วย โดยตัวแปรอื่นถูกคุมให้คงที่ ชั่วโมงแรงงานรวมเฉลี่ยเพิ่มขึ้น 0.000787 ชั่วโมง</blockquote>
+
+<h3>(d) แปลผลสัมประสิทธิ์ของ X3 (เฉลยต้นฉบับ)</h3>
+<blockquote>สำหรับสัปดาห์ที่มีวันหยุด ชั่วโมงแรงงานรวมเฉลี่ยสูงกว่าสัปดาห์ที่ไม่มีวันหยุดอยู่ 623.6 ชั่วโมง โดยสมมติว่าตัวแปรอื่นถูกคุมให้คงที่</blockquote>
+<p>จุดสำคัญของข้อนี้: X3 เป็น dummy 2 ระดับ ดังนั้น "ระดับอ้างอิง" (reference level) คือ X3=0 คือสัปดาห์<strong>ไม่มี</strong>วันหยุด — ประโยคแปลผลของ dummy variable ต้องระบุคู่เทียบเสมอ (สัปดาห์มีวันหยุด <em>เทียบกับ</em> สัปดาห์ไม่มีวันหยุด) ไม่ใช่พูดลอย ๆ ว่า "X3 ทำให้ Y เพิ่ม"</p>
+
+<h3>(e) ทดสอบว่ามีความสัมพันธ์เชิงถดถอยหรือไม่ (Overall F-test)</h3>
+<ul>
+<li>\(H_0: \beta_1=\beta_2=\beta_3=0\) เทียบกับ \(H_1\): not \(H_0\)</li>
+<li>F test statistic = 35.34 ซึ่งมีการแจกแจง \(F_{3,48}\)</li>
+<li>p-value = \(3.316 \times 10^{-12}\)</li>
+<li>เพราะ p-value น้อยกว่า 0.05 มาก จึงสรุปว่ามีหลักฐานเพียงพอที่จะบอกว่ามีความสัมพันธ์เชิงถดถอยอยู่จริง ที่ระดับนัยสำคัญ 5%</li>
+</ul>
+
+<h3>(f) t-test ของ β1</h3>
+<ul>
+<li>\(H_0: \beta_1=0\) เทียบกับ \(H_1: \beta_1 \neq 0\)</li>
+<li>p-value = 0.0359</li>
+<li>เพราะ p-value น้อยกว่า 0.05 จึงสรุปว่ามีหลักฐานเพียงพอว่าจำนวนกล่องสินค้าที่จัดส่ง (X1) สัมพันธ์กับชั่วโมงแรงงานรวม (Y) ที่ระดับนัยสำคัญ 5%</li>
+</ul>
+
+<h3>(g) Extra sum-of-squares F-test: X1 และ X3 พร้อมกัน</h3>
+<pre><code>&gt; model&lt;-lm(Y~., data=grocery)
+&gt; reducedmodel&lt;-lm(Y~X2, data=grocery)
+&gt; anova(reducedmodel, model)
+Analysis of Variance Table
+
+Model 1: Y ~ X2
+Model 2: Y ~ X1 + X2 + X3
+  Res.Df     RSS Df Sum of Sq      F    Pr(&gt;F)
+1     50 3150741
+2     48  985530  2   2165211 52.728 7.694e-13 ***</code></pre>
+<ul>
+<li>\(H_0: \beta_1=\beta_3=0\) เทียบกับ \(H_1\): not \(H_0\)</li>
+<li>F test statistic = 52.728 ซึ่งมีการแจกแจง \(F_{2,48}\)</li>
+<li>p-value = \(7.694 \times 10^{-13}\)</li>
+<li>เพราะ p-value น้อยกว่า 0.05 มาก จึงสรุปว่ามีหลักฐานเพียงพอว่าอย่างน้อยหนึ่งในสัมประสิทธิ์ของ X1 และ X3 ไม่เท่ากับ 0 ที่ระดับนัยสำคัญ 5% — พูดอีกแบบ: <strong>เลือกโมเดลเต็มที่มี X1 และ X3 อยู่</strong> ดีกว่าโมเดลลดที่มีแค่ X2</li>
+</ul>
+<p>โมเดล reduced ในข้อนี้ (<code>Y~X2</code>) ตัดทั้ง X1 และ X3 ออกพร้อมกัน — ต่างจาก extra-sum-of-squares F-test แบบใน Lesson 2 หัวข้อ 14 ที่ตัด Insul กับ interaction term ออก แต่หลักการเดียวกันเป๊ะ: เทียบ RSS ของ reduced (3,150,741) กับ RSS ของ full (985,530) แล้วดูว่าส่วนต่างมากพอจะมีนัยสำคัญหรือไม่</p>
+
+<h3>(h) แปลผลค่าสัมประสิทธิ์การตัดสินใจ (R²)</h3>
+<blockquote>\(R^2 = 0.6883\) ดังนั้น ประมาณ 69% ของความแปรปรวนใน Y ถูกอธิบายได้ด้วยโมเดลถดถอยที่มี X1, X2, และ X3</blockquote>
+
+<h3>(i) ช่วงความเชื่อมั่น 95% ของสัมประสิทธิ์ X1</h3>
+<pre><code>&gt; confint(model)
+                    2.5 %       97.5 %
+(Intercept) 3.756677e+03 4.543098e+03
+X1           5.409544e-05 1.520065e-03
+X2          -5.959506e+01 3.326302e+01
+X3           4.976064e+02 7.495025e+02</code></pre>
+<p>ช่วง 95% CI ของ \(\beta_1\) คือ (0.0000541, 0.001520) — ไม่ครอบคลุมค่า 0 เลย ตรงกับผลปฏิเสธ \(H_0:\beta_1=0\) ในข้อ (f)</p>
+
+<h3>(j)-(l) ทำนายค่าใหม่: X1=282,000, X2=7.1, X3=0</h3>
+<p>ตามที่โจทย์กำหนด "สมมติว่าโมเดลในข้อ (b) เหมาะสม" ให้ทำนาย 3 แบบ:</p>
+<pre><code>&gt; predict(model, newdata=data.frame(X1=282000, X2=7.1, X3=0))
+       1
+4278.365
+
+&gt; predict(model, newdata=data.frame(X1=282000, X2=7.1, X3=0),
+interval="confidence")
+       fit      lwr      upr
+1 4278.365 4232.447 4324.283
+
+&gt; predict(model, newdata=data.frame(X1=282000, X2=7.1, X3=0),
+interval="prediction")
+       fit      lwr      upr
+1 4278.365 3986.626 4570.104</code></pre>
+<ul>
+<li><strong>(j) จุดประมาณ (point estimate):</strong> ชั่วโมงแรงงานที่คาดการณ์ = 4278.365 ชั่วโมง</li>
+<li><strong>(k) 95% CI ของ mean response:</strong> (4232.447, 4324.283) — ช่วงความเชื่อมั่นของ<strong>ค่าเฉลี่ย</strong> ชั่วโมงแรงงานของทุกสัปดาห์ที่มี X1, X2, X3 แบบนี้</li>
+<li><strong>(l) 95% PI ของค่าทำนายใหม่:</strong> (3986.626, 4570.104) — ช่วงกว้างกว่า CI ในข้อ (k) เสมอ เพราะ prediction interval ต้องรวมความแปรปรวนของสัปดาห์<strong>เดี่ยว ๆ</strong> ที่ยังไม่เคยสังเกต บวกเพิ่มจากความไม่แน่นอนของเส้นถดถอยเอง (จุดเดิมที่เน้นไว้ตั้งแต่ Lesson 1)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>Grocery — สัมประสิทธิ์ X2</span></div>
+  <div class="qtext">ในโมเดลเต็มของ Grocery Retailer สัมประสิทธิ์ของ X2 (indirect labor cost %) มี p-value = 0.5712 ข้อใดสรุปถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">X2 ต้องมีค่าเป็นลบเสมอ เพราะสัมประสิทธิ์ประมาณได้เป็น -13.17</button>
+  <button class="opt" data-correct="true">ไม่มีหลักฐานเพียงพอที่จะสรุปว่า X2 สัมพันธ์กับ Y เมื่อคุม X1 และ X3 ให้คงที่ ที่ระดับนัยสำคัญ 5% — สอดคล้องกับที่ scatterplot matrix บอกไว้แล้วว่าความสัมพันธ์ X2-Y ไม่ชัดเจน</button>
+  <button class="opt" data-correct="false">X2 ต้องถูกตัดออกจากโมเดลทันที เพราะไม่มีนัยสำคัญ</button>
+  <button class="opt" data-correct="false">p-value สูงแปลว่า X2 อธิบาย Y ได้ดีมาก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>Grocery — Reference Level ของ Dummy</span></div>
+  <div class="qtext">ในโมเดล Grocery Retailer ตัวแปร X3 (holiday) coded เป็น 1=มีวันหยุด, 0=ไม่มีวันหยุด สัมประสิทธิ์ \(\hat{\beta}_3=623.6\) ต้องตีความเทียบกับกลุ่มใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เทียบกับค่าเฉลี่ยของ Y ทั้งชุดข้อมูล</button>
+  <button class="opt" data-correct="true">เทียบกับสัปดาห์ที่ X3=0 คือสัปดาห์ที่ไม่มีวันหยุด (reference/baseline level)</button>
+  <button class="opt" data-correct="false">เทียบกับสัปดาห์ที่ X1 และ X2 เท่ากับ 0</button>
+  <button class="opt" data-correct="false">ไม่มีกลุ่มอ้างอิง เพราะ dummy variable ไม่มี baseline</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>Grocery — CI กับนัยสำคัญ</span></div>
+  <div class="qtext">95% CI ของ \(\beta_2\) คือ (-59.60, 33.26) ข้อใดสอดคล้องกับผลนี้มากที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">ช่วง CI ครอบคลุมค่า 0 ดังนั้นไม่ปฏิเสธ \(H_0:\beta_2=0\) ที่ระดับนัยสำคัญ 5% — ตรงกับ p-value=0.5712 ในตาราง summary()</button>
+  <button class="opt" data-correct="false">ช่วง CI ไม่ครอบคลุม 0 ดังนั้นปฏิเสธ \(H_0:\beta_2=0\)</button>
+  <button class="opt" data-correct="false">CI นี้บอกว่า X2 ไม่มีผลต่อ Y แน่นอน 100%</button>
+  <button class="opt" data-correct="false">CI นี้ใช้แทน prediction interval ของค่าทำนายใหม่ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 4 (Free response)</span><span>Grocery — เขียนประโยคแปลผล β1 และ β3 ให้ครบ</span></div>
+  <div class="qtext">จากโมเดลเต็มของ Grocery Retailer (\(\hat{Y} = 4150 + 0.0007871\,X_1 - 13.17\,X_2 + 623.6\,X_3\)) จงเขียนประโยคแปลผลของ \(\hat{\beta}_1\) และ \(\hat{\beta}_3\) ให้ครบทั้งสองตัว โดยใช้หลัก "holding other variables constant" และระบุหน่วย/ทิศทาง (เพิ่ม/ลด) ให้ชัดเจน</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p><strong>\(\hat{\beta}_1=0.0007871\):</strong> "เมื่อจำนวนกล่องสินค้าที่จัดส่ง (X1) เพิ่มขึ้น 1 หน่วย โดยคุม X2 (indirect labor cost %) และ X3 (holiday) ให้คงที่ ชั่วโมงแรงงานรวมเฉลี่ย (Y) เพิ่มขึ้น 0.000787 ชั่วโมง"</p>
+  <p><strong>\(\hat{\beta}_3=623.6\):</strong> "สำหรับสัปดาห์ที่มีวันหยุด (X3=1) เทียบกับสัปดาห์ที่ไม่มีวันหยุด (X3=0) โดยคุม X1 และ X2 ให้คงที่ ชั่วโมงแรงงานรวมเฉลี่ยสูงกว่ากันอยู่ 623.6 ชั่วโมง"</p>
+  </div>
+</div>
+
+<h2>2. Muscle Mass (muscle.csv)</h2>
+<p>มวลกล้ามเนื้อของคนคาดว่าจะลดลงตามอายุ — เก็บข้อมูลอายุ (X) กับค่าวัดมวลกล้ามเนื้อ (Y) ของกลุ่มตัวอย่าง</p>
+
+<h3>(a) Scatterplot ระหว่าง X และ Y</h3>
+<pre><code>&gt; muscle&lt;-read.table('muscle.csv', sep=",", header=T)
+&gt; plot(muscle$X, muscle$Y)</code></pre>
+<blockquote>อายุมีความสัมพันธ์เชิงลบกับมวลกล้ามเนื้ออย่างชัดเจน อย่างไรก็ตาม เราสามารถเห็นความโค้ง (curvature) บางส่วนในกราฟ</blockquote>
+<p>ประโยค "เห็นความโค้ง" นี้คือสัญญาณล่วงหน้าที่บอกว่าโมเดลเส้นตรง (first-order) เพียงอย่างเดียวอาจไม่พอ — ต้องลองโมเดลกำลังสอง (second-order) เทียบด้วย ตรงกับหัวข้อ 7 ของ Lesson 2 พอดี (รูปทรง "diminishing" เมื่อ \(\beta_1<0\))</p>
+
+<h3>(b) โมเดลลำดับที่หนึ่ง (First-order)</h3>
+<pre><code>&gt; model&lt;-lm(Y~X, data=muscle)
+&gt; summary(model)
+
+Call:
+lm(formula = Y ~ X, data = muscle)
+
+Residuals:
+     Min      1Q     Median         3Q       Max
+-16.1368 -6.1968    -0.5969     6.7607   23.4731
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 156.3466     5.5123   28.36   &lt;2e-16 ***
+X             -1.1900    0.0902 -13.19   &lt;2e-16 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Residual standard error: 8.173 on 58 degrees of freedom
+Multiple R-squared: 0.7501,     Adjusted R-squared: 0.7458
+F-statistic: 174.1 on 1 and 58 DF, p-value: &lt; 2.2e-16</code></pre>
+<div class="box">
+\(\hat{Y} = 156.3466 - 1.19\,X\)
+</div>
+<p>อ่านตัวเลข: อายุเพิ่มขึ้น 1 ปี มวลกล้ามเนื้อเฉลี่ยลดลง 1.19 หน่วย — โมเดลนี้มีตัวแปรอิสระตัวเดียว (X ไม่ใช่ dummy) จึงตีความ slope แบบ SLR ตรง ๆ ได้ ไม่ต้องมีวลี "holding constant" เพราะไม่มีตัวแปรอื่นให้คุม</p>
+
+<h3>(c) โมเดลลำดับที่สอง (Second-order)</h3>
+<pre><code>&gt; model2&lt;-lm(Y~X+I(X^2), data=muscle)
+&gt; summary(model2)
+
+Call:
+lm(formula = Y ~ X + I(X^2), data = muscle)
+
+Residuals:
+    Min     1Q     Median        3Q      Max
+-15.086 -6.154     -1.088     6.220   20.578
+
+Coefficients:
+              Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 207.349608 29.225118    7.095 2.21e-09 ***
+X            -2.964323  1.003031   -2.955  0.00453 **
+I(X^2)        0.014840  0.008357    1.776  0.08109 .
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 8.026 on 57 degrees of freedom
+Multiple R-squared: 0.7632,     Adjusted R-squared: 0.7549
+F-statistic: 91.84 on 2 and 57 DF, p-value: &lt; 2.2e-16</code></pre>
+<div class="box">
+\(\hat{Y} = 207.35 - 2.96\,X + 0.015\,X^2\)
+</div>
+<p>เครื่องหมาย \(\hat{\beta}_1<0\) และ \(\hat{\beta}_2>0\) ตรงกับรูปทรง "decreasing convex" ในหัวข้อ 7 ของ Lesson 2 เป๊ะ (ลดลงเร็วช่วงต้นแล้วค่อย ๆ แบนราบ ไม่ใช่ diminishing returns แบบ corn yields ที่ \(\beta_2<0\))</p>
+
+<h3>(d) เปรียบเทียบเส้นทั้งสองบนสแคตเตอร์พล็อต</h3>
+<blockquote>ในความเห็นของผม เส้นที่ฟิตในข้อ (c) เข้ากับข้อมูลได้ดีกว่าเล็กน้อย</blockquote>
+<p>สไลด์เฉลยแสดงกราฟ <code>muscle$Y</code> เทียบ <code>muscle$X</code> พร้อมเส้นสีน้ำเงิน (1st order model) และเส้นสีแดง (2nd order model) ทับกัน — ทั้งสองเส้นเกาะกลุ่มข้อมูลใกล้เคียงกันมากในช่วงกลาง แต่เส้นสีแดงโค้งตามจุดข้อมูลที่ช่วงอายุน้อย (~40) และช่วงอายุมาก (~75) ได้ดีกว่าเส้นตรงเล็กน้อย</p>
+
+<h3>(e) เทียบ R², Adjusted R², และ σ² ของสองโมเดล</h3>
+<table>
+<tr><th>ตัวชี้วัด</th><th>(b) First-order</th><th>(c) Second-order</th></tr>
+<tr><td>R²</td><td>0.7501</td><td>0.7632</td></tr>
+<tr><td>Adjusted R²</td><td>0.7458</td><td>0.7549</td></tr>
+<tr><td>Residual standard error (σ̂)</td><td>8.173</td><td>8.026</td></tr>
+</table>
+<blockquote>(c) เป็นโมเดลที่ดีกว่า</blockquote>
+<p>ทั้งสามตัวชี้วัดเห็นตรงกัน: (c) มี R² และ Adjusted R² สูงกว่า และมี residual standard error ต่ำกว่า — สอดคล้องกับข้อ (d) ที่บอกว่าเส้นโค้งฟิตข้อมูลได้ดีกว่าเล็กน้อย</p>
+
+<h3>(f) ทดสอบว่าตัดพจน์กำลังสองทิ้งได้หรือไม่</h3>
+<ul>
+<li>\(H_0: \beta_2=0\) เทียบกับ \(H_1: \beta_2 \neq 0\)</li>
+<li>p-value = 0.08195</li>
+<li>เพราะ p-value มากกว่า 0.05 จึงสามารถตัดพจน์กำลังสองทิ้งได้ ที่ระดับนัยสำคัญ 5%</li>
+</ul>
+<div class="box source">
+<div class="label">จุดสังเกตจากต้นฉบับ — ตัวเลข p-value ไม่ตรงกันเป๊ะ</div>
+<p>ตาราง <code>summary(model2)</code> ในข้อ (c) รายงาน p-value ของแถว <code>I(X^2)</code> ไว้ที่ <strong>0.08109</strong> แต่คำตอบข้อ (f) ที่อาจารย์เขียนเองกลับใช้ <strong>0.08195</strong> — ทั้งสองตัวเลขนี้ปรากฏจริงในหน้า 5-6 ของ <code>Assignment2_Solution.pdf</code> (ตรวจสอบซ้ำจากภาพหน้า PDF แล้ว ไม่ใช่ความผิดพลาดจากการแปลงไฟล์) ต่างกันเล็กน้อยน่าจะมาจากการปัดเศษ/พิมพ์คนละครั้งของอาจารย์ ไม่ใช่คนละการทดสอบ — สรุปสุดท้าย ("p-value &gt; 0.05 จึงตัดพจน์กำลังสองทิ้งได้") ไม่เปลี่ยนไม่ว่าจะใช้ตัวเลขไหน เพราะทั้งคู่มากกว่า 0.05 อยู่ดี บทเรียนจากจุดนี้: เวลาอ่านเฉลยของจริง ให้โฟกัสที่<strong>ทิศทางของข้อสรุป</strong> (ปฏิเสธ/ไม่ปฏิเสธ H₀) มากกว่าไล่ตามทศนิยมทุกหลักให้ตรงกันเป๊ะข้ามหน้า</p>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>Muscle Mass — เลือกโมเดล</span></div>
+  <div class="qtext">จากผลข้อ (e)-(f) ของ Muscle Mass (R² และ Adj-R² ของโมเดลกำลังสองสูงกว่าเล็กน้อย แต่ p-value ของพจน์กำลังสองมากกว่า 0.05) ข้อสรุปใดสมเหตุสมผลที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">แม้โมเดลกำลังสองจะมี R² สูงกว่าเล็กน้อย แต่พจน์กำลังสองไม่มีนัยสำคัญทางสถิติที่ 5% — โมเดลเส้นตรง (first-order) ที่ง่ายกว่าจึงเป็นตัวเลือกที่เหมาะสมกว่าตามหลัก parsimony</button>
+  <button class="opt" data-correct="false">ต้องเลือกโมเดลกำลังสองเสมอเพราะ R² สูงกว่า ไม่ว่า p-value จะเป็นเท่าไร</button>
+  <button class="opt" data-correct="false">ผลลัพธ์ขัดแย้งกันเอง จึงสรุปอะไรไม่ได้เลย</button>
+  <button class="opt" data-correct="false">R² ที่สูงกว่าพิสูจน์ว่าความสัมพันธ์ X-Y เป็นเส้นโค้งแน่นอน 100%</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>Muscle Mass — รูปทรงของกราฟ</span></div>
+  <div class="qtext">โมเดลกำลังสองของ Muscle Mass ได้ \(\hat{\beta}_1=-2.96\) (ลบ) และ \(\hat{\beta}_2=0.015\) (บวก) รูปทรงกราฟที่ได้ตรงกับข้อใดตามหัวข้อ 7 ของ Lesson 2?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">Decreasing convex — ลดลงเร็วช่วงอายุน้อยแล้วค่อย ๆ แบนราบขึ้นเมื่ออายุมากขึ้น</button>
+  <button class="opt" data-correct="false">Increasing concave (diminishing returns) เหมือนตัวอย่าง corn yields</button>
+  <button class="opt" data-correct="false">เส้นตรงลาดลงคงที่ตลอดช่วง เหมือนไม่มีพจน์กำลังสองเลย</button>
+  <button class="opt" data-correct="false">รูปตัว S ที่มีจุดเปลี่ยนทิศทางสองครั้ง เหมือนโมเดลกำลังสาม</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>Muscle Mass — ทำไมต้องคง intercept</span></div>
+  <div class="qtext">ถ้าตัดพจน์กำลังสองออกจากโมเดล (c) ตามผลข้อ (f) แล้วกลับไปใช้โมเดล (b) — เหตุผลอะไรที่ตรงกับหลักการของ Lesson 2 หัวข้อ 8 (ตัวอย่าง corn yields) มากที่สุด ในการห้ามตัด X ตัวเดี่ยวทิ้งแต่คง X² ไว้แทน?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">X และ X² เป็นตัวแปรเดียวกันที่ถูกแปลงรูป (transform) ไม่ใช่ตัวแปรอิสระสองตัวที่ไม่เกี่ยวข้องกัน — ตัดพจน์ใดพจน์หนึ่งทิ้งจะบิดรูปทรงของเส้นโค้งทั้งเส้น ไม่ใช่แค่เลื่อนระดับ</button>
+  <button class="opt" data-correct="false">เพราะ R ไม่อนุญาตให้มีแค่ X² โดยไม่มี X ตามหลักไวยากรณ์ของ lm()</button>
+  <button class="opt" data-correct="false">เพราะ X และ X² มี p-value เท่ากันเสมอ</button>
+  <button class="opt" data-correct="false">เพราะการตัด X ทิ้งจะทำให้ R² เพิ่มขึ้นเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response)</span><span>Muscle Mass — อ่านเฉลยจริงที่ตัวเลขไม่ตรงกันเป๊ะ</span></div>
+  <div class="qtext">ในข้อ (f) เฉลยต้นฉบับใช้ p-value = 0.08195 สำหรับทดสอบ \(H_0:\beta_2=0\) แต่ตาราง <code>summary(model2)</code> ในข้อ (c) รายงาน p-value ของแถว <code>I(X^2)</code> ไว้ที่ 0.08109 — จงอธิบายว่าทำไมข้อสรุปสุดท้าย ("ตัดพจน์กำลังสองทิ้งได้") จึงยังถูกต้องอยู่ ไม่ว่าจะใช้ตัวเลขไหนในสองตัวนี้</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">ทั้ง 0.08109 และ 0.08195 ต่างก็มากกว่าเกณฑ์ \(\alpha=0.05\) เหมือนกัน — ข้อสรุปของการทดสอบสมมติฐานขึ้นอยู่กับว่า p-value อยู่ฝั่งไหนของเส้นแบ่ง \(\alpha\) ไม่ใช่ค่าทศนิยมที่แน่นอน ตราบใดที่ทั้งสองตัวเลขอยู่ฝั่งเดียวกัน (มากกว่า 0.05 ทั้งคู่) ข้อสรุป "ไม่ปฏิเสธ \(H_0:\beta_2=0\), ตัดพจน์กำลังสองทิ้งได้ที่ระดับนัยสำคัญ 5%" จึงยังคงถูกต้องไม่ว่าจะอ้างอิงตัวเลขไหน — ทักษะสำคัญคืออ่านเฉลยของจริงต้องแยกให้ออกระหว่าง "ตัวเลขคลาดเคลื่อนเล็กน้อยจากการพิมพ์/ปัดเศษ" กับ "ข้อผิดพลาดที่เปลี่ยนทิศทางข้อสรุป" — กรณีนี้เป็นแบบแรก</div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<p>ทั้งสองโจทย์ในการบ้านชุดนี้ (Grocery Retailer และ Muscle Mass) ถูกไล่ครบทุกข้อย่อยแล้วข้างบน — ไม่มีภาคผนวกไล่หน้าแบบบทเรียนหลัก เพราะไฟล์นี้เป็นเฉลยการบ้าน 6 หน้าที่ทุกหน้าถูกใช้ในเนื้อหาแล้วทั้งหมด</p>
+
+<nav class="lesson-nav">
+  <span><a href="0002-multiple-linear-regression.html">← Lesson 2: Multiple Linear Regression</a></span>
+  <span><a href="../reference/0002-mlr-formulas-and-r-output-cheatsheet.html">Reference: สูตร + คู่มืออ่าน R output</a> · <a href="../exams/drill-01-write-the-equation.html">Drill 1: เขียนสมการ →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

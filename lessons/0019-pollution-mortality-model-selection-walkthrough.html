@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lesson 19: Pollution &amp; Mortality — Model Selection Walkthrough (Assignment 5)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Lesson 19 · Worked Assignment — Model Selection</span>
+  <span><a href="../reference/0005-model-selection-cheatsheet.html">Reference: สูตร Cp/AIC/BIC + R Syntax →</a></span>
+</nav>
+
+<p class="kicker">Assignment 5 — Pollution and Mortality</p>
+<h1>ตัวอย่างข้อสอบจริง: Model Selection กับข้อมูล Pollution &amp; Mortality</h1>
+
+<p>บทนี้เป็น<strong>โจทย์การบ้านจริง</strong>ที่ให้ฝึกใช้ทุกเทคนิคจาก <a href="0005-model-selection.html">Lesson 5: Model Selection</a> — stepwise BIC/AIC, best-subset ด้วย Adjusted R²/Cp/RMSE — บนชุดข้อมูลเดียวกันตลอดทั้งข้อ แทนที่จะเป็นตัวอย่างแยกส่วนแบบ mtcars/SAT ในบทที่แล้ว โจทย์นี้บังคับให้เห็นว่าเมื่อเปลี่ยน criterion การเลือกตัวแปรบนข้อมูลชุดเดียวกัน คำตอบจะเหมือนหรือต่างกันตรงไหน และทำไม ตัวเลขทุกตัวในบทนี้คัดลอกตรงจาก <code>Assignment5_Solution.pdf</code> (3 หน้า) ไม่มีตัวเลขที่แต่งขึ้นเอง</p>
+
+<div class="box source">
+<div class="label">โจทย์ตั้งต้น</div>
+ข้อมูล <code>mortality.csv</code> จาก 60 เมือง มีตัวแปร <code>MORT</code> (อัตราตายรวมทุกสาเหตุ ปรับตามอายุแล้ว — ตัวแปรตาม) และตัวแปรอิสระ 5 ตัว: <code>PRECIP</code> (ปริมาณฝนเฉลี่ยรายปี, นิ้ว), <code>EDUC</code> (จำนวนปีการศึกษามัธยฐานของผู้มีอายุ ≥25 ปี), <code>NONWHIT</code>/<code>NONWHITE</code> (% ประชากรที่ไม่ใช่คนขาว), <code>NOX</code> (ศักยภาพมลพิษจากออกไซด์ไนโตรเจน), <code>SO2</code> (ศักยภาพมลพิษจากซัลเฟอร์ไดออกไซด์) — เป้าหมายคือหาว่าปัจจัยด้านอากาศและเศรษฐกิจสังคมสัมพันธ์กับอัตราตายหรือไม่
+</div>
+
+<h2>(a) Log-transform NOX และ SO2 ก่อนสร้างโมเดล</h2>
+<p>โจทย์กำหนดให้ log (natural log) ตัวแปร <code>NOX</code> และ <code>SO2</code> ก่อนใช้งาน (เหตุผลเดียวกับที่ Lesson 5 หัวข้อ 9 ทำกับ <code>TAKERS</code> ในตัวอย่าง SAT — ตัวแปรมลพิษดิบมักเบ้ขวาแรง log ช่วยให้ความสัมพันธ์เชิงเส้นกับ MORT สมเหตุสมผลกว่า):</p>
+<pre><code>&gt; lNOX&lt;-log(mortality$NOX)
+&gt; lSO2&lt;-log(mortality$SO2)
+&gt; mortality&lt;-cbind(mortality, lNOX, lSO2)</code></pre>
+<ul>
+<li>ตัวแปรอิสระที่ใช้ตั้งแต่ข้อ (b) เป็นต้นไปจึงเป็น 5 ตัว: <code>PRECIP</code>, <code>EDUC</code>, <code>NONWHITE</code>, <code>lNOX</code>, <code>lSO2</code> (ไม่ใช่ NOX/SO2 ดิบอีกต่อไป)</li>
+<li>โมเดลเต็ม (full model) ที่ใช้เป็นฐานทุกข้อถัดไปคือ <code>lm(MORT ~ PRECIP + EDUC + NONWHITE + lNOX + lSO2, data = mortality)</code></li>
+</ul>
+
+<h2>(b) Stepwise BIC (direction="both")</h2>
+<p>ใช้ <code>step()</code> พร้อมพจน์ penalty <code>k=log(n)</code> เพื่อให้เท่ากับสูตร BIC (ตรงกับ Lesson 5 หัวข้อ 9.3 ที่ใช้ <code>k=log(sat.n)</code>):</p>
+<pre><code>&gt; fullmodel&lt;-lm(MORT~PRECIP+EDUC+NONWHITE+lNOX+lSO2, data=mortality)
+&gt; BICmodel&lt;-step(fullmodel, direction="both", k=log(nrow(mortality)), trace=FALSE)
+&gt; summary(BICmodel)
+Call:
+lm(formula = MORT ~ PRECIP + EDUC + NONWHITE + lSO2, data = mortality)
+Residuals:
+     Min      1Q      Median         3Q        Max
+-100.364 -22.544      -0.716     19.216    110.767
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 944.8448    93.7916 10.074 4.28e-14 ***
+PRECIP        1.6410     0.6134   2.675 0.00982 **
+EDUC        -13.9637     6.8838 -2.028 0.04736 *
+NONWHITE      3.3212     0.5850   5.678 5.31e-07 ***
+lSO2         15.0134     3.4333   4.373 5.50e-05 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Residual standard error: 36.24 on 55 degrees of freedom
+Multiple R-squared: 0.6835,          Adjusted R-squared:             0.6605
+F-statistic: 29.7 on 4 and 55 DF, p-value: 3.599e-13</code></pre>
+<ul>
+<li>Stepwise BIC ตัด <code>lNOX</code> ออกจากโมเดลเต็ม 5 ตัว เหลือ 4 ตัว: <code>PRECIP</code>, <code>EDUC</code>, <code>NONWHITE</code>, <code>lSO2</code></li>
+<li>ทุกตัวที่เหลือมีนัยสำคัญทางสถิติที่ α=0.05: PRECIP (p=0.00982), EDUC (p=0.04736), NONWHITE (p=5.31e-07), lSO2 (p=5.50e-05)</li>
+<li>Adjusted R² = 0.6605, F-statistic = 29.7 (df=4,55), p&lt;0.001 — โมเดลรวมมีนัยสำคัญทางสถิติ</li>
+</ul>
+<div class="box win">
+\[ \hat{MORT} = 944.84 + 1.64 \times PRECIP - 13.96 \times EDUC + 3.32 \times NONWHITE + 15.01 \times \log(SO2) \]
+</div>
+
+<h2>(c) Stepwise AIC (direction="both")</h2>
+<p>ทำซ้ำแบบเดิมแต่ไม่ใส่ <code>k</code> (ค่าเริ่มต้นของ <code>step()</code> คือ <code>k=2</code> = เกณฑ์ AIC):</p>
+<pre><code>&gt; AICmodel&lt;-step(fullmodel, direction="both", trace=FALSE)
+&gt; summary(AICmodel)
+Call:
+lm(formula = MORT ~ PRECIP + EDUC + NONWHITE + lSO2, data = mortality)
+[ตารางสัมประสิทธิ์ ตัวเลขเดียวกันทุกประการกับข้อ (b) ]</code></pre>
+<ul>
+<li>Stepwise AIC ได้<strong>โมเดลเดียวกันเป๊ะ</strong>กับ stepwise BIC ในข้อ (b): <code>PRECIP + EDUC + NONWHITE + lSO2</code> — สัมประสิทธิ์ ค่า p ทุกตัว, R², F-statistic ตรงกันหมดทุกตำแหน่งทศนิยม</li>
+<li>ต่างจากตัวอย่าง mtcars ใน Lesson 5 (หัวข้อ 4) ที่ AIC กับ BIC มักเลือกตัวแปรต่างกัน — ที่นี่ n=60 มากพอที่ penalty ของทั้งสองเกณฑ์ยังไม่ทำให้ผลลัพธ์แยกออกจากกัน (การตัด <code>lNOX</code> คุ้มทั้งสองเกณฑ์)</li>
+<li>สมการฟิตสุดท้ายจึงเหมือนข้อ (b) เป๊ะ</li>
+</ul>
+<div class="box win">
+\[ \hat{MORT} = 944.84 + 1.64 \times PRECIP - 13.96 \times EDUC + 3.32 \times NONWHITE + 15.01 \times \log(SO2) \]
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>เปรียบเทียบ BIC vs AIC ในโจทย์นี้</span></div>
+  <div class="qtext">ในข้อ (b) และ (c) ของโจทย์นี้ stepwise BIC และ stepwise AIC ให้ผลลัพธ์เป็นอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ให้โมเดลต่างกัน เพราะ BIC ลงโทษความซับซ้อนแรงกว่าเสมอ</button>
+  <button class="opt" data-correct="true">ให้โมเดลเดียวกันเป๊ะ (PRECIP+EDUC+NONWHITE+lSO2) พร้อมสัมประสิทธิ์และค่าสถิติทุกตัวตรงกันทั้งหมด</button>
+  <button class="opt" data-correct="false">ให้โมเดลต่างกัน เพราะ AIC มักเลือกตัวแปรมากกว่า BIC เสมอ ไม่มีข้อยกเว้น</button>
+  <button class="opt" data-correct="false">เปรียบเทียบกันไม่ได้ เพราะใช้ full model คนละตัว</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(d) Best-Subset Selection ด้วย Adjusted R²</h2>
+<p>ใช้ <code>olsrr::ols_step_all_possible()</code> ลองทุกชุดค่าผสมที่เป็นไปได้ของตัวแปรอิสระ 5 ตัว (2⁵−1 = 31 โมเดลย่อย):</p>
+<pre><code>&gt; library(olsrr)
+&gt; tmpoutput&lt;-ols_step_all_possible(fullmodel)
+&gt; output&lt;-data.frame(Predictors=tmpoutput$result$predictors,
++     adj_R2=tmpoutput$result$adjr, cp=tmpoutput$result$cp,
++     AIC=tmpoutput$result$aic, BIC=tmpoutput$result$sbc)
+&gt; output
+                        Predictors     adj_R2         cp      AIC      BIC
+16            PRECIP NONWHITE lSO2 0.64161806   6.925633 610.2099 620.6817
+17              EDUC NONWHITE lSO2 0.62318129   9.957032 613.2198 623.6915
+26       PRECIP EDUC NONWHITE lSO2 0.66050144   4.824003 607.8810 620.4471
+27       PRECIP NONWHITE lNOX lSO2 0.63793815   8.467642 611.7418 624.3078
+28       PRECIP EDUC NONWHITE lNOX 0.63711767   8.600136 611.8776 624.4436
+29         EDUC NONWHITE lNOX lSO2 0.61780506  11.718838 614.9887 627.5548
+31 PRECIP EDUC NONWHITE lNOX lSO2 0.65941158   6.000000 608.9724 623.6328
+[ตารางเต็มมี 31 แถว — แสดงเฉพาะแถวที่เกี่ยวข้องกับการเปรียบเทียบด้านล่าง]</code></pre>
+<ul>
+<li>ไล่คอลัมน์ <code>adj_R2</code> ทั้ง 31 แถว: ค่าสูงสุดคือ <strong>0.66050144</strong> ของแถว <code>PRECIP EDUC NONWHITE lSO2</code> (4 ตัวแปร) — สูงกว่าแม้แต่โมเดลเต็ม 5 ตัวแปรที่ได้ 0.65941158 เท่านั้น</li>
+<li>ตรงกับตรรกะของ Adjusted R²: การเพิ่ม <code>lNOX</code> เข้าไปในโมเดลเต็มไม่ได้ช่วยพอที่จะชดเชย penalty จากพารามิเตอร์ที่เพิ่มขึ้น ค่า Adjusted R² จึงลดลงเล็กน้อยเมื่อเทียบกับโมเดล 4 ตัวแปร</li>
+<li>โมเดลที่ Adjusted R² สูงสุดคือ <code>PRECIP + EDUC + NONWHITE + lSO2</code> — <strong>ตัวแปรชุดเดียวกันกับที่ stepwise BIC และ stepwise AIC เลือกในข้อ (b)/(c)</strong> สามวิธีมาบรรจบกันพอดี</li>
+</ul>
+<div class="box win">
+\[ \hat{MORT} = 944.84 + 1.64 \times PRECIP - 13.96 \times EDUC + 3.32 \times NONWHITE + 15.01 \times \log(SO2) \]
+</div>
+
+<h2>(e) Best-Subset Selection ด้วย Cp</h2>
+<p>ใช้ตารางเดิมจากข้อ (d) แต่ไล่หา Cp ต่ำสุดแทน:</p>
+<ul>
+<li>ไล่คอลัมน์ <code>cp</code> ทั้ง 31 แถว: ค่าต่ำสุดคือ <strong>4.824003</strong> ของแถว <code>PRECIP EDUC NONWHITE lSO2</code> — ต่ำกว่าโมเดลเต็ม 5 ตัวแปร (Cp=6.000000) และต่ำกว่าโมเดล 3 ตัวแปรอย่าง <code>PRECIP NONWHITE lSO2</code> (Cp=6.925633)</li>
+<li>เช็คตามกฎ Lesson 5 หัวข้อ 5 (Cp ที่ดีควรใกล้ \(p+1\)): โมเดลนี้มี 4 ตัวแปร จึง \(p+1=5\) เทียบกับ Cp=4.824 ใกล้เคียงกันมาก ไม่มี bias จากการตัดตัวแปรสำคัญทิ้ง</li>
+<li>ผลลัพธ์ตรงกับข้อ (b)/(c)/(d) อีกครั้ง: <code>PRECIP + EDUC + NONWHITE + lSO2</code></li>
+</ul>
+<div class="box win">
+\[ \hat{MORT} = 944.84 + 1.64 \times PRECIP - 13.96 \times EDUC + 3.32 \times NONWHITE + 15.01 \times \log(SO2) \]
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>อ่านค่า Cp เทียบกับ p+1</span></div>
+  <div class="qtext">โมเดล PRECIP+EDUC+NONWHITE+lSO2 มี Cp=4.824003 และมี 4 ตัวแปรอิสระ (จึง p+1=5) ข้อใดตีความค่านี้ได้ถูกต้องตามกฎที่สอนใน Lesson 5?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">Cp (4.824) ใกล้เคียงกับ p+1 (5) มาก บ่งชี้ว่าโมเดลนี้ไม่มี bias จากการตัดตัวแปรสำคัญออกไป เป็นโมเดลที่ดี</button>
+  <button class="opt" data-correct="false">Cp ต่ำกว่า p+1 แสดงว่าโมเดลนี้ overfit อย่างรุนแรง ต้องตัดตัวแปรออกอีก</button>
+  <button class="opt" data-correct="false">ค่า Cp และ p+1 ไม่เกี่ยวข้องกันเลย เปรียบเทียบกันไม่ได้</button>
+  <button class="opt" data-correct="false">Cp ควรเท่ากับ n เสมอในโมเดลที่ดี ไม่ใช่เทียบกับ p+1</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(f) Best-Subset Selection ด้วย RMSE</h2>
+<p>โจทย์ให้ใช้ผลลัพธ์เดิมจาก <code>ols_step_all_possible()</code> แต่ดึง element <code>rmse</code> แทน:</p>
+<pre><code>&gt; output&lt;-data.frame(Predictors=tmpoutput$result$predictors,
+    RMSE=tmpoutput$result$rmse)
+&gt; output
+                        Predictors     RMSE
+26       PRECIP EDUC NONWHITE lSO2 34.69990
+27       PRECIP NONWHITE lNOX lSO2 35.83444
+28       PRECIP EDUC NONWHITE lNOX 35.87502
+29         EDUC NONWHITE lNOX lSO2 36.81728
+30           PRECIP EDUC lNOX lSO2 40.45778
+31 PRECIP EDUC NONWHITE lNOX lSO2 34.43814
+[ตารางเต็มมี 31 แถว — แสดงเฉพาะ 5 ตัวแปรและใกล้เคียง]</code></pre>
+<ul>
+<li>ไล่คอลัมน์ <code>RMSE</code> ทั้ง 31 แถว: ค่าต่ำสุดคือ <strong>34.43814</strong> ของแถว <code>PRECIP EDUC NONWHITE lNOX lSO2</code> — คือ<strong>โมเดลเต็มทั้ง 5 ตัวแปร</strong> ไม่ใช่โมเดล 4 ตัวแปรที่ข้อ (b)–(e) เลือกตรงกัน</li>
+<li>นี่คือจุดที่ RMSE ให้คำตอบ<strong>ต่างจากทุกเกณฑ์ก่อนหน้า</strong> — เหตุผลเชิงโครงสร้าง: RMSE ไม่มีพจน์ penalty สำหรับจำนวนพารามิเตอร์เลย (ต่างจาก Adjusted R², Cp, AIC, BIC ที่ล้วนมี penalty) การเพิ่มตัวแปรเข้าไปอีกจึงมีแต่จะทำให้ RMSE ลดลงหรือเท่าเดิมเสมอ (fit บนชุดข้อมูลเดิม) ไม่มีทางเพิ่มขึ้น</li>
+<li>ดึงสัมประสิทธิ์เต็มของโมเดลนี้จาก <code>summary(fullmodel)</code>:</li>
+</ul>
+<pre><code>&gt; summary(fullmodel)
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept) 940.6584    94.0551 10.001 6.81e-14 ***
+PRECIP        1.9467     0.7007   2.778   0.0075 **
+EDUC        -14.6645     6.9379 -2.114    0.0392 *
+NONWHITE      3.0289     0.6685   4.531 3.29e-05 ***
+lNOX          6.7164     7.3990   0.908   0.3680
+lSO2         11.3578     5.2955   2.145   0.0365 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+Residual standard error: 36.3 on 54 degrees of freedom
+Multiple R-squared: 0.6883,    Adjusted R-squared: 0.6594
+F-statistic: 23.85 on 5 and 54 DF, p-value: 1.418e-12</code></pre>
+<ul>
+<li>สังเกตว่า <code>lNOX</code> ในโมเดลเต็มนี้<strong>ไม่มีนัยสำคัญทางสถิติ</strong> (p=0.3680, สูงกว่า 0.05 มาก) แต่ RMSE ก็ยังเลือกเก็บไว้ เพราะ RMSE สนใจแค่ fit บนข้อมูลเดิม ไม่สนใจนัยสำคัญทางสถิติหรือ penalty ความซับซ้อนเลย</li>
+</ul>
+<div class="box win">
+\[ \hat{MORT} = 940.66 + 1.95 \times PRECIP - 14.66 \times EDUC + 3.03 \times NONWHITE + 6.72 \times \log(NOX) + 11.36 \times \log(SO2) \]
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>ทำไม RMSE เลือกโมเดลเต็มเสมอ</span></div>
+  <div class="qtext">จากตารางในข้อ (f) โมเดลที่ RMSE ต่ำสุด (34.43814) คือโมเดลเต็มทั้ง 5 ตัวแปร ทั้งที่ตัวแปร lNOX ไม่มีนัยสำคัญทางสถิติเลย (p=0.3680) เหตุผลเชิงสูตรที่ถูกต้องที่สุดคืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ RMSE คำนวณผิดสูตรในแพ็กเกจ olsrr</button>
+  <button class="opt" data-correct="true">เพราะ RMSE ไม่มีพจน์ penalty สำหรับจำนวนพารามิเตอร์เลย (ต่างจาก Cp/AIC/BIC/adj-R²) การเพิ่มตัวแปรใด ๆ ในโมเดล OLS มีแต่จะทำให้ SSE ลดลงหรือเท่าเดิม RMSE จึงต่ำสุดที่โมเดลเต็มเสมอ</button>
+  <button class="opt" data-correct="false">เพราะ lNOX มีหน่วยต่างจากตัวแปรอื่นทั้งหมด</button>
+  <button class="opt" data-correct="false">เพราะโมเดลเต็มมี R² สูงสุดเสมอไม่ว่ากรณีใด ซึ่งเท่ากับ RMSE ต่ำสุดโดยอัตโนมัติ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(g) โมเดลจาก RMSE เอาไปพยากรณ์อนาคตได้จริงหรือไม่?</h2>
+<p>โจทย์ถาม: Mr. A อ้างว่าโมเดลจากข้อ (f) เหมาะกับการพยากรณ์อัตราตายในอนาคต เห็นด้วยหรือไม่?</p>
+<div class="box source">
+<div class="label">เฉลยจาก PDF (verbatim)</div>
+"Disagree because the RMSE is calculated based on the same dataset to fit the model. It model could overfit the data but might not have ability to predict unseen data well."
+</div>
+<ul>
+<li><strong>ไม่เห็นด้วยกับ Mr. A</strong> — เหตุผลคือ RMSE ในข้อ (f) คำนวณจากชุดข้อมูล<strong>เดียวกัน</strong>กับที่ใช้ fit โมเดล (in-sample) ไม่ใช่ out-of-sample accuracy ตามหลักที่สอนใน Lesson 5 หัวข้อ 11–13</li>
+<li>โมเดลที่มีตัวแปรมากที่สุดจะได้ RMSE ในกลุ่มตัวอย่างต่ำสุดเสมอ (ตามที่อธิบายในคำถาม 3) แต่นั่นอาจเป็นผลจากการ<strong>overfit</strong> — โมเดลไปจับ noise เฉพาะของ 60 เมืองนี้ ไม่ใช่ signal ที่แท้จริง</li>
+<li>วิธีที่ถูกต้องในการเช็คความสามารถพยากรณ์ ต้องวัด out-of-sample accuracy ตาม Lesson 5 หัวข้อ 12–13: แบ่ง train/test (data splitting) หรือทำ K-fold cross-validation แล้ววัด RMSE/MAE/MAPE บนชุดทดสอบที่โมเดล<strong>ไม่เคยเห็น</strong> ไม่ใช่วัดซ้ำบนชุดฝึกฝนเดิม</li>
+<li>ข้อสอบ/การบ้านชอบถามคำถามรูปแบบนี้ซ้ำ ๆ: "criterion ที่ดีที่สุดในกลุ่มตัวอย่าง (in-sample) ไม่ได้แปลว่าโมเดลนั้นพยากรณ์นอกกลุ่มตัวอย่าง (out-of-sample) ได้ดีที่สุดเสมอไป" — ต้องแยกสองแนวคิดนี้ให้ออกทุกครั้ง</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>ข้อ (g) — เหตุผลที่ไม่เห็นด้วยกับ Mr. A</span></div>
+  <div class="qtext">เหตุผลหลักที่เฉลยไม่เห็นด้วยกับ Mr. A (ที่อ้างว่าโมเดล RMSE ต่ำสุดในข้อ (f) เหมาะกับการพยากรณ์อนาคต) คืออะไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะโมเดลเต็มมีตัวแปรน้อยเกินไปที่จะพยากรณ์ได้แม่นยำ</button>
+  <button class="opt" data-correct="true">เพราะ RMSE นั้นคำนวณจากชุดข้อมูลเดียวกับที่ใช้ fit โมเดล (in-sample) โมเดลอาจ overfit และพยากรณ์ข้อมูลใหม่ที่ไม่เคยเห็นได้ไม่ดี</button>
+  <button class="opt" data-correct="false">เพราะ RMSE คำนวณผิดสูตรในข้อ (f)</button>
+  <button class="opt" data-correct="false">เพราะ lNOX ไม่ควร log-transform ตั้งแต่แรกในข้อ (a)</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>สรุปภาพรวม: ตารางเทียบทั้ง 5 เกณฑ์</h2>
+<p>ไล่ผลลัพธ์ทั้งหมดของโจทย์นี้เทียบกันในตารางเดียว จะเห็นภาพว่าเกณฑ์ไหนเห็นตรงกัน เกณฑ์ไหนแยกทาง:</p>
+<ul>
+<li><strong>Stepwise BIC (b):</strong> PRECIP + EDUC + NONWHITE + lSO2</li>
+<li><strong>Stepwise AIC (c):</strong> PRECIP + EDUC + NONWHITE + lSO2 (เหมือนข้อ b เป๊ะ)</li>
+<li><strong>Best-subset, Adjusted R² สูงสุด (d):</strong> PRECIP + EDUC + NONWHITE + lSO2 (adj_R²=0.66050144)</li>
+<li><strong>Best-subset, Cp ต่ำสุด (e):</strong> PRECIP + EDUC + NONWHITE + lSO2 (Cp=4.824003 ≈ p+1=5)</li>
+<li><strong>Best-subset, RMSE ต่ำสุด (f):</strong> PRECIP + EDUC + NONWHITE + lNOX + lSO2 — โมเดลเต็ม (RMSE=34.43814) — <strong>เกณฑ์เดียวที่แยกทาง</strong></li>
+</ul>
+<div class="box win">
+<div class="label">ข้อสรุปที่ข้อสอบชอบถาม</div>
+สี่ในห้าเกณฑ์ (stepwise BIC, stepwise AIC, best-subset adj-R², best-subset Cp) ล้วนมีพจน์ penalty สำหรับความซับซ้อนของโมเดลอยู่ในสูตร และทั้งสี่เกณฑ์นี้<strong>เห็นตรงกันหมด</strong>ว่าโมเดล 4 ตัวแปร (PRECIP+EDUC+NONWHITE+lSO2) ดีที่สุด — สัญญาณว่าโมเดลนี้เสถียร (robust) ไม่ได้ขึ้นกับวิธีเลือกวิธีใดวิธีหนึ่ง มีเพียง RMSE เกณฑ์เดียวที่ไม่มี penalty จึงเลือกโมเดลเต็มเสมอ ซึ่งตามข้อ (g) ไม่ได้แปลว่าโมเดลนั้นพยากรณ์ได้ดีกว่าจริง
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>สรุปเปรียบเทียบทั้ง 5 เกณฑ์</span></div>
+  <div class="qtext">จากตารางสรุปด้านบน จงอธิบายว่าทำไม 4 ใน 5 เกณฑ์ (stepwise BIC, stepwise AIC, adjusted R², Cp) ถึงเลือกโมเดลเดียวกัน ในขณะที่ RMSE เลือกต่างออกไป โดยอ้างอิงโครงสร้างสูตรของแต่ละเกณฑ์</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>Stepwise BIC/AIC, Adjusted R², และ Cp ทุกตัวมีโครงสร้างสูตรเป็น "ส่วนวัด error (SSE/MSE)" บวกกับ "พจน์ penalty ที่เพิ่มขึ้นตามจำนวนพารามิเตอร์ p+1" — เมื่อเพิ่มตัวแปร lNOX (ที่ไม่มีนัยสำคัญ p=0.368) เข้าไป การลด SSE ที่ได้ไม่คุ้มกับ penalty ที่เพิ่มขึ้น ทั้งสี่เกณฑ์จึงตัด lNOX ทิ้งตรงกันหมด ส่วน RMSE คำนวณจาก \(\sqrt{\sum(Y-\hat{Y})^2/n}\) ไม่มีพจน์ penalty ใด ๆ เลย วัดแค่ error ในกลุ่มตัวอย่าง (in-sample fit) การเพิ่มตัวแปรใด ๆ เข้าไปในโมเดล OLS มีแต่จะทำให้ SSE ลดลงหรือเท่าเดิม RMSE จึงเลือกโมเดลเต็มเสมอโดยไม่สนใจว่าตัวแปรที่เพิ่มเข้ามาจะมีนัยสำคัญทางสถิติหรือไม่ นี่คือเหตุผลเชิงโครงสร้างที่ทำให้ RMSE (ไม่มี penalty) แยกทางจากอีกสี่เกณฑ์ (มี penalty ทั้งหมด)</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>สัมประสิทธิ์ lSO2 ในโมเดลที่เลือก</span></div>
+  <div class="qtext">ในโมเดลสุดท้ายที่ทั้ง 4 เกณฑ์เห็นตรงกัน (PRECIP+EDUC+NONWHITE+lSO2) สัมประสิทธิ์ของ lSO2 คือ 15.0134 ข้อใดตีความค่านี้ได้ถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เมื่อ log(SO2) เพิ่มขึ้น 1 หน่วย (ตัวแปรอื่นคงที่) อัตราตายที่ปรับอายุแล้ว (MORT) คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย 15.0134 หน่วย</button>
+  <button class="opt" data-correct="false">เมื่อ SO2 เพิ่มขึ้น 1 หน่วย อัตราตายเพิ่มขึ้น 15.0134 หน่วยเสมอ ไม่ว่าตัวแปรอื่นจะเปลี่ยนหรือไม่</button>
+  <button class="opt" data-correct="false">ค่า 15.0134 คือสัดส่วนความแปรปรวนของ MORT ที่ lSO2 อธิบายได้</button>
+  <button class="opt" data-correct="false">ค่า 15.0134 บอกว่า lSO2 เป็นสาเหตุ (causal) ของการเพิ่มอัตราตายโดยตรง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>ทำไม lNOX ถูกตัดออก</span></div>
+  <div class="qtext">จากผลลัพธ์ของ summary(fullmodel) ในข้อ (f) ทำไม lNOX ถึงถูกตัดออกจากโมเดลใน stepwise BIC/AIC (ข้อ b/c) และ best-subset ที่ใช้ adjusted R²/Cp (ข้อ d/e)?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ lNOX มีค่า Estimate ติดลบ</button>
+  <button class="opt" data-correct="true">เพราะในโมเดลเต็ม lNOX มี p-value=0.3680 ไม่มีนัยสำคัญทางสถิติ การนำออกไม่ทำให้ fit แย่ลงมากพอที่จะคุ้มกับ penalty ของพารามิเตอร์เพิ่ม</button>
+  <button class="opt" data-correct="false">เพราะ R ไม่รองรับตัวแปร log สองตัวในโมเดลเดียวกัน</button>
+  <button class="opt" data-correct="false">เพราะ lNOX กับ MORT มีความสัมพันธ์แบบ non-linear ที่ lm() จับไม่ได้เลย</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response)</span><span>เขียนสมการสุดท้ายพร้อมแปลผลครบ</span></div>
+  <div class="qtext">จงเขียนสมการโมเดลสุดท้ายที่ทั้ง 4 เกณฑ์ (stepwise BIC, stepwise AIC, best-subset adj-R², best-subset Cp) เห็นตรงกัน พร้อมแปลผลสัมประสิทธิ์ของ NONWHITE เป็นประโยคภาษาที่ใช้ตอบข้อสอบได้ (อ้างอิงหลักการ "holding other variables constant" ที่สอนใน Lesson 2)</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>\[ \hat{MORT} = 944.84 + 1.64 \times PRECIP - 13.96 \times EDUC + 3.32 \times NONWHITE + 15.01 \times \log(SO2) \]</p>
+  <p>แปลผล NONWHITE: เมื่อควบคุม PRECIP, EDUC, และ log(SO2) ให้คงที่ (holding other variables constant) เปอร์เซ็นต์ประชากรที่ไม่ใช่คนขาว (NONWHITE) ที่เพิ่มขึ้น 1 หน่วย (1 percentage point) สัมพันธ์กับอัตราตายที่ปรับอายุแล้ว (MORT) ที่เพิ่มขึ้นโดยเฉลี่ย 3.32 หน่วย และเนื่องจากสัมประสิทธิ์นี้มีนัยสำคัญทางสถิติ (p=5.31e-07 &lt; 0.001) ความสัมพันธ์นี้จึงมีนัยสำคัญทางสถิติ — แต่เป็นเพียงความสัมพันธ์เชิงสังเกต (associative) ไม่ใช่ความสัมพันธ์เชิงสาเหตุ (causal) เพราะข้อมูลนี้เป็น observational data ไม่ใช่ experimental design</p>
+  </div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+คุณเพิ่งเดินผ่านโจทย์การบ้านจริงข้อหนึ่งด้วยทุกเทคนิคจาก Lesson 5 บนข้อมูลชุดเดียวกันตลอด: stepwise BIC, stepwise AIC, best-subset ด้วย Adjusted R², Cp, และ RMSE — เห็นแล้วว่าเกณฑ์ที่มี penalty (BIC/AIC/adj-R²/Cp) มักลงเอยที่โมเดลเดียวกันเมื่อสัญญาณจากข้อมูลชัดเจนพอ และเกณฑ์ที่ไม่มี penalty (RMSE บนข้อมูลเดิม) จะเอนเอียงไปทางโมเดลเต็มเสมอโดยไม่สนใจนัยสำคัญทางสถิติ — และเห็นเหตุผลที่ถูกต้องว่าทำไม RMSE ในกลุ่มตัวอย่างเดียวไม่พอสำหรับอ้างว่าโมเดลพยากรณ์ได้ดี (ต้องวัด out-of-sample) นี่คือรูปแบบการให้เหตุผลที่ข้อสอบวิชานี้ถามซ้ำบ่อยที่สุด
+</div>
+
+<p>โจทย์ Assignment 5 ทั้ง 3 หน้า (ข้อ a–g) ถูกเดินครบทุกข้อในบทนี้แล้ว — ไม่มีข้อที่ข้ามหรือย่อทิ้ง</p>
+
+<nav class="lesson-nav">
+  <span><a href="0005-model-selection.html">← Lesson 5: Model Selection</a></span>
+  <span><a href="../reference/0005-model-selection-cheatsheet.html">Reference: สูตร Cp/AIC/BIC + R Syntax →</a></span>
+</nav>
+<p><a href="../exams/drill-05-choose-the-tool.html">ฝึกซ้อมข้อสอบ: Drill 5 — Choose the Tool →</a></p>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

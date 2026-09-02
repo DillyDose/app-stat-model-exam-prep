@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ฝึกกับโจทย์จริง: Salmonella Assay — Assignment 8 ข้อ 1 (Poisson vs Negative Binomial)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="0011-count-regression.html">← Lesson 11: Count Regression</a></span>
+  <span><a href="../reference/0011-count-regression-cheatsheet.html">Reference: Count Regression Cheatsheet →</a></span>
+  <span><a href="../exams/drill-05-choose-the-tool.html">Drill 5: Choose the Tool →</a></span>
+</nav>
+
+<p class="kicker">Assignment 8, ข้อ 1 — Worked Example</p>
+<h1>Salmonella Reverse Mutagenicity Assay: จากกราฟ Functional Form ถึง Poisson vs Negative Binomial</h1>
+
+<p>บทเรียนนี้เดินตามโจทย์ข้อ 1 ของ Assignment 8 ทีละ part เพื่อฝึกทักษะทั้ง 4 ที่ Lesson 11 วางไว้กับข้อมูลจริงชุดหนึ่ง: เช็ค functional form ของ dose ก่อนฟิตโมเดล (log(μ) vs dose), เขียนสมการ Poisson GLM, ทำ goodness-of-fit test, วินิจฉัย overdispersion, แล้วฟิต Negative Binomial เป็นทางแก้ — ปิดท้ายด้วยการตัดสินใจว่าโมเดลไหน "เหมาะที่สุด" พร้อมเหตุผล ตัวเลขทุกตัวในหน้านี้คัดลอกมาจาก R output ของเฉลยจริง ไม่มีตัวเลขที่แต่งขึ้นเอง</p>
+
+<h2>ข้อมูล: <code>salmonella</code> (package faraway)</h2>
+<p>การทดลอง Ames test วัดจำนวน revertant colonies ของเชื้อ Salmonella TA98 บนเพลตอาหารเลี้ยงเชื้อ ที่ระดับปริมาณสาร quinolone (<code>dose</code>) 6 ระดับ — <strong>0, 10, 33, 100, 333, 1000</strong> — แต่ละระดับทำซ้ำ 3 เพลต (replicate) รวม 18 แถว:</p>
+<pre><code>> data(salmonella)
+> salmonella
+   colonies dose
+1        15    0
+2        21    0
+3        29    0
+4        16   10
+5        18   10
+6        21   10
+7        16   33
+8        26   33
+9        33   33
+10       27 100
+11       41 100
+12       60 100
+13       33 333
+14       38 333
+15       41 333
+16       20 1000
+17       27 1000
+18       42 1000</code></pre>
+
+<h2>(a) Plot กราฟเพื่อดู Functional Form: log(μ̂) vs dose</h2>
+<h3>ทำไมต้อง collapse เป็นค่าเฉลี่ยต่อ dose ก่อน</h3>
+<ul>
+<li>มี 3 replicate ต่อ 1 ระดับ dose — plot <code>colonies</code> ดิบกับ <code>dose</code> ตรง ๆ จะเห็นแค่ noise ภายในแต่ละกลุ่ม ไม่เห็นแนวโน้มของ mean</li>
+<li>ต้องคำนวณ μ̂ (ค่าเฉลี่ยของ colonies) แยกตามแต่ละ 6 ระดับของ dose ก่อน แล้วค่อย plot <code>log(μ̂)</code> กับ <code>dose</code> — เหมือนหลักการ "plot ก่อนฟิต" ที่ Lesson 11 หัวข้อ 4 ใช้กับข้อมูล <code>gala</code></li>
+</ul>
+<pre><code>> attach(salmonella)
+> mu<-rep(0,6)
+> doseunique<-unique(dose)
+> for (i in 1:6)
++ {
++   mu[i]<-mean(colonies[dose==doseunique[i]])
++ }
+>
+> plot(doseunique, log(mu), ylab=expression(log(hat(mu))), xlab="dose")</code></pre>
+
+<figure>
+<img src="../assets/exam-plots/ex-a8-salmonella-logmu-vs-dose.png" alt="Scatter plot of log(mean colonies) against dose for the 6 unique dose levels of the salmonella data">
+<figcaption>โจทย์เฉลย: log(μ̂) vs dose จากการ collapse 18 แถวเหลือ 6 ค่าเฉลี่ย (Assignment 8, ข้อ 1a)</figcaption>
+</figure>
+
+<h3>อ่านกราฟจากตัวเลขจริง (คำนวณ μ̂ เองเพื่อตรวจสอบ)</h3>
+<ul>
+<li>dose=0: colonies (15,21,29) → μ̂=21.67 → log(μ̂)=3.076</li>
+<li>dose=10: colonies (16,18,21) → μ̂=18.33 → log(μ̂)=2.909 <strong>(ต่ำกว่า dose=0 เสียอีก)</strong></li>
+<li>dose=33: colonies (16,26,33) → μ̂=25.00 → log(μ̂)=3.219</li>
+<li>dose=100: colonies (27,41,60) → μ̂=42.67 → log(μ̂)=3.753 <strong>(จุดสูงสุดของกราฟ)</strong></li>
+<li>dose=333: colonies (33,38,41) → μ̂=37.33 → log(μ̂)=3.620</li>
+<li>dose=1000: colonies (20,27,42) → μ̂=29.67 → log(μ̂)=3.390</li>
+</ul>
+<p>เรียงตามค่า dose ที่เพิ่มขึ้น log(μ̂) ไม่ได้ไต่ขึ้นเป็นเส้นตรงเลย: จาก 3.076 (dose=0) มันตกลงไปที่ 2.909 ก่อน (dose=10) แล้วค่อยไต่ขึ้นเร็วจนถึงจุดสูงสุด 3.753 ที่ dose=100 จากนั้น<strong>กลับตกลง</strong>เหลือ 3.620 (dose=333) และ 3.390 (dose=1000) — รูปร่างนี้คือโค้งขึ้นแล้วลง (concave, มีจุดพีค) ไม่ใช่เส้นตรงแบบที่โมเดล <code>log(μ)=β₀+β₁·dose</code> เชิงเส้นล้วนจะจับได้ นี่คือเหตุผลตรง ๆ ที่เฉลยสรุปว่า <strong>"we can see the curvature in the plot above. So, we will consider the model with includes the square term of dose"</strong> — ต้องเพิ่มพจน์ <code>I(dose^2)</code> เข้าไปในโมเดลตั้งแต่ต้น ไม่ใช่ทางเลือกเสริม</p>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>อ่านกราฟ Functional Form</span></div>
+  <div class="qtext">ทำไมเฉลยข้อ (a) จึงต้องคำนวณค่าเฉลี่ย μ̂ ต่อระดับ dose ก่อน แล้วค่อย plot log(μ̂) แทนที่จะ plot <code>colonies</code> ดิบทั้ง 18 แถวกับ <code>dose</code> ตรง ๆ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ R ไม่สามารถ plot ข้อมูลที่มี tie กันของค่า dose ได้</button>
+  <button class="opt" data-correct="true">เพราะข้อมูลมี 3 replicate ต่อ dose หนึ่งระดับ — การ collapse เป็นค่าเฉลี่ยต่อกลุ่มก่อนทำให้เห็นแนวโน้มของ log(mean) ชัดขึ้น แทนที่จะเห็นแค่ noise ของแต่ละเพลตซ้อนทับกัน</button>
+  <button class="opt" data-correct="false">เพราะ log() ใช้กับค่าเฉลี่ยได้เท่านั้น ใช้กับค่าจำนวนนับดิบไม่ได้</button>
+  <button class="opt" data-correct="false">เพราะจำนวน replicate ต้องเท่ากับจำนวนพารามิเตอร์ในโมเดลพอดี</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 2</span><span>วินิจฉัยรูปร่างกราฟ</span></div>
+  <div class="qtext">จากค่า log(μ̂) จริงที่คำนวณได้ (3.076 → 2.909 → 3.219 → 3.753 → 3.620 → 3.390 ตามลำดับ dose ที่เพิ่มขึ้น) ข้อสรุปใดถูกต้องที่สุดเกี่ยวกับ functional form ของ dose?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">log(μ̂) เพิ่มขึ้นเป็นเส้นตรงตลอดทุกช่วงของ dose จึงไม่ต้องเพิ่มพจน์ใด ๆ</button>
+  <button class="opt" data-correct="true">log(μ̂) ไต่ขึ้นถึงจุดสูงสุดที่ dose=100 แล้วลดลงเมื่อ dose สูงขึ้นอีก — เป็นความโค้ง (curvature) ที่โมเดลเชิงเส้นล้วนจับไม่ได้ ต้องเพิ่มพจน์ I(dose^2)</button>
+  <button class="opt" data-correct="false">ข้อมูลนี้ไม่ควรใช้ Poisson regression เลยเพราะ dose เป็นตัวแปรไม่ต่อเนื่อง</button>
+  <button class="opt" data-correct="false">ความผันผวนของ log(μ̂) เกิดจาก error ในการพิมพ์ข้อมูล ควรตัดจุดที่ผิดปกติทิ้ง</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(b) ฟิต Poisson GLM และเขียนสมการโมเดล</h2>
+<pre><code>> model<-glm(colonies~dose+I(dose^2), data=salmonella, family=poisson)
+> summary(model)
+
+Call:
+glm(formula = colonies ~ dose + I(dose^2), family = poisson,
+    data = salmonella)
+Deviance Residuals:
+    Min       1Q   Median       3Q      Max
+-2.0422 -1.4412 -0.5271     0.8173   4.8797
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept) 3.163e+00 6.701e-02 47.202 < 2e-16 ***
+dose         2.507e-03 5.122e-04  4.895 9.84e-07 ***
+I(dose^2)   -2.294e-06 4.937e-07 -4.647 3.36e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 78.358        on 17    degrees of freedom
+Residual deviance: 55.535        on 15    degrees of freedom
+AIC: 154.07
+
+Number of Fisher Scoring iterations: 4</code></pre>
+
+<div class="box win">
+<div class="label">สมการโมเดลที่ต้องเขียน (part b)</div>
+ให้ μ เป็นจำนวนเฉลี่ยของ revertant colonies ของเชื้อ Salmonella TA98<br>
+\[\log(\hat{\mu}) = 3.16 + 0.0025 \cdot \text{dose} - 0.0000023 \cdot \text{dose}^2\]
+</div>
+
+<h3>อ่าน output ทีละส่วน</h3>
+<ul>
+<li>ทั้งสามพจน์ significant หมด: <code>dose</code> (z=4.895, p=9.84e-07) และ <code>I(dose^2)</code> (z=-4.647, p=3.36e-06) — ยืนยันสิ่งที่กราฟใน part (a) บอกไว้แล้วว่าต้องมีพจน์กำลังสอง</li>
+<li><code>I(dose^2)</code> เป็น<strong>ลบ</strong> (-2.294e-06) สอดคล้องกับกราฟที่ log(μ̂) ไต่ขึ้นแล้ว<strong>ลดลง</strong>ที่ dose สูง — พารามิเตอร์กำลังสองติดลบคือกลไกทางคณิตศาสตร์ที่ทำให้ parabola เปิดคว่ำ (มีจุดสูงสุดแล้วลดลง) ตรงกับรูปกราฟจริง</li>
+<li>คำนวณจุดสูงสุด (vertex) ของ parabola นี้: \(-\hat\beta_1/(2\hat\beta_2) = -0.002507/(2\times(-0.000002294)) \approx 546\) — ใกล้เคียงกับช่วง dose=333 ถึง 1000 ที่กราฟข้อมูลจริงเริ่มลดลงพอดี</li>
+<li><code>Dispersion parameter for poisson family taken to be 1</code> — เป็นแค่ค่าที่ Poisson<strong>ตั้งสมมติฐานไว้</strong> ยังไม่ได้ตรวจสอบว่าจริงหรือไม่ (part d จะเช็ค)</li>
+</ul>
+
+<h2>(c) Goodness-of-Fit Test ที่ α = 0.05</h2>
+<pre><code>> 1-pchisq(deviance(model), model$df.residual)
+[1] 1.451732e-06</code></pre>
+<ul>
+<li>H₀: โมเดลฟิตข้อมูลได้ดี (residual deviance ใกล้เคียงกับค่า df ถ้าโมเดลถูก)</li>
+<li>p-value = <strong>1.451732×10⁻⁶</strong> น้อยกว่า α=0.05 มาก → <strong>ปฏิเสธ H₀</strong></li>
+<li>ตรวจสอบด้วยอัตราส่วน residual deviance/df: 55.535/15 ≈ <strong>3.70</strong> — มากกว่า 1 พอสมควร (ควรใกล้ 1 ถ้าโมเดล Poisson ถูก) เป็นสัญญาณเบื้องต้นของ overdispersion ที่จะยืนยันชัดใน part (d)</li>
+<li>ข้อสรุปตามเฉลย: <strong>"Clearly, the model does not fit the data at the 5% level of significance"</strong></li>
+</ul>
+
+<h2>(d) แสดงว่า Poisson GLM ไม่เพียงพอ — ต้องมี Overdispersion</h2>
+<pre><code>> model<-glm(colonies~dose+I(dose^2), data=salmonella, family=quasipoisson)
+> summary(model)
+
+Call:
+glm(formula = colonies ~ dose + I(dose^2), family = quasipoisson,
+    data = salmonella)
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)
+(Intercept) 3.163e+00 1.361e-01 23.237 3.55e-13 ***
+dose         2.507e-03 1.040e-03  2.410   0.0293 *
+I(dose^2)   -2.294e-06 1.003e-06 -2.288   0.0371 *
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for quasipoisson family taken to be 4.126227)
+
+    Null deviance: 78.358        on 17    degrees of freedom
+Residual deviance: 55.535        on 15    degrees of freedom
+AIC: NA
+
+Number of Fisher Scoring iterations: 4</code></pre>
+<ul>
+<li>Estimate ของทั้ง 3 พจน์<strong>เท่ากันเป๊ะ</strong>กับโมเดล Poisson ใน part (b) — quasi-likelihood ไม่เปลี่ยน point estimate เปลี่ยนแต่ SE</li>
+<li>Dispersion parameter ถูกประมาณจากข้อมูลจริงคือ <strong>4.126227</strong> — ไม่ใช่ 1 ที่ Poisson ตายตัวไว้ แปลว่า variance ของข้อมูลจริงมากกว่าที่ Poisson คาดไว้ประมาณ 4.13 เท่า</li>
+<li>ผลต่อ SE: √4.126227 ≈ 2.031 — SE ของ <code>dose</code> ขยายจาก 5.122e-04 (Poisson) เป็น 1.040e-03 (quasipoisson) ซึ่งตรงกับอัตราส่วน 5.122e-04 × 2.031 ≈ 1.040e-03 พอดี</li>
+<li>ผลต่อ p-value: <code>dose</code> จาก p=9.84e-07 (***) กลายเป็น p=0.0293 (*) — ยังนัยสำคัญอยู่ที่ α=0.05 แต่ความมั่นใจลดลงมาก เพราะ Poisson ธรรมดาเชื่อ SE เล็กเกินจริง</li>
+<li>ข้อสรุปตามเฉลย: <strong>"the dispersion parameter is estimated to be 4.13 which confirms that there is overdispersion"</strong></li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 3 (Free response)</span><span>Overdispersion จาก Quasi-Poisson</span></div>
+  <div class="qtext">อธิบายว่า dispersion parameter = 4.126227 จาก <code>quasipoisson</code> บอกอะไรเกี่ยวกับความเหมาะสมของโมเดล Poisson ธรรมดา และทำไม Estimate ของ <code>dose</code>/<code>I(dose^2)</code> ถึงเท่ากับ Poisson เป๊ะแต่ SE ต่างกัน</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>Poisson ตั้งสมมติฐานว่า dispersion parameter φ=1 ตายตัว (variance=mean พอดี) แต่ quasipoisson ประมาณ φ จากข้อมูลจริงได้ 4.126227 ซึ่งมากกว่า 1 อย่างชัดเจน แปลว่า variance ของจำนวน colonies จริงมากกว่าที่ Poisson คาดไว้ราว 4.13 เท่า — เป็นหลักฐานของ overdispersion ที่ทำให้ Poisson ธรรมดาไม่เหมาะสม</p>
+  <p>Estimate เท่ากันเพราะ quasi-likelihood ใช้ point estimate (β̂) วิธีเดียวกับ Poisson MLE ทุกประการ ต่างแค่ขั้นตอนหลังจากนั้น: quasipoisson คูณ SE ของ Poisson ด้วย √dispersion (√4.126227 ≈ 2.031) เพื่อสะท้อนความไม่แน่นอนที่แท้จริง ทำให้ SE ใหญ่ขึ้นและ p-value น่าเชื่อถือกว่าเดิม แม้ β̂ จะไม่เปลี่ยนเลยก็ตาม</p>
+  </div>
+</div>
+
+<h2>(e) สร้างโมเดล Negative Binomial และเขียนสมการ</h2>
+<pre><code>> nbmodel<-glm.nb(colonies~dose+I(dose^2), data=salmonella)
+> summary(nbmodel)
+
+Call:
+glm.nb(formula = colonies ~ dose + I(dose^2), data = salmonella,
+    init.theta = 14.30585996, link = log)
+
+Deviance Residuals:
+    Min       1Q    Median               3Q      Max
+-1.2487 -0.8539 -0.2903              0.5480   2.5494
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)
+(Intercept) 3.143e+00 1.120e-01 28.061 < 2e-16 ***
+dose         2.751e-03 9.572e-04  2.874 0.00405 **
+I(dose^2)   -2.518e-06 9.280e-07 -2.713 0.00667 **
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for Negative Binomial(14.3059) family taken to be 1)
+
+    Null deviance: 25.505        on 17    degrees of freedom
+Residual deviance: 17.626        on 15    degrees of freedom
+     AIC: 137.69
+
+     Number of Fisher Scoring iterations: 1
+
+     Theta:     14.31
+ Std. Err.:     6.97
+
+2 x log-likelihood:       -129.688</code></pre>
+
+<div class="box win">
+<div class="label">สมการโมเดลที่ต้องเขียน (part e)</div>
+ให้ μ เป็นจำนวนเฉลี่ยของ revertant colonies ของเชื้อ Salmonella TA98<br>
+\[\log(\hat{\mu}) = 3.14 + 0.0028 \cdot \text{dose} - 0.0000025 \cdot \text{dose}^2\]
+</div>
+
+<h3>เทียบกับโมเดล Poisson</h3>
+<ul>
+<li>Estimate ใกล้เคียงกับ Poisson มาก (dose: 0.002507→0.002751, I(dose^2): -2.294e-06→-2.518e-06) — ทิศทางและขนาดคล้ายกัน โมเดลไม่ได้เปลี่ยนเรื่องราวของ dose</li>
+<li>SE ใหญ่กว่า Poisson (dose: SE=5.122e-04→9.572e-04) แต่<strong>เล็กกว่า</strong> quasipoisson (SE=1.040e-03) — เพราะ NB จำลอง variance ด้วยฟังก์ชันกำลังสองของ mean ไม่ใช่ปรับ SE แบบเส้นตรงเหมือน quasi-likelihood</li>
+<li>ทั้งสองพจน์ยัง significant ที่ α=0.05: <code>dose</code> p=0.00405 (**), <code>I(dose^2)</code> p=0.00667 (**)</li>
+<li>θ̂ = <strong>14.31</strong> (SE=6.97) — ค่า θ ยิ่งใหญ่ยิ่งใกล้ Poisson (θ→∞ คือ Poisson พอดี); ค่า 14.31 นี้ค่อนข้างใหญ่ บ่งบอกว่า overdispersion ในข้อมูลนี้ไม่ได้รุนแรงสุดขีด แต่ยังมีนัยสำคัญพอที่จะทำให้โมเดล Poisson fit ไม่ผ่าน (part c)</li>
+<li>AIC ดีขึ้นชัดเจน: Poisson=154.07 → NB=<strong>137.69</strong> (ต่างกัน 16.38) ยืนยันว่า NB ฟิตข้อมูลนี้ดีกว่า Poisson</li>
+</ul>
+
+<h2>(f) Goodness-of-Fit Test ของโมเดล Negative Binomial ที่ α = 0.05</h2>
+<pre><code>> 1-pchisq(deviance(nbmodel), nbmodel$df.residual)
+[1] 0.2828136</code></pre>
+<ul>
+<li>p-value = <strong>0.2828136</strong> มากกว่า α=0.05 → <strong>ไม่ปฏิเสธ H₀</strong></li>
+<li>ตรวจสอบด้วยอัตราส่วน residual deviance/df: 17.626/15 ≈ <strong>1.18</strong> — ใกล้เคียง 1 มาก ต่างจากโมเดล Poisson ที่ได้ 3.70 อย่างชัดเจน</li>
+<li>ข้อสรุปตามเฉลย: <strong>"the model fits data at the 5% level of significance"</strong> — NB ผ่าน goodness-of-fit test ในขณะที่ Poisson ไม่ผ่าน (part c)</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>Goodness-of-Fit: Poisson vs NB</span></div>
+  <div class="qtext">Poisson model ได้ p-value จาก goodness-of-fit test = 1.45×10⁻⁶ (ปฏิเสธ H₀) ในขณะที่ Negative Binomial model ได้ p-value = 0.283 (ไม่ปฏิเสธ H₀) ข้อสรุปใดอธิบายความต่างนี้ได้ถูกต้องที่สุด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ทั้งสองโมเดลควรได้ p-value เท่ากันเสมอเพราะใช้ dose และ dose² เหมือนกัน ความต่างนี้เป็นข้อผิดพลาดของ R</button>
+  <button class="opt" data-correct="true">Poisson ตรึง variance=mean ตายตัว ทำให้ residual deviance สูงเทียบกับ df มาก (deviance/df≈3.70) ส่วน Negative Binomial มีพารามิเตอร์ θ เพิ่มมารองรับ overdispersion ทำให้ deviance/df≈1.18 ใกล้ 1 กว่ามาก จึงผ่าน goodness-of-fit</button>
+  <button class="opt" data-correct="false">เพราะ Negative Binomial ใช้ขนาดตัวอย่าง n มากกว่า Poisson</button>
+  <button class="opt" data-correct="false">เพราะสัมประสิทธิ์ของ dose และ I(dose^2) ใน NB มีเครื่องหมายตรงข้ามกับ Poisson</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>(g) โมเดลไหนเหมาะสมที่สุด</h2>
+<ul>
+<li>เฉลยสรุปสั้น ๆ ตรงไปตรงมา: <strong>"Due to the goodness-of-fit test in part (f), negative binomial model is preferred"</strong></li>
+<li>เหตุผลรวม: Poisson ไม่ผ่าน goodness-of-fit (p=1.45e-06, part c) และมี dispersion parameter สูงถึง 4.13 (part d) — สัญญาณ overdispersion ชัดเจนสองทาง</li>
+<li>NB ผ่าน goodness-of-fit (p=0.283, part f) ด้วยพารามิเตอร์เพิ่มเพียงตัวเดียว (θ) และให้ AIC ดีกว่า (137.69 vs 154.07)</li>
+<li>ตรงกับกฎจาก Lesson 11: เมื่อ residual deviance/df สูงกว่า 1 อย่างชัดเจน (ที่นี่คือ Poisson ให้ 3.70) ต้องแก้ด้วย quasi-Poisson หรือ Negative Binomial ไม่ใช่เชื่อ SE จาก Poisson ธรรมดาต่อไป — ในกรณีนี้ NB ให้ผลลัพธ์ที่ผ่านการตรวจสอบ fit ได้ดีกว่า quasi-Poisson (ซึ่งไม่มี full likelihood ให้เทียบ goodness-of-fit หรือ AIC ได้ตรง ๆ)</li>
+</ul>
+
+<h3>Rate Ratio Interpretation จากโมเดล NB (โมเดลที่เลือกใช้)</h3>
+<p>เพราะ link function เป็น log เหมือนกันทั้ง Poisson และ NB ใช้ template การแปลผลเดียวกัน (Lesson 11 หัวข้อ 2.1): \(\exp(\hat\beta)\) คือ rate ratio</p>
+<ul>
+<li>เปรียบเทียบ dose=100 กับ dose=0 (ครอบคลุมทั้งพจน์ dose และ I(dose^2) เพราะทั้งคู่เปลี่ยนพร้อมกันเมื่อ dose เปลี่ยน): \(\exp(0.002751\times100 - 0.000002518\times100^2) = \exp(0.2751-0.02518) = \exp(0.24992) \approx 1.284\)</li>
+<li>แปลผล: <strong>"จากโมเดล Negative Binomial เมื่อ dose เพิ่มจาก 0 เป็น 100 หน่วย จำนวน revertant colonies ที่คาดหวังเปลี่ยนเป็นประมาณ 1.284 เท่าของเดิม (เพิ่มขึ้น ~28.4%)"</strong> — สอดคล้องกับตัวเลข μ̂ จริงที่คำนวณได้ใน part (a): μ̂ ที่ dose=0 คือ 21.67 และที่ dose=100 คือ 42.67 ซึ่งคิดเป็นอัตราส่วน 42.67/21.67 ≈ 1.969 (ตัวเลขจากข้อมูลดิบสูงกว่าตัวเลขจากโมเดลเล็กน้อยเพราะโมเดลถูกฟิตด้วยข้อมูลทั้ง 18 แถวไม่ใช่แค่ 2 ระดับ dose นี้ และปรับให้เข้ากับรูปแบบ parabola โดยรวม)</li>
+<li>สังเกตว่าตัวเลข rate ratio นี้ใช้ได้เฉพาะช่วง dose=0→100 เท่านั้น — เพราะมีพจน์ I(dose^2) อยู่ในโมเดล อัตราส่วนของ exp(β̂) จึง<strong>ไม่คงที่</strong>ตลอดทุกช่วงของ dose เหมือนโมเดลเชิงเส้นล้วน (ต่างจาก rate ratio ปกติที่ Lesson 11 สอน ซึ่งใช้ได้กับทุกช่วง 1 หน่วยเท่ากันหมดเพราะไม่มีพจน์กำลังสอง)</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 5 (Free response)</span><span>Rate Ratio กับพจน์กำลังสอง</span></div>
+  <div class="qtext">โมเดล NB มีทั้งพจน์ <code>dose</code> (β̂=0.002751) และ <code>I(dose^2)</code> (β̂=-0.000002518) จงอธิบายว่าทำไมการรายงาน rate ratio แค่ \(\exp(\hat\beta_{\text{dose}})\) ตัวเดียว (ไม่รวมพจน์กำลังสอง) จึงเป็นการตีความที่ไม่สมบูรณ์สำหรับโมเดลนี้ และควรรายงานอย่างไรแทน</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">
+  <p>เพราะ log(μ̂) เป็นฟังก์ชันของทั้ง dose และ dose² พร้อมกัน การเพิ่ม dose ขึ้น 1 หน่วยจึงไม่ได้เปลี่ยนแค่พจน์ dose เท่านั้น แต่เปลี่ยนพจน์ dose² ไปด้วย (เพราะ dose² ก็เปลี่ยนค่าตาม dose) — \(\exp(\hat\beta_{\text{dose}})=\exp(0.002751)\approx1.00275\) เพียงอย่างเดียวจึงไม่ใช่ตัวคูณที่แท้จริงของ μ̂ เมื่อ dose เพิ่มขึ้นจริง ๆ เพราะมองข้ามผลของพจน์กำลังสองไป</p>
+  <p>วิธีที่ถูกต้องคือรายงาน rate ratio ระหว่างสองระดับ dose ที่ระบุชัดเจน เช่น dose=100 เทียบกับ dose=0: \(\exp(\hat\beta_{\text{dose}}\times100+\hat\beta_{\text{dose}^2}\times100^2)=\exp(0.2751-0.02518)\approx1.284\) — ต้องระบุจุดเริ่มต้นและจุดสิ้นสุดของ dose เสมอ เพราะอัตราส่วนนี้เปลี่ยนไปตามช่วงของ dose ที่เลือก (ไม่คงที่เหมือนโมเดลไม่มีพจน์กำลังสอง)</p>
+  </div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>สรุปภาพรวม</span></div>
+  <div class="qtext">ข้อใดสรุปเหตุผลที่ถูกต้องที่สุดว่าทำไมเฉลยข้อ 1(g) จึงเลือก Negative Binomial แทน Poisson สำหรับข้อมูล salmonella นี้?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ Negative Binomial มี AIC เท่ากับ Poisson เป๊ะ จึงเลือกอันไหนก็ได้</button>
+  <button class="opt" data-correct="false">เพราะ Poisson ใช้ไม่ได้กับข้อมูลที่มีพจน์กำลังสอง (dose²) เลย</button>
+  <button class="opt" data-correct="true">เพราะ Poisson ไม่ผ่าน goodness-of-fit test (p=1.45e-06) และมี dispersion parameter สูงถึง 4.13 ยืนยัน overdispersion ชัดเจน ในขณะที่ NB ผ่าน goodness-of-fit test (p=0.283) และให้ AIC ดีกว่า</button>
+  <button class="opt" data-correct="false">เพราะ Negative Binomial ไม่ต้องเช็ค goodness-of-fit เลย จึงปลอดภัยกว่าเสมอ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>ค่า θ ของ Negative Binomial</span></div>
+  <div class="qtext">โมเดล NB ของข้อมูล salmonella ได้ θ̂ = 14.31 (SE=6.97) ข้อใดอธิบายความหมายของค่านี้ได้ถูกต้อง?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">θ̂ คือจำนวนพารามิเตอร์ทั้งหมดที่ต้องประมาณในโมเดล</button>
+  <button class="opt" data-correct="true">θ ควบคุมระดับ overdispersion ของ Negative Binomial — ยิ่ง θ มาก ยิ่งใกล้เคียง Poisson (θ→∞ คือ Poisson พอดี); θ̂=14.31 ค่อนข้างใหญ่ แปลว่า overdispersion ในข้อมูลนี้ไม่รุนแรงสุดขีด แต่ยังมากพอที่ Poisson จะ fit ไม่ผ่าน</button>
+  <button class="opt" data-correct="false">θ̂ คือค่า dispersion parameter ตัวเดียวกับที่ quasipoisson รายงาน (4.126227)</button>
+  <button class="opt" data-correct="false">θ̂ ยิ่งเล็กยิ่งแปลว่าโมเดลใกล้เคียง Poisson มากขึ้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 8</span><span>ความสัมพันธ์ของ AIC</span></div>
+  <div class="qtext">AIC ของโมเดล Poisson คือ 154.07 และของ Negative Binomial คือ 137.69 (ต่างกัน 16.38) ทำไมจึงเปรียบเทียบ AIC ระหว่างสองโมเดลนี้ได้โดยตรง ในขณะที่โมเดล quasipoisson ใน part (d) แสดง <code>AIC: NA</code>?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ Negative Binomial มีจำนวนแถวข้อมูล (n) มากกว่า quasipoisson</button>
+  <button class="opt" data-correct="true">Poisson และ Negative Binomial ต่างมี full likelihood ให้คำนวณ log-likelihood และ AIC ได้ตรง ๆ ส่วน quasipoisson ใช้ quasi-likelihood (ไม่ใช่ full likelihood) จึงไม่มี AIC ให้คำนวณ</button>
+  <button class="opt" data-correct="false">เพราะ dose กับ I(dose^2) มีหน่วยต่างกันในแต่ละโมเดล</button>
+  <button class="opt" data-correct="false">AIC เปรียบเทียบได้เฉพาะโมเดลที่ผ่าน goodness-of-fit test แล้วเท่านั้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<div class="box win">
+<div class="label">ชัยชนะของบทเรียนนี้</div>
+ตอนนี้คุณควรทำโจทย์แบบข้อ 1 ของ Assignment 8 ได้ครบทุก part: อ่านกราฟ log(μ̂) vs dose เพื่อตัดสินใจว่าต้องเพิ่มพจน์กำลังสองหรือไม่, เขียนสมการ Poisson GLM จาก <code>summary()</code>, ทำ goodness-of-fit test แล้วอ่านผล, วินิจฉัย overdispersion จาก dispersion parameter ของ quasipoisson, ฟิต Negative Binomial ด้วย <code>glm.nb()</code>, และเลือกโมเดลสุดท้ายพร้อมเหตุผลจาก goodness-of-fit + AIC — ทักษะเดียวกับ Lesson 11 ทุกประการ เพียงแค่เจอในบริบทของโจทย์สอบจริง
+</div>
+
+<p><em>บทเรียนนี้ครอบคลุมเฉพาะข้อ 1 (salmonella) ของ Assignment 8 — ข้อ 2 (hsb, multinomial) อยู่ในบทเรียนคู่กับ Lesson 12 แยกต่างหาก</em></p>
+
+<p>สงสัยตรงไหน ถามได้เลยในแชท — ผมเป็นผู้สอนของคุณ ถามซ้ำได้ ถามลึกได้ ไม่ต้องเกรงใจ</p>
+
+<nav class="lesson-nav">
+  <span><a href="0011-count-regression.html">← Lesson 11: Count Regression</a></span>
+  <span><a href="../reference/0011-count-regression-cheatsheet.html">Reference: Count Regression Cheatsheet →</a></span>
+  <span><a href="../exams/drill-05-choose-the-tool.html">Drill 5: Choose the Tool →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>

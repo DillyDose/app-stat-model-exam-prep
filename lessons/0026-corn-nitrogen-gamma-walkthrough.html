@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ฝึกกับโจทย์จริง: Corn Yield vs Nitrogen — Gamma GLM 3 Link Functions (Assignment 9#2)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span><a href="0013-other-glms.html">← Lesson 13: Other GLMs</a></span>
+  <span>ฝึกกับโจทย์จริง · Assignment 9 #2</span>
+  <span><a href="../reference/0013-other-glms-cheatsheet.html">Reference: Gamma/IG GLM cheat sheet →</a></span>
+</nav>
+
+<p class="kicker">Assignment 9 — Problem 2 (Worked Example)</p>
+<h1>ฝึกกับโจทย์จริง: Corn Yield vs Nitrogen — Gamma GLM 3 Link Functions</h1>
+
+<p>Lesson 13 วางกรอบ Gamma GLM ไว้แล้ว: variance function \(\propto\mu^2\), การเลือก link function (canonical/log/linear) ตามลักษณะของผล X ที่สงสัย, และการแปลผลสัมประสิทธิ์ด้วย \(\exp(\hat\beta)\) เมื่อใช้ log link บทนี้เอากรอบนั้นมาใช้กับโจทย์จริงจาก Assignment 9 ข้อ 2 — ข้อมูล <code>cornnit</code> (faraway package) ที่ศึกษาความสัมพันธ์ระหว่างผลผลิตข้าวโพด (<code>yield</code>, บุชเชล/เอเคอร์) กับปุ๋ยไนโตรเจน (<code>nitrogen</code>, ปอนด์/เอเคอร์) ในวิสคอนซิน โจทย์นี้ให้ fit ทั้ง normal linear model (พร้อมหาการแปลงที่เหมาะสม) และ gamma GLM ด้วย <strong>3 link function ที่ต่างกัน</strong> (log, identity, inverse) แล้วเปรียบเทียบว่าแบบไหนดีที่สุด — เป็นตัวอย่างที่ตรงกับหัวข้อ "3 ทางเลือกของ link function" ในหัวข้อ 3 ของ Lesson 13 พอดี</p>
+
+<h2>1. ทำไมโจทย์นี้เป็นตัวอย่างของ Gamma GLM</h2>
+<ul>
+<li><code>yield</code> เป็นผลผลิตต่อเอเคอร์ — <strong>เป็นบวกเสมอ</strong> (ไม่มีผลผลิตติดลบหรือเป็นศูนย์แบบมีความหมาย)</li>
+<li>โจทย์ระบุเองว่าต้อง "find appropriate transformations for the data" ก่อน fit normal linear model — เป็นสัญญาณว่าข้อมูลดิบไม่ตรงกับสมมติฐาน normal error ตรง ๆ</li>
+<li>เมื่อ fit <code>lm(yield~nitrogen)</code> แล้วดู diagnostic plot residual กระจายไม่สม่ำเสมอ และ Box-Cox แนะนำให้แปลงข้อมูล (ไม่ใช่ \(\lambda=1\) ซึ่งคือไม่ต้องแปลงเลย) — บ่งชี้ปัญหา variance ไม่คงที่แบบเดียวกับที่ Lesson 13 หัวข้อ 2 อธิบาย</li>
+<li>เมื่อโจทย์บอกให้ "develop a GLM ... that does not (explicitly) transform the response" นี่คือคำเชิญตรง ๆ ให้ใช้ Gamma GLM แทนการ log/cube แปลงตัวแปรตอบสนองเอง — <code>yield</code> เข้าเกณฑ์ทั้งหมดของ Lesson 13 หัวข้อ 1: ต่อเนื่อง เป็นบวกเสมอ และเบ้</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 1</span><span>ทำไมต้อง Gamma GLM</span></div>
+  <div class="qtext">ข้อใดอธิบายได้ดีที่สุดว่าทำไมข้อมูล <code>cornnit</code> (yield ~ nitrogen) เข้าเกณฑ์ที่ควรพิจารณา Gamma GLM แทน normal linear regression ตรง ๆ?</div>
+  <div class="options">
+  <button class="opt" data-correct="false"><code>nitrogen</code> เป็นตัวแปรต่อเนื่อง จึงต้องใช้ GLM เสมอไม่ว่า distribution ของ response จะเป็นแบบใด</button>
+  <button class="opt" data-correct="true"><code>yield</code> เป็นบวกเสมอ ต่อเนื่อง และ diagnostic ของ normal linear model (residual plot ไม่สม่ำเสมอ + Box-Cox แนะนำให้แปลง) บ่งชี้ว่า variance ไม่คงที่แบบที่ normal model สมมติ</button>
+  <button class="opt" data-correct="false">เพราะจำนวนข้อมูล (n=44) น้อยเกินไปสำหรับ normal linear regression</button>
+  <button class="opt" data-correct="false">เพราะ nitrogen มีแค่ค่าที่เป็นจำนวนเต็มเท่านั้น</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>2. เส้นทางแรก (Part a): Normal Linear Model + หาการแปลงที่เหมาะสม</h2>
+
+<h3>2.1 Fit เบื้องต้น: <code>lm(yield~nitrogen)</code></h3>
+<pre><code>> model<-lm(yield~nitrogen, data=cornnit)
+> summary(model)
+
+Call:
+lm(formula = yield ~ nitrogen, data = cornnit)
+
+Residuals:
+    Min      1Q    Median         3Q      Max
+-60.439 -10.939     1.534     14.082   29.697
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 107.43864    4.66622   23.02 < 2e-16 ***
+nitrogen      0.17730    0.03377    5.25 4.71e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 20.53 on 42 degrees of freedom
+Multiple R-squared: 0.3962,     Adjusted R-squared: 0.3818
+F-statistic: 27.56 on 1 and 42 DF, p-value: 4.713e-06</code></pre>
+<ul>
+<li>สัมประสิทธิ์ <code>nitrogen</code> = 0.17730 นัยสำคัญมาก (p = 4.71e-06) — แปลตรง ๆ ว่าไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตเพิ่มขึ้น 0.1773 บุชเชล/เอเคอร์ โดยเฉลี่ย</li>
+<li>แต่ \(R^2 = 0.3962\) ต่ำ และช่วง Residual (Min −60.439 ถึง Max 29.697) เบ้ไปทางลบชัดเจน — ไม่สมมาตรรอบ 0 อย่างที่ normal error ควรเป็น</li>
+<li><code>plot(model, 1)</code> ถึง <code>plot(model, 4)</code> (Residuals vs Fitted, Normal Q-Q, Scale-Location, Cook's distance) ยืนยันปัญหานี้: จุด residual กระจายไม่สม่ำเสมอรอบเส้น 0 และ Q-Q plot โค้งออกจากเส้นตรงที่ปลายทั้งสองด้าน</li>
+</ul>
+
+<h3>2.2 Box-Cox แนะนำการแปลงข้อมูล</h3>
+<pre><code>> library(MASS)
+> boxcox(model, lambda = seq(-5, 5, 1/10))</code></pre>
+<ul>
+<li>กราฟ log-likelihood เทียบ \(\lambda\) (ทดสอบตั้งแต่ −5 ถึง 5) มียอด (จุดที่ likelihood สูงสุด) อยู่ในช่วงประมาณ \(\lambda \approx 2\) ถึง \(3\) และเส้นประแนวตั้งที่ทำเครื่องหมาย 95% CI ของ \(\lambda\) ก็คร่อมช่วงประมาณ 1.5 ถึง 4 — <strong>ไม่รวม \(\lambda = 1\)</strong> (คือ "ไม่ต้องแปลงอะไรเลย") อยู่ในช่วงนั้น จึงยืนยันว่าจำเป็นต้องแปลงตัวแปรตอบสนองจริง ๆ</li>
+<li>โจทย์ทดลอง plot <code>nitrogen</code> เทียบกับ <code>yield^2</code>, <code>yield^3</code>, <code>yield^4</code> แล้ว<strong>เลือก \(y^3\)</strong> เป็นตัวแทนที่อยู่ในช่วง CI และให้ scatter ที่ดูเป็นเส้นตรงมากพอ</li>
+</ul>
+<pre><code>> model<-lm(I(yield^3)~nitrogen, data=cornnit)
+> summary(model)
+
+Call:
+lm(formula = I(yield^3) ~ nitrogen, data = cornnit)
+
+Residuals:
+     Min      1Q        Median        3Q        Max
+-1365038 -570012          3471    525741    1817216
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept) 1468861      186746   7.866 8.63e-10 ***
+nitrogen        7278       1352   5.385 3.03e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 821600 on 42 degrees of freedom
+Multiple R-squared: 0.4084,     Adjusted R-squared: 0.3943
+F-statistic: 28.99 on 1 and 42 DF, p-value: 3.029e-06</code></pre>
+<ul>
+<li>\(R^2\) ขยับขึ้นเล็กน้อยจาก 0.3962 → 0.4084 หลังแปลง — ดีขึ้นแต่ไม่มาก</li>
+<li>ปัญหาใหญ่คือการแปลผล: สัมประสิทธิ์ nitrogen = 7,278 หมายถึง "ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับ<strong>ค่ายกกำลังสามของผลผลิต</strong>เพิ่มขึ้น 7,278 หน่วยโดยเฉลี่ย" — ไม่มีความหมายที่จับต้องได้กับใครก็ตามที่ไม่ใช่นักสถิติ</li>
+<li>นี่คือจุดที่โจทย์บอกตรง ๆ ว่า "the interpretation is not easy in this case" — เป็นสาเหตุที่ต้องหาทางออกอื่นในส่วนถัดไป</li>
+</ul>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 2 (Free response)</span><span>ปัญหาของการแปลงข้อมูลด้วย Power Transform</span></div>
+  <div class="qtext">อธิบายด้วยคำพูดของตัวเองว่าทำไมโมเดล <code>lm(I(yield^3)~nitrogen)</code> ถึงแม้จะผ่านเกณฑ์ Box-Cox แล้ว แต่ก็ยังมีปัญหาในทางปฏิบัติ — และสิ่งนี้ชี้ไปทางทางออกแบบใด</div>
+  <textarea rows="3" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">แม้ \(y^3\) จะอยู่ในช่วง 95% CI ของ Box-Cox และทำให้ \(R^2\) ดีขึ้นเล็กน้อย แต่สัมประสิทธิ์ที่ได้ (7,278) อยู่บนสเกลของ "ยกกำลังสามของผลผลิต" ซึ่งไม่มีความหมายที่ตีความได้ง่ายในหน่วยจริง (บุชเชล/เอเคอร์) — ต้อง back-transform (ถอดรากที่สาม) กลับไปมาซึ่งไม่ตรงไปตรงมาและทำให้ค่าคาดการณ์เพี้ยนจาก Jensen's inequality ทางออกที่ Lesson 13 เสนอไว้คือใช้ Gamma GLM ซึ่งจับ variance function ที่เป็นรูปกำลังสองของค่าเฉลี่ยได้โดยตรง โดยไม่ต้องแปลงตัวแปรตอบสนองเลย แล้วเลือก link function ที่ทำให้แปลผลง่าย (เช่น log หรือ identity) แทน</div>
+</div>
+
+<h2>3. เส้นทางที่สอง (Part b): Gamma GLM ด้วย 3 Link Functions</h2>
+<p>โจทย์ให้ fit <code>yield~nitrogen</code> ด้วย Gamma family แต่เปลี่ยน link function 3 แบบ — ตรงกับตารางในหัวข้อ 3 ของ Lesson 13 (canonical/inverse, log, linear/identity) พอดี</p>
+
+<h3>3.1 Log Link</h3>
+<pre><code>> gmodel1<-glm(yield~nitrogen, data=cornnit, family=Gamma(link=log))
+> summary(gmodel1)
+
+Call:
+glm(formula = yield ~ nitrogen, family = Gamma(link = log), data = cornnit)
+
+Deviance Residuals:
+     Min        1Q        Median          3Q         Max
+-0.72056 -0.09611        0.01484     0.11810     0.24896
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 4.6686724 0.0407938 114.446 < 2e-16 ***
+nitrogen    0.0015178 0.0002952    5.141 6.73e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for Gamma family taken to be 0.03220794)
+
+    Null deviance: 2.4061       on 43   degrees of freedom
+Residual deviance: 1.6272       on 42   degrees of freedom
+AIC: 409.08
+
+Number of Fisher Scoring iterations: 5
+> 1-pchisq(1.6272, 42)
+[1] 1</code></pre>
+<ul>
+<li>ด้วย log link ต้องแปลผลด้วย \(\exp(\hat\beta)\) เสมอ (เหมือน Lesson 13 หัวข้อ 5): \(\exp(0.0015178) \approx 1.00152\) — ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตเฉลี่ย<strong>เพิ่มขึ้นประมาณ 0.152%</strong> (คูณด้วย 1.00152)</li>
+<li>\(\exp(4.6686724) \approx 106.6\) คือผลผลิตเฉลี่ยที่คาดการณ์เมื่อ nitrogen = 0 — ใกล้เคียงกับ intercept ของ normal linear model เดิม (107.44) เป็นการเช็คความสมเหตุสมผลที่ดี</li>
+<li>\(1-\text{pchisq}(1.6272, 42) = 1\) หมายความว่าไม่มีหลักฐานปฏิเสธว่าโมเดลนี้ fit ไม่ดี (goodness-of-fit test ผ่านสบาย)</li>
+<li>AIC = 409.08</li>
+</ul>
+
+<h3>3.2 Identity Link</h3>
+<pre><code>> gmodel2<-glm(yield~nitrogen, data=cornnit, family=Gamma(link=identity))
+> summary(gmodel2)
+
+Call:
+glm(formula = yield ~ nitrogen, family = Gamma(link = identity),
+    data = cornnit)
+
+Deviance Residuals:
+     Min        1Q        Median          3Q         Max
+-0.69254 -0.08020        0.01547     0.11306     0.25737
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)
+(Intercept) 102.79382    4.42553 23.227 < 2e-16 ***
+nitrogen      0.22554    0.03948  5.712 1.03e-06 ***
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for Gamma family taken to be 0.03060362)
+
+    Null deviance: 2.4061       on 43   degrees of freedom
+Residual deviance: 1.5208       on 42   degrees of freedom
+AIC: 406.09
+
+Number of Fisher Scoring iterations: 8
+> 1-pchisq(1.5208,42)
+[1] 1</code></pre>
+<ul>
+<li>Identity link คือ \(\eta = \mu\) — สัมประสิทธิ์แปลผลได้<strong>ตรงตัวแบบบวก</strong> เหมือน linear regression ปกติ ไม่ต้อง exp เลย</li>
+<li>nitrogen = 0.22554: ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตเฉลี่ย<strong>เพิ่มขึ้น 0.2255 บุชเชล/เอเคอร์โดยตรง</strong> — ตัวเลขใกล้เคียงกับ normal linear model เดิม (0.1773) แต่มาจาก distribution ที่เหมาะกับข้อมูลเบ้ขวามากกว่า</li>
+<li>AIC = 406.09 — <strong>ต่ำที่สุดในสามโมเดล</strong> (เทียบกับ log link 409.08)</li>
+<li>\(1-\text{pchisq}(1.5208, 42) = 1\) ผ่าน goodness-of-fit เหมือนกัน</li>
+</ul>
+
+<h3>3.3 Inverse Link (Canonical Link)</h3>
+<pre><code>> gmodel3<-glm(yield~nitrogen, data=cornnit, family=Gamma(link=inverse))
+> summary(gmodel3)
+     Call:
+     glm(formula = yield ~ nitrogen, family = Gamma(link = inverse),
+         data = cornnit)
+
+     Deviance Residuals:
+          Min        1Q         Median            3Q         Max
+     -0.74146 -0.09827         0.02594       0.12379     0.23921
+
+     Coefficients:
+                   Estimate Std. Error t value Pr(>|t|)
+     (Intercept) 9.134e-03 3.553e-04 25.711 < 2e-16 ***
+     nitrogen    -1.027e-05 2.192e-06 -4.685 2.94e-05 ***
+     ---
+     Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+     (Dispersion parameter for Gamma family taken to be 0.03346468)
+
+         Null deviance: 2.4061         on 43   degrees of freedom
+     Residual deviance: 1.7137         on 42   degrees of freedom
+     AIC: 411.38
+
+     Number of Fisher Scoring iterations: 4
+     > 1-pchisq(1.7137,42)
+     [1] 1</code></pre>
+<ul>
+<li>Inverse link คือ canonical link ของ Gamma (\(\eta = 1/\mu\)) ตามที่ Lesson 13 หัวข้อ 3 อธิบายไว้</li>
+<li><strong>ระวังทิศทางเครื่องหมาย</strong> — สัมประสิทธิ์ nitrogen = −1.027e-05 เป็น<strong>ลบ</strong> แต่ไม่ได้แปลว่าไนโตรเจนลดผลผลิต! เพราะโมเดลอยู่บนสเกล \(1/\mu\) ไม่ใช่ \(\mu\): เมื่อ \(1/\mu\) ลดลง แปลว่า \(\mu\) (ผลผลิตเฉลี่ย) <strong>เพิ่มขึ้น</strong> — ทิศทางเดียวกับอีกสองโมเดล ไม่ใช่ตรงข้าม</li>
+<li>เช็คความสมเหตุสมผล: ที่ nitrogen = 0, \(1/\mu = 9.134\text{e-}03 \implies \mu \approx 109.5\) บุชเชล/เอเคอร์ — ใกล้เคียงกับอีกสองโมเดล</li>
+<li>AIC = 411.38 — <strong>สูงที่สุด</strong>ในสามโมเดล</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 3</span><span>แปลผล Log Link</span></div>
+  <div class="qtext">จาก <code>gmodel1</code> (Gamma, log link) สัมประสิทธิ์ nitrogen = 0.0015178 ควรแปลผลว่าอย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ ทำให้ผลผลิตเพิ่มขึ้น 0.0015178 บุชเชล/เอเคอร์โดยตรง</button>
+  <button class="opt" data-correct="true">ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตเฉลี่ยเพิ่มขึ้นประมาณ 0.152% (คูณด้วย \(\exp(0.0015178)\approx 1.00152\))</button>
+  <button class="opt" data-correct="false">ไนโตรเจนไม่มีผลต่อผลผลิตเลยเพราะสัมประสิทธิ์ใกล้ 0 มาก</button>
+  <button class="opt" data-correct="false">ต้องนำ 0.0015178 ไปคูณกับ dispersion parameter ก่อนจึงจะแปลผลได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 4</span><span>แปลผล Identity Link</span></div>
+  <div class="qtext">จาก <code>gmodel2</code> (Gamma, identity link) สัมประสิทธิ์ nitrogen = 0.22554 ต่างจากการแปลผลของ log link อย่างไร?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">แปลผลได้ตรงตัวแบบบวก (additive) — ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตเฉลี่ยเพิ่มขึ้น 0.2255 บุชเชล/เอเคอร์โดยตรง ไม่ต้อง exp()</button>
+  <button class="opt" data-correct="false">ต้อง exp(0.22554) ก่อนเสมอเหมือน log link</button>
+  <button class="opt" data-correct="false">Identity link ใช้แปลผลไม่ได้เลยสำหรับ Gamma GLM</button>
+  <button class="opt" data-correct="false">สัมประสิทธิ์นี้แปลผลเป็นเปอร์เซ็นต์การเปลี่ยนแปลงเหมือน log link</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 5</span><span>ระวังเครื่องหมายของ Inverse Link</span></div>
+  <div class="qtext">จาก <code>gmodel3</code> (Gamma, inverse link) สัมประสิทธิ์ nitrogen = −1.027e-05 (ลบ) ข้อใดถูกต้องเกี่ยวกับการแปลผล?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เครื่องหมายลบแปลว่าไนโตรเจนทำให้ผลผลิตลดลง ซึ่งขัดแย้งกับอีกสองโมเดล</button>
+  <button class="opt" data-correct="true">เครื่องหมายลบอยู่บนสเกล \(1/\mu\) — เมื่อ \(1/\mu\) ลดลง \(\mu\) (ผลผลิตเฉลี่ย) กลับเพิ่มขึ้น ทิศทางจึงตรงกับอีกสองโมเดล ไม่ใช่ตรงข้าม</button>
+  <button class="opt" data-correct="false">Inverse link ไม่สามารถใช้กับข้อมูลนี้ได้เพราะให้สัมประสิทธิ์ติดลบ</button>
+  <button class="opt" data-correct="false">เครื่องหมายลบเกิดจากความผิดพลาดในการ fit โมเดล ต้อง fit ใหม่</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<h2>4. เปรียบเทียบทั้ง 3 Link Function ด้วย AIC และ Deviance</h2>
+<p>เพราะทั้งสามโมเดลใช้ Gamma family เดียวกัน ต่างกันแค่ link function — <strong>เปรียบเทียบ AIC กันได้ตรง ๆ</strong> (หลักการเดียวกับที่ Lesson 13 หัวข้อ 8 เปรียบเทียบ 3 link ของ inverse Gaussian GLM ในตัวอย่าง Life Test)</p>
+<table>
+<tr><th>Link</th><th>Nitrogen coefficient</th><th>AIC</th><th>Residual deviance</th><th>1-pchisq (goodness-of-fit)</th></tr>
+<tr><td>Log \((\eta=\log\mu)\)</td><td>0.0015178</td><td>409.08</td><td>1.6272</td><td>1</td></tr>
+<tr><td>Identity \((\eta=\mu)\)</td><td>0.22554</td><td><strong>406.09</strong> (ต่ำสุด)</td><td>1.5208</td><td>1</td></tr>
+<tr><td>Inverse \((\eta=1/\mu)\)</td><td>−1.027e-05</td><td>411.38</td><td>1.7137</td><td>1</td></tr>
+</table>
+<ul>
+<li>ทั้งสามโมเดล<strong>ผ่าน goodness-of-fit test</strong> เท่ากันหมด (\(1-\text{pchisq}=1\) ทุกแบบ) — เกณฑ์นี้แยกไม่ออกว่า link ไหนดีกว่ากัน ต้องใช้ AIC ตัดสินแทน (เหมือนสถานการณ์ในตัวอย่าง Life Test ของ Lesson 13)</li>
+<li><strong>Identity link ชนะด้วย AIC ต่ำสุด (406.09)</strong> รองลงมาคือ log link (409.08) และ inverse link แพ้ที่สุด (411.38)</li>
+<li>เหตุผลที่โจทย์ให้ไว้ตรง ๆ: "we pick the model 2 with identity link due to the lowest AIC"</li>
+</ul>
+
+<div class="box win">
+<div class="label">สรุปผลลัพธ์สุดท้าย — เทียบกับ Part (a)</div>
+<p>โมเดลที่เลือก: <strong>Gamma GLM, identity link</strong> — \(\mu_i = 102.79382 + 0.22554 \times \text{nitrogen}_i\)</p>
+<p>การแปลผล: "ไนโตรเจนเพิ่มขึ้น 1 ปอนด์/เอเคอร์ สัมพันธ์กับผลผลิตข้าวโพดเฉลี่ยเพิ่มขึ้นประมาณ <strong>0.23 บุชเชล/เอเคอร์</strong>" — ตรงไปตรงมา ไม่ต้อง back-transform ใด ๆ</p>
+<p>เทียบกับโมเดล Part (a) ที่ใช้ \(y^3\) เป็นตัวแปรตอบสนอง (สัมประสิทธิ์ nitrogen = 7,278 บนสเกล "ยกกำลังสามของผลผลิต" ซึ่งตีความยาก) — Gamma GLM ด้วย identity link ให้การแปลผลที่<strong>ง่ายกว่ามาก</strong> โดยยังคงจับลักษณะ variance ที่ไม่คงที่ของข้อมูลได้ถูกต้อง (variance function \(\propto\mu^2\)) โดยไม่ต้องแปลงตัวแปรตอบสนองเลย — นี่คือข้อได้เปรียบหลักของ GLM เหนือ power-transform ตามที่โจทย์สรุปไว้</p>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 6</span><span>เกณฑ์เลือก Link ที่ดีที่สุด</span></div>
+  <div class="qtext">จากทั้ง 3 โมเดล Gamma GLM ในโจทย์นี้ ควรเลือก link function ใด และเพราะเหตุใด?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">Log link เพราะเป็น link ที่นิยมใช้บ่อยที่สุดเสมอในทุกกรณี</button>
+  <button class="opt" data-correct="false">Inverse link เพราะเป็น canonical link ของ Gamma family</button>
+  <button class="opt" data-correct="true">Identity link เพราะให้ AIC ต่ำสุด (406.09) เมื่อเทียบกับ log link (409.08) และ inverse link (411.38) ทั้งที่ goodness-of-fit test ผ่านเท่ากันหมด</button>
+  <button class="opt" data-correct="false">ทั้งสาม link ให้ผลเหมือนกันทุกประการ เลือกอันไหนก็ได้</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 7</span><span>เปรียบเทียบข้าม Link ภายใน Family เดียวกัน</span></div>
+  <div class="qtext">ทำไมการเปรียบเทียบ AIC ระหว่าง <code>gmodel1</code>, <code>gmodel2</code>, <code>gmodel3</code> ในโจทย์นี้จึงทำได้ตรง ๆ (ต่างจากการเปรียบเทียบ Gamma GLM กับ log-normal model ในตัวอย่าง motorins ของ Lesson 13)?</div>
+  <div class="options">
+  <button class="opt" data-correct="true">เพราะทั้งสามโมเดลใช้ distribution เดียวกัน (Gamma family) ต่างกันแค่ link function เท่านั้น ไม่ใช่การเทียบข้าม distribution</button>
+  <button class="opt" data-correct="false">เพราะ n ของข้อมูลนี้เล็ก (44 จุด) ทำให้เปรียบเทียบ AIC ได้เสมอไม่ว่า distribution จะต่างกันแค่ไหน</button>
+  <button class="opt" data-correct="false">เพราะสัมประสิทธิ์ของทั้งสามโมเดลมีค่าใกล้เคียงกันอยู่แล้ว</button>
+  <button class="opt" data-correct="false">AIC เปรียบเทียบข้าม distribution ได้เสมอ ไม่มีข้อจำกัดใด ๆ</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 8 (Free response)</span><span>สรุปเปรียบเทียบ Part (a) กับ Part (b)</span></div>
+  <div class="qtext">สรุปว่าทำไม Gamma GLM (identity link) ในส่วน (b) ถึงเป็นทางออกที่ดีกว่าการแปลงตัวแปรตอบสนองด้วย power transform ในส่วน (a) — ให้ยกตัวเลขจริงจากทั้งสองโมเดลมาเปรียบเทียบ</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">โมเดล Part (a) ใช้ \(y^3\) เป็นตัวแปรตอบสนองเพื่อให้ผ่านเกณฑ์ Box-Cox แต่สัมประสิทธิ์ที่ได้ (nitrogen = 7,278) อยู่บนสเกล "ยกกำลังสามของผลผลิต" ซึ่งไม่มีความหมายที่จับต้องได้ ต้อง back-transform กลับไปกลับมาซึ่งซับซ้อนและเพี้ยนจาก Jensen's inequality ในทางตรงข้าม Gamma GLM ด้วย identity link ในส่วน (b) จับ variance function \(\propto\mu^2\) ของข้อมูลได้โดยตรงจากธรรมชาติของ distribution โดยไม่ต้องแปลงตัวแปรตอบสนองเลย และให้สัมประสิทธิ์ nitrogen = 0.22554 ที่แปลผลได้ตรงตัวทันทีว่า "ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ ผลผลิตเฉลี่ยเพิ่มขึ้น 0.2255 บุชเชล/เอเคอร์" — ง่ายกว่าและตรงไปตรงมากว่าการอ่านผลบนสเกลยกกำลังสามมาก AIC ของโมเดล identity link (406.09) ยังต่ำที่สุดในบรรดา Gamma GLM ทั้งสาม link ที่ลองด้วย</div>
+</div>
+
+<h2>5. ตัวอย่างที่สอง (Assignment 9 ข้อ 3b): Rats — Inverse Gaussian GLM</h2>
+<p>ข้อมูลชุดเดียวกับที่ Lesson 3's walkthrough ใช้แปลงตัวแปรตอบสนอง (poison × treatment, survival time) — แต่คราวนี้แทนที่จะแปลง Y ด้วย Box-Cox แล้วฟิต OLS แบบใน Assignment 3/9#3a เราฟิต <strong>Inverse Gaussian GLM ตรง ๆ บนสเกลเดิม</strong> และให้เลือก link function ที่เหมาะสมพร้อมหาหลักฐานยืนยัน</p>
+<pre><code>&gt; invmodel1&lt;-glm(time~poison*treat, data=rats, family=inverse.gaussian)
+&gt; summary(invmodel1)
+Coefficients:
+                 Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)        5.8770     1.1575   5.077 1.19e-05 ***
+poisonII           3.8887     2.0518   1.895 0.066105 .
+poisonIII         16.7988     3.3903   4.955 1.72e-05 ***
+treatB            -4.5856     1.2156 -3.772 0.000583 ***
+poisonIII:treatB  -9.1794     3.7595 -2.442 0.019663 *
+poisonIII:treatD -10.0188     3.8273 -2.618 0.012865 *
+(Dispersion parameter for inverse.gaussian family taken to be 0.09404014)
+    Null deviance: 25.7437  on 47  degrees of freedom
+Residual deviance: 3.6418   on 36  degrees of freedom
+AIC: -84.797
+
+&gt; invmodel2&lt;-glm(time~poison*treat, data=rats, family=inverse.gaussian(link=inverse))
+&gt; summary(invmodel2)   # AIC: -84.797, Residual deviance: 3.6418 (เหมือน invmodel1 เป๊ะ)
+
+&gt; invmodel3&lt;-glm(time~poison*treat, data=rats, family=inverse.gaussian(link=identity))
+&gt; summary(invmodel3)
+Coefficients:
+                 Estimate Std. Error t value Pr(&gt;|t|)
+(Intercept)       0.41250    0.04062 10.155 4.12e-12 ***
+poisonII         -0.09250    0.04920 -1.880    0.0682 .
+poisonIII        -0.20250    0.04322 -4.685 3.91e-05 ***
+treatB            0.46750    0.13293   3.517   0.0012 **
+poisonIII:treatB -0.34250    0.13701 -2.500    0.0171 *
+(Dispersion parameter for inverse.gaussian family taken to be 0.09403976)
+    Null deviance: 25.7437  on 47  degrees of freedom
+Residual deviance: 3.6418   on 36  degrees of freedom
+AIC: -84.797   # เหมือน invmodel1/invmodel2 เป๊ะทุกตัวเลข
+
+&gt; 1-pchisq(3.6418,36)
+[1] 1   # เหมือนกันทั้ง 3 โมเดล</code></pre>
+<ul>
+<li><strong>ข้อสังเกตสำคัญ:</strong> ทั้ง 3 link function (canonical \(1/\mu^2\), inverse \(1/\mu\), identity \(\mu\)) ให้ <strong>Residual deviance, AIC, และ goodness-of-fit เหมือนกันเป๊ะทุกตัวเลข</strong> (3.6418, -84.797, 1 ตามลำดับ) — เพราะโมเดลนี้เป็น <em>full-factorial design</em> (poison 3 ระดับ × treat 4 ระดับ = 12 กลุ่ม, ไม่มีตัวแปรต่อเนื่อง) ค่า fitted \(\hat\mu\) ของแต่ละกลุ่มจึงออกมาเหมือนกันไม่ว่าจะ parameterize ผ่าน link ไหน — ต่างกันแค่ "หน้าตา" ของสัมประสิทธิ์ ไม่ใช่คุณภาพการฟิต</li>
+<li>เพราะ AIC เท่ากันหมด <strong>ตัดสินใจเลือก link จากความง่ายในการตีความแทน</strong> — คำตอบต้นฉบับ: "we choose to use the identity link due to simple interpretation"</li>
+<li><strong>สังเกต:</strong> สัมประสิทธิ์ของ <code>invmodel3</code> (identity link) เท่ากับสัมประสิทธิ์ของโมเดล OLS ธรรมดา <code>lm(time~poison*treat)</code> ใน Assignment 9#3a <strong>เป๊ะทุกตัว</strong> (Intercept=0.41250, poisonIII=-0.20250, treatB=0.46750 ...) — จุดประมาณค่าเฉลี่ยเหมือนกัน มีแค่ SE ที่ต่างกัน (เพราะ IG GLM ใช้ variance function \(\propto\mu^3\) แทนที่จะสมมติ variance คงที่แบบ OLS)</li>
+<li>การแปลผล (identity link): "poison III ลดเวลารอดชีวิตเฉลี่ยลง 0.2025 หน่วยเทียบกับ poison I (กลุ่มอ้างอิง) เมื่อ treatment คงที่" — ตรงไปตรงมาแบบเดียวกับ OLS เพราะ link เป็น identity</li>
+</ul>
+
+<div class="quiz">
+  <div class="qhead"><span>คำถาม 9</span><span>ทำไม AIC เท่ากันทั้ง 3 Link</span></div>
+  <div class="qtext">ทำไมโมเดล Inverse Gaussian GLM ทั้ง 3 link function (canonical, inverse, identity) บนข้อมูล rats ถึงให้ค่า AIC และ residual deviance เท่ากันเป๊ะทุกตัวเลข?</div>
+  <div class="options">
+  <button class="opt" data-correct="false">เพราะ R คำนวณ AIC ผิดพลาด เป็นบั๊กที่รู้กันในฟังก์ชัน glm()</button>
+  <button class="opt" data-correct="true">เพราะตัวแปรอิสระเป็น categorical ล้วน (full-factorial 3×4 กลุ่ม) ค่า fitted μ ของแต่ละกลุ่มจึงออกมาเหมือนกันไม่ว่าจะ parameterize ผ่าน link ไหน</button>
+  <button class="opt" data-correct="false">เพราะ dispersion parameter ถูกตรึงไว้ที่ 1 เสมอในทุกโมเดล</button>
+  <button class="opt" data-correct="false">เพราะข้อมูลชุดนี้มีขนาดเล็กเกินไปจนคำนวณ AIC แยกความต่างไม่ออก</button>
+</div>
+  <div class="feedback"></div>
+</div>
+
+<div class="quiz free">
+  <div class="qhead"><span>คำถาม 10 (Free response)</span><span>เทียบ IG GLM (3b) กับ OLS แปลงตัวแปร (3a)</span></div>
+  <div class="qtext">เทียบข้อดี-ข้อเสียของการฟิต Inverse Gaussian GLM บนสเกลเดิม (ข้อ 3b) กับการแปลงตัวแปรตอบสนองด้วย Box-Cox แล้วฟิต OLS (ข้อ 3a) สำหรับข้อมูล rats ชุดนี้</div>
+  <textarea rows="4" placeholder="พิมพ์คำตอบของคุณที่นี่ก่อนกดเฉลย..."></textarea>
+  <button class="reveal-btn">เฉลย</button>
+  <div class="model-answer">ข้อ 3a ต้องหา λ≈-1 จาก Box-Cox แล้วฟิต OLS บน 1/time — ตีความสัมประสิทธิ์ยากเพราะอยู่บนสเกล "ส่วนกลับของเวลา" และ interaction บางพจน์เปลี่ยนนัยสำคัญไปหลังแปลง (poisonIII:treatB จาก p=0.0276 เป็น p=0.364) ทำให้ต้องระวังเรื่องการตีความ interaction บนสเกลที่แปลงแล้ว ข้อ 3b (Inverse Gaussian GLM, identity link) ให้สัมประสิทธิ์ตรงบนสเกลเวลาดิบเลย (เหมือน OLS ธรรมดาทุกตัวเลขจุดประมาณ) แต่ SE ถูกต้องกว่าเพราะสมมติ variance function ที่เหมาะกับข้อมูลบวกเบ้ขวาแบบนี้ (\(\propto\mu^3\)) โดยไม่ต้องแปลงตัวแปรตอบสนองเลย ข้อดีของ 3b คือตีความง่ายกว่าไม่ต้อง back-transform แต่ข้อดีของ 3a คือใช้เครื่องมือ OLS มาตรฐานที่คุ้นเคยกว่า</div>
+</div>
+
+<p class="quiz-score"></p>
+
+<hr>
+
+<p>บทเรียนนี้ครอบคลุม<strong>ข้อ 2 (corn yield vs nitrogen)</strong> และ<strong>ข้อ 3b (rats, inverse Gaussian GLM)</strong> ของ Assignment 9 — ข้อ 1 (pneumo, multinomial/ordinal) อยู่ใน <a href="0025-hsb-pneumo-multinomial-walkthrough.html">Lesson 25</a>, ข้อ 3a (rats, OLS transformation) อยู่ใน <a href="0017-diagnostics-remedies-walkthrough.html">Lesson 17</a></p>
+
+<nav class="lesson-nav">
+  <span><a href="0013-other-glms.html">← Lesson 13: Other GLMs</a></span>
+  <span><a href="../reference/0013-other-glms-cheatsheet.html">Reference: Gamma/IG GLM cheat sheet →</a></span>
+</nav>
+
+<script src="../assets/quiz.js"></script>
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>
