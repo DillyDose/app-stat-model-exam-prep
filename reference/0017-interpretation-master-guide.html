@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Reference: Master Guide — ตีความผลลัพธ์ทุกโมเดล</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+
+<nav class="lesson-nav">
+  <span>Reference 17 · Master Guide</span>
+  <span><a href="../exams/drill-02-interpretation.html">ฝึกด้วย Drill 2: Interpretation →</a></span>
+</nav>
+
+<p class="kicker">รวมทุก Lecture — ตีความผลลัพธ์เป็นภาษาคน</p>
+<h1>ตีความผลลัพธ์ — Master Guide ทุกตระกูลในวิชานี้</h1>
+
+<p>เขียนสมการถูก + ทดสอบสมมติฐานถูก ยังไม่พอ — ข้อสอบให้คะแนนหนักที่สุดตรง<strong>ประโยคแปลผล</strong> แผ่นนี้รวม template การตีความของทุกตระกูลโมเดล พร้อมตัวอย่างตัวเลขจริงจากสไลด์ของอาจารย์</p>
+
+<div class="box win">
+<div class="label">Template สากล (ใช้กับทุกสัมประสิทธิ์เชิงเส้น)</div>
+<p>"จากข้อมูลนี้ เมื่อ [ตัวแปร X] เพิ่มขึ้น 1 [หน่วยของ X] [ตัวแปร Y] คาดว่าจะเปลี่ยนแปลงโดยเฉลี่ย [ค่า β̂] [หน่วยของ Y] <strong>โดยตัวแปรอื่นคงที่</strong> (อย่างมีนัยสำคัญทางสถิติที่ p=[p-value])"</p>
+</div>
+
+<div class="box bad">
+<div class="label">กับดักที่หักคะแนนบ่อยที่สุด</div>
+<p><strong>1. ห้ามใช้ "ทำให้"/"เป็นสาเหตุของ"</strong> กับข้อมูล observational — ใช้ "สัมพันธ์กับ" หรือ "คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย" เสมอ เว้นแต่เป็น randomized experiment</p>
+<p><strong>2. ลืมพูดว่า "โดยตัวแปรอื่นคงที่"</strong> — ใน MLR ทุกสัมประสิทธิ์ตีความแบบ partial effect เสมอ ไม่ใช่ effect เดี่ยว ๆ</p>
+<p><strong>3. Extrapolation</strong> — ตีความ intercept หรือทำนายค่านอกช่วงข้อมูลจริงโดยไม่เตือนผู้อ่าน</p>
+<p><strong>4. Statistical vs practical significance</strong> — p-value เล็กไม่ได้แปลว่าขนาดผลใหญ่มีความหมายเชิงปฏิบัติเสมอ (โดยเฉพาะ n ใหญ่มาก)</p>
+</div>
+
+<h2>1. SLR — Slope, Intercept, R², CI</h2>
+<p>ตัวอย่างจริง (Lecture 1): \(\hat\beta_1=3.394\), \(p=0.01548\)</p>
+<div class="box">
+<p><strong>Slope:</strong> "เมื่อ X เพิ่มขึ้น 1 หน่วย Y คาดว่าจะเพิ่มขึ้นโดยเฉลี่ย 3.394 หน่วย (p=0.01548, นัยสำคัญที่ α=0.05)"</p>
+<p><strong>Intercept:</strong> "เมื่อ X=0, Y ที่คาดไว้คือ β̂₀ หน่วย" — ใช้ได้ก็ต่อเมื่อ X=0 อยู่ในช่วงข้อมูลจริง ไม่งั้นเป็น extrapolation</p>
+<p><strong>R²:</strong> "โมเดลอธิบายความแปรปรวนของ Y ได้ R²×100%" — <strong>ไม่ใช่</strong> "ทำนายแม่น R²×100%"</p>
+<p><strong>CI ของ β:</strong> "มั่นใจ 95% ว่าค่าจริงของ β อยู่ระหว่าง [lower] ถึง [upper]" — CI ไม่ครอบคลุม 0 ⟺ ปฏิเสธ H₀ ที่ α เดียวกัน</p>
+</div>
+
+<h2>2. MLR — Dummy, Interaction, Polynomial</h2>
+<p>ตัวอย่างจริง (Lecture 2, whiteside): \(\hat\beta_{InsulAfter}=-2.12998\)</p>
+<div class="box">
+<p><strong>Dummy variable:</strong> "กลุ่ม After มี Gas เฉลี่ยต่ำกว่ากลุ่ม Before อยู่ 2.12998 หน่วย <strong>เมื่อ Temp เท่ากัน</strong>" — ต้องระบุกลุ่มอ้างอิงเสมอ (ที่นี่คือ Before)</p>
+</div>
+<div class="box bad">
+<p><strong>Interaction — ตีความสัมประสิทธิ์เดี่ยว ๆ ไม่ได้:</strong> ถ้ามีพจน์ \(InsulAfter \times Temp\) (β̂=0.11530) ห้ามพูดว่า "Temp มีผล -0.39324 เสมอ" — ต้องบอกว่า<strong>ผลของ Temp ขึ้นกับกลุ่ม Insul</strong>: กลุ่ม Before ผลของ Temp คือ -0.39324, กลุ่ม After คือ -0.39324+0.11530=-0.27794 (ชันน้อยกว่า)</p>
+</div>
+<div class="box bad">
+<p><strong>Polynomial — marginal effect เปลี่ยนตาม X เสมอ:</strong> ตัวอย่าง \(\widehat{YIELD}=-5.01467+6.00428\,RAINFALL-0.22936\,RAINFALL^2\) — ห้ามพูดว่า "RAINFALL เพิ่ม 1 หน่วย YIELD เพิ่ม 6.00428" เพราะมีพจน์ RAINFALL² ด้วย ผลจริงต่อหน่วยคืออนุพันธ์ \(d\hat{Y}/dX=6.00428-2(0.22936)X\) ซึ่ง<strong>เปลี่ยนค่าไปตามระดับ RAINFALL ที่เริ่มต้น</strong> — ต้องระบุจุด X ที่สนใจก่อนตีความเสมอ</p>
+</div>
+
+<h2>3. ANOVA — ผลต่างค่าเฉลี่ยกลุ่ม</h2>
+<p>ตัวอย่างจริง (Lecture 6, bakesale, contr.treatment): Intercept=55.800 (bottom), heightmiddle=21.400, heighttop=-4.300</p>
+<div class="box">
+<p>"ตำแหน่งชั้นวางกลาง (middle) มียอดขายเฉลี่ยสูงกว่าตำแหน่งล่าง (bottom, กลุ่มอ้างอิง) อยู่ 21.400 หน่วย ส่วนตำแหน่งบน (top) มียอดขายเฉลี่ยต่ำกว่า bottom อยู่ 4.300 หน่วย"</p>
+</div>
+<div class="box bad">
+<p><strong>contr.sum เปลี่ยนความหมาย Intercept:</strong> แบบเดียวกัน ถ้าใช้ contr.sum ได้ Intercept=61.500 — ตอนนี้ Intercept คือ<strong>grand mean</strong> ไม่ใช่ค่าเฉลี่ยกลุ่มไหนกลุ่มหนึ่ง ตีความผิด contrast = ตีความ Intercept ผิดทันที ต้องเช็คว่าใช้ contrast แบบไหนก่อนตีความเสมอ</p>
+</div>
+
+<h2>4. Ridge / LASSO — ตีความขนาดตรง ๆ ไม่ได้</h2>
+<div class="box bad">
+<p>สัมประสิทธิ์จาก <code>glmnet</code> ผ่าน standardization + shrinkage มาแล้ว — <strong>ห้าม</strong>พูดว่า "X เพิ่ม 1 หน่วย Y เปลี่ยน β̂ หน่วย" แบบ OLS ตรง ๆ เพราะ (1) X ถูก standardize ก่อนฟิต (2) ไม่มี p-value/SE ให้อ้างนัยสำคัญ (3) ค่าถูกหด (shrink) เข้าหา 0 โดยตั้งใจ — ตีความได้แค่<strong>ทิศทาง</strong>และ<strong>ขนาดสัมพัทธ์เทียบกัน</strong>ระหว่างตัวแปร ไม่ใช่ effect size ที่แม่นยำ</p>
+</div>
+
+<h2>5. Logistic (Binary) — Odds Ratio</h2>
+<p>ตัวอย่างจริง (Lecture 9, bird-keeper lung cancer): \(\hat\beta_{BKNoBird}=-1.36259\), \(\exp(\hat\beta)=0.256\)</p>
+<div class="box">
+<p>"ผู้ที่ไม่เลี้ยงนก (BKNoBird=1) มี odds ของการเป็นมะเร็งปอด <strong>0.256 เท่า</strong> ของผู้ที่เลี้ยงนก (ลดลง 74.4%) เมื่อควบคุมตัวแปรอื่นคงที่ (p=0.000923)"</p>
+<p><strong>กลับทิศทาง:</strong> ถ้าอยากพูดในมุม "เลี้ยงนกเทียบไม่เลี้ยง" ให้ใช้ 1/0.256≈3.9 — "ผู้ที่เลี้ยงนกมี odds สูงกว่าประมาณ 3.9 เท่า"</p>
+</div>
+<div class="box bad">
+<p><strong>Odds ratio ≠ Probability ratio</strong> — "odds ลดลง 74.4%" ไม่เท่ากับ "โอกาสเป็นมะเร็งลดลง 74.4%" ห้ามใช้สองคำนี้แทนกัน โดยเฉพาะเมื่อ baseline probability ไม่ใกล้ 0</p>
+</div>
+
+<h2>6. Binomial (Grouped) — เหมือน Logistic แต่กรอบสัดส่วน</h2>
+<p>ตัวอย่างจริง (Lecture 10, O-ring damage): \(\hat\beta_{temp}=-0.21623\), \(\exp(\hat\beta)\approx0.806\)</p>
+<div class="box">
+<p>"เมื่ออุณหภูมิเพิ่มขึ้น 1°F odds ของการเกิดความเสียหายลดลงเหลือประมาณ 0.806 เท่า (ลดลง ≈19.4%)"</p>
+</div>
+
+<h2>7. Poisson (Count) — Rate Ratio</h2>
+<p>ตัวอย่างจริง (Lecture 11, Galápagos): \(\hat\beta_{Elevation}=3.541\times10^{-3}\), \(\exp(\hat\beta)\approx1.00355\)</p>
+<div class="box">
+<p>"เมื่อระดับความสูง (Elevation) เพิ่มขึ้น 1 เมตร จำนวนสปีชีส์คาดว่าเพิ่มขึ้นโดยเฉลี่ย ≈0.355% (rate ratio ≈1.00355) เมื่อควบคุมตัวแปรอื่นคงที่"</p>
+<p><strong>ถ้ามี offset (log(exposure)):</strong> ตีความเป็น "อัตรา" ไม่ใช่ "จำนวนดิบ" — เช่น "อัตราการเกิดอุบัติเหตุต่อระยะทาง" ไม่ใช่ "จำนวนอุบัติเหตุ" เฉย ๆ</p>
+</div>
+
+<h2>8. Multinomial — Relative Risk Ratio (RRR)</h2>
+<p>ตัวอย่างจริง (Lecture 12, contraceptive): \(\hat\beta_{nincome}=0.01312\), \(\exp(\hat\beta)\approx1.0132\)</p>
+<div class="box">
+<p>"เมื่อรายได้ (nincome) เพิ่มขึ้น 1 หน่วย ความเสี่ยงสัมพัทธ์ (relative risk) ของการอยู่ในกลุ่ม [category] เทียบกับกลุ่มอ้างอิง (baseline) เพิ่มขึ้นประมาณ 1.32%"</p>
+<p>ต้องระบุ<strong>ทั้งกลุ่มที่สนใจและ baseline category</strong>เสมอ — RRR มีค่าต่างกันสำหรับแต่ละคู่ (category vs baseline) ไม่ใช่ค่าเดียวทั้งโมเดล</p>
+</div>
+
+<h2>9. Ordinal — Cumulative Odds + Proportional-Odds</h2>
+<div class="box">
+<p>"odds ที่ Y จะอยู่ในหมวดที่ ≤ j (เทียบกับสูงกว่า j) เปลี่ยนไป exp(β̂) เท่า เมื่อ X เพิ่มขึ้น 1 หน่วย" — <strong>β̂ ตัวเดียวใช้ร่วมกันทุก cutpoint j</strong> เพราะ proportional-odds assumption (สมมติว่า effect เท่ากันทุก threshold)</p>
+</div>
+<div class="box bad">
+<p><strong>ต้องเช็ค Brant test ก่อนตีความแบบนี้เสมอ</strong> — ถ้า proportional-odds ไม่ผ่าน การพูดว่า "β̂ ตัวเดียวใช้ได้ทุก cutpoint" เป็นเท็จ ต้องเปลี่ยนโมเดลหรือตัดตัวแปรที่ละเมิดออกก่อน</p>
+</div>
+
+<h2>10. Gamma / Other GLM — Multiplicative Interpretation</h2>
+<div class="box">
+<p>ด้วย log link: "เมื่อ X เพิ่มขึ้น 1 หน่วย ค่าเฉลี่ยของ Y (μ) เปลี่ยนเป็น exp(β̂) เท่าของเดิม" — ตีความแบบ<strong>ผลคูณ (multiplicative)</strong> ไม่ใช่ผลบวกแบบ OLS เพราะอยู่บน log scale</p>
+</div>
+
+<h2>11. Linear Mixed Model — Population-Average vs Subject-Specific</h2>
+<p>ตัวอย่างจริง (Lecture 14, pulp brightness): ICC ≈39%</p>
+<div class="box">
+<p><strong>Fixed effect (β̂):</strong> ตีความเป็น "ค่าเฉลี่ยระดับประชากร (population-average)" — effect เฉลี่ยข้าม group ทั้งหมด</p>
+<p><strong>Random effect / BLUP (b̂ᵢ):</strong> ตีความเป็น "ค่าเฉพาะกลุ่ม (subject-specific)" — ทำนายของกลุ่ม i หนึ่ง ๆ ต่างจากค่าเฉลี่ยประชากร</p>
+<p><strong>ICC:</strong> "≈39% ของความแปรปรวนทั้งหมดมาจากความแตกต่างระหว่างกลุ่ม (operator) ที่เหลือ ≈61% มาจากความแปรปรวนภายในกลุ่มเดียวกัน" — ICC สูง = จำเป็นต้องใช้ LMM ยิ่งขึ้น ไม่ควรมองข้าม grouping structure</p>
+</div>
+
+<h2>12. CI vs PI — ตีความช่วง</h2>
+<div class="box">
+<p><strong>CI (mean response):</strong> "มั่นใจ 95% ว่าค่าเฉลี่ยทฤษฎีของ Y ที่ X=X₀ อยู่ระหว่าง [lower] ถึง [upper]"</p>
+<p><strong>PI (prediction):</strong> "มั่นใจ 95% ว่าค่าสังเกตใหม่ 1 ค่าของ Y ที่ X=X₀ อยู่ระหว่าง [lower] ถึง [upper]" — กว้างกว่า CI เสมอ (ตัวอย่างจริง: CI กว้าง 91.8 vs PI กว้าง 583.5 หน่วย ข้อมูลเดียวกัน)</p>
+</div>
+
+<h2>สรุป: ตารางกับดักการตีความรายตระกูล</h2>
+<table>
+<tr><th>ตระกูล</th><th>กับดักหลัก</th></tr>
+<tr><td>SLR/MLR</td><td>ลืม "โดยตัวแปรอื่นคงที่", extrapolation ที่ X=0</td></tr>
+<tr><td>Interaction</td><td>ตีความสัมประสิทธิ์เดี่ยว ๆ ไม่ได้ ต้องบอก effect ขึ้นกับตัวแปรอื่น</td></tr>
+<tr><td>Polynomial</td><td>marginal effect เปลี่ยนตาม X ต้องระบุจุดที่สนใจ</td></tr>
+<tr><td>ANOVA</td><td>contr.treatment vs contr.sum เปลี่ยนความหมาย Intercept</td></tr>
+<tr><td>Ridge/LASSO</td><td>ตีความขนาดตรง ๆ ไม่ได้ (standardized+shrunk, ไม่มี p-value)</td></tr>
+<tr><td>Logistic/Binomial</td><td>Odds ratio ≠ Probability ratio</td></tr>
+<tr><td>Poisson</td><td>มี offset ต้องพูดเป็น "อัตรา" ไม่ใช่ "จำนวนดิบ"</td></tr>
+<tr><td>Multinomial</td><td>ต้องระบุทั้ง category ที่สนใจและ baseline</td></tr>
+<tr><td>Ordinal</td><td>ต้องเช็ค proportional-odds (Brant test) ก่อนตีความ β̂ ตัวเดียวใช้ทุก cutpoint</td></tr>
+<tr><td>LMM</td><td>Fixed effect (population-average) vs BLUP (subject-specific) คนละความหมาย</td></tr>
+</table>
+
+<p>ฝึกเขียนให้คล่องที่ <a href="../exams/drill-02-interpretation.html">Drill 2: Interpretation</a> (16 ข้อ ครบทั้ง 14 บท — ทักษะที่ออกสอบหนักที่สุดตามที่อาจารย์เน้น)</p>
+
+<script>
+renderMathInElement(document.body, {
+  delimiters: [
+    {left: "\\[", right: "\\]", display: true},
+    {left: "\\(", right: "\\)", display: false}
+  ],
+  throwOnError: false
+});
+</script>
+</body>
+</html>
