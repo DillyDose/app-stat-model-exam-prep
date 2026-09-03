@@ -379,7 +379,7 @@ Step 2: +cyl            AIC=156.010  R2=0.83023</code></pre>
 {id:'l6', num:'L6', title:'Single-Factor ANOVA', story:'ถ้า X เป็น categorical ล้วน MLR กลายเป็นกรณีพิเศษเรียกว่า ANOVA',
  flow:{type:'diagnose',
    lead:[
-    {title:'1. ตัวอย่างตั้งต้น', body:`Bakery Shelf Display Height. ยอดขายเฉลี่ยที่ชั้นวาง 3 ระดับ (bottom/middle/top) นี่คือ MLR ที่ X เป็น categorical ล้วน (ไม่มี X ต่อเนื่องเลย) จึงกลายเป็นกรณีพิเศษที่เรียกว่า ANOVA`},
+    {title:'1. ตัวอย่างตั้งต้น', body:`ย้อนกลับไปที่ Associative vs Causal Inference จาก L1: <em>factor</em>=ตัวแปรที่ศึกษา, <em>treatment</em>=แต่ละระดับของ factor, <em>experimental unit</em>=หน่วยที่ได้รับ treatment<br>Bakery Shelf Display Height. สุ่มกำหนดตำแหน่งชั้นวาง 3 ระดับ (bottom/middle/top) ให้ร้านค้าแบบ completely randomized design เพราะเป็น randomized experiment จึงสรุปเชิงเหตุผล (causal) ได้ ไม่ใช่แค่ associative แบบข้อมูล observational<br>X เป็น categorical ล้วน (ไม่มี X ต่อเนื่องเลย) MLR จึงกลายเป็นกรณีพิเศษที่เรียกว่า ANOVA`},
     {title:'2. สมการโมเดล', body:`Cell-means: \\(Y_{ij}=\\mu_i+\\varepsilon_{ij}\\) (ค่าเฉลี่ยของกลุ่ม i ตรงๆ)<br>Factor-effects: \\(Y_{ij}=\\mu+\\tau_i+\\varepsilon_{ij}\\) (grand mean บวกผลต่างจากกลุ่ม i, \\(\\sum\\tau_i=0\\))<br>สองแบบให้ค่าทำนายเท่ากัน ต่างที่การตีความ Intercept ${T('cellfactor','(รายละเอียดเต็ม)')}`},
     {title:'3. Assumptions + Between/Within', body:`Assumption เหมือน L1 ทุกข้อ (normality, constant variance, independence) แค่เปลี่ยนบริบทจาก residual รอบเส้น regression เป็น residual รอบค่าเฉลี่ยแต่ละกลุ่ม<br>ทำไม \\(F=MSTR/MSE\\) ทดสอบ "กลุ่มต่างกันไหม" ได้: MSTR=ความแปรปรวนระหว่างกลุ่ม (between), MSE=ความแปรปรวนภายในกลุ่ม (within) ถ้า between≫within แปลว่ากลุ่มต่างกันจริง ไม่ใช่แค่ความบังเอิญของ noise ภายในกลุ่ม`},
    ],
@@ -488,13 +488,10 @@ Null dev: กับ dispersion=4.126227
  ]},
 {id:'l12', num:'L12', title:'Multinomial Data', story:'ถ้า Y มีมากกว่า 2 กลุ่ม ขยาย logistic ต่อ',
  flow:{type:'diagnose',
-   lead:[
-    {title:'1. สมการ Baseline-Category Logit', body:`Y มี J กลุ่ม เขียนสมการ J-1 สมการพร้อมกัน (เทียบแต่ละกลุ่มกับ baseline ที่เลือกไว้ 1 กลุ่ม): \\(\\log(\\pi_j/\\pi_{base})=\\beta_{0j}+\\beta_{1j}X\\) สำหรับ j=1,...,J-1<br>ต้องระบุ baseline category เสมอ ไม่งั้นตีความสัมประสิทธิ์ไม่ได้`},
-   ],
    diamond:'มีลำดับไหม?',
    branches:[
-    {title:'ไม่มี → Nominal', body:`<pre><code>&gt; multinom(vote~nincome)
-nincome: 0.01312  t=6.657</code></pre>baseline-category logit เขียนสมการแยกทุก category เทียบ baseline`},
+    {title:'ไม่มี → Nominal', body:`สมการ Baseline-Category Logit. Y มี J กลุ่ม เขียนสมการ J-1 สมการพร้อมกัน (เทียบแต่ละกลุ่มกับ baseline ที่เลือกไว้ 1 กลุ่ม): \\(\\log(\\pi_j/\\pi_{base})=\\beta_{0j}+\\beta_{1j}X\\) สำหรับ j=1,...,J-1 ต้องระบุ baseline category เสมอ ไม่งั้นตีความสัมประสิทธิ์ไม่ได้<pre><code>&gt; multinom(vote~nincome)
+nincome: 0.01312  t=6.657</code></pre>`},
     {title:'มี → Ordinal', body:`<code>polr()</code> cumulative logit ใช้ β เดียวกันทุก cutpoint ต้องเช็ค ${T('brant','Brant test')} ก่อนเชื่อสมมติฐานนี้`},
     {title:'Brant ไม่ผ่าน → แก้', body:`<pre><code>&gt; brant(model)  # โมเดลเต็ม
 Omnibus  X2=8.94  df=3  p=0.03  (ไม่ผ่าน)
@@ -511,7 +508,8 @@ Omnibus  p=0.69  (ผ่าน)</code></pre>
 {id:'l13', num:'L13', title:'Other GLMs (Gamma/IG)', story:'กรอบ GLM ใช้ได้กับ Y ต่อเนื่องบวกเบ้ขวาด้วย',
  flow:{type:'pipeline', cards:[
    {title:'1. ทำไมต้อง Gamma', body:`ข้อมูล wafer resist: บวกเสมอ เบ้ขวาชัดเจน ${T('gammaig','Gamma vs Inverse-Gaussian')} จับ variance function ที่โตตาม mean ได้ธรรมชาติกว่าการเดา transform เอง`},
-   {title:'2. ลองทั้ง 3 Link แล้วเทียบ AIC', body:`<pre><code>&gt; glm(yield~nitrogen, family=Gamma(link=log))
+   {title:'2. Gamma หรือ Inverse Gaussian?', body:`${T('gammaig','Inverse Gaussian')} มี variance function โตเร็วกว่า Gamma (∝μ³ เทียบ Gamma ∝μ²) เหมาะกับข้อมูลที่เบ้ขวารุนแรงกว่า Gamma ปกติ<br>เลือกด้วยการเทียบ AIC เหมือนเทียบ link function: Assignment 9(3b) rats data ลอง 3 link (log/identity/inverse) บน Inverse Gaussian ได้ AIC เท่ากันหมด=-84.797 เพราะเป็น saturated design (p=n parameters เต็ม) ทำให้ link ไหนก็ fit ได้พอดีเป๊ะเหมือนกัน`},
+   {title:'3. ลองทั้ง 3 Link แล้วเทียบ AIC', body:`<pre><code>&gt; glm(yield~nitrogen, family=Gamma(link=log))
 AIC: 409.08
 
 &gt; glm(yield~nitrogen, family=Gamma(link=identity))
@@ -520,8 +518,7 @@ AIC: 406.09   (ต่ำสุด)
 &gt; glm(yield~nitrogen, family=Gamma(link=inverse))
 AIC: 411.38</code></pre>
      family เดียวกัน ต่าง link เท่านั้น เทียบ AIC ตรงๆได้เลย เลือก identity link เพราะ AIC ต่ำสุดและตีความง่ายสุด`},
-   {title:'3. เทียบกับ log-transform+OLS', body:`Part(a) ใช้ \\(y^3\\) เป็นตัวแปรตอบสนอง ได้สัมประสิทธิ์ nitrogen=7278 ตีความยากมาก (สเกลยกกำลังสาม) ส่วน GLM identity link ให้ μ̂ ตรงสเกลเดิม ไม่ต้อง back-transform เลย`},
-   {title:'4. Gamma หรือ Inverse Gaussian?', body:`${T('gammaig','Inverse Gaussian')} มี variance function โตเร็วกว่า Gamma (∝μ³ เทียบ Gamma ∝μ²) เหมาะกับข้อมูลที่เบ้ขวารุนแรงกว่า Gamma ปกติ<br>เลือกด้วยการเทียบ AIC เหมือนเทียบ link function: Assignment 9(3b) rats data ลอง 3 link (log/identity/inverse) บน Inverse Gaussian ได้ AIC เท่ากันหมด=-84.797 เพราะเป็น saturated design (p=n parameters เต็ม) ทำให้ link ไหนก็ fit ได้พอดีเป๊ะเหมือนกัน`},
+   {title:'4. เทียบกับ log-transform+OLS', body:`Part(a) ใช้ \\(y^3\\) เป็นตัวแปรตอบสนอง ได้สัมประสิทธิ์ nitrogen=7278 ตีความยากมาก (สเกลยกกำลังสาม) ส่วน GLM identity link ให้ μ̂ ตรงสเกลเดิม ไม่ต้อง back-transform เลย`},
  ]},
  hpi:[
   hcard('ทดสอบ','เทียบ AIC ข้าม link ได้', `family เดียวกัน ต่าง link เทียบ AIC ตรงๆได้ (ต่าง family เช่น Gamma vs log-normal เทียบ AIC ตรงๆไม่ได้ เพราะ likelihood มาจาก distribution คนละแบบ)`),
@@ -535,7 +532,9 @@ AIC: 411.38</code></pre>
    ],
    diamond:'random effect จำเป็นไหม?',
    branches:[
-    {title:'ทดสอบด้วย Bootstrap', body:`<pre><code>&gt; lmer(bright~1+(1|operator))
+    {title:'เลือก ML vs REML ก่อน fit', body:`${T('mlreml','ML vs REML')} pulp: REML var=0.06808 vs ML var=0.04575 (ML ให้ค่าต่ำกว่าจริงเป็นระบบ) ใช้ REML เป็นค่าเริ่มต้นเสมอ เปลี่ยนเป็น ML เฉพาะตอนเทียบ nested model ด้วย LRT`},
+    {title:`ดู ${T('icc','ICC')} ประกอบ`, body:'pulp: ICC=0.06808/(0.06808+0.10625)≈39% เกือบ 40% ของความแปรปรวนมาจากความต่างระหว่าง operator ยืนยันว่าต้องมี random effect'},
+    {title:'ทดสอบยืนยันด้วย Bootstrap', body:`<pre><code>&gt; lmer(bright~1+(1|operator))
 Random effects:
  operator (Intercept) var=0.06808
  Residual             var=0.10625
@@ -543,8 +542,6 @@ Random effects:
 parametric bootstrap: LRT=2.568
 p-value = 19/1000 = 0.019</code></pre>
      H₀:σ²D=0 ทดสอบด้วย χ² มาตรฐานไม่ได้ (ติดขอบเขตพารามิเตอร์ variance ติดลบไม่ได้) ต้องใช้ parametric bootstrap แทน p=0.019 → ปฏิเสธ H₀ ต้องมี random effect`},
-    {title:'เลือก ML vs REML', body:`${T('mlreml','ML vs REML')} pulp: REML var=0.06808 vs ML var=0.04575 (ML ให้ค่าต่ำกว่าจริงเป็นระบบ) ใช้ REML เป็นค่าเริ่มต้นเสมอ เปลี่ยนเป็น ML เฉพาะตอนเทียบ nested model ด้วย LRT`},
-    {title:`ดู ${T('icc','ICC')} ประกอบ`, body:'pulp: ICC=0.06808/(0.06808+0.10625)≈39% เกือบ 40% ของความแปรปรวนมาจากความต่างระหว่าง operator ยืนยันว่าต้องมี random effect'},
    ], loopLabel:'จำเป็น → ใส่ (1|group) แล้ว fit ใหม่'},
  hpi:[
   hcard('ทดสอบ','2 แบบ', `Random effect: H₀:σ²D=0 (parametric bootstrap, pulp LRT=2.568→p=0.019→ปฏิเสธ) Fixed effect: ${T('kr','Kenward-Roger')} df (แม่นกว่า t-as-z เมื่อตัวอย่างเล็ก)`),
