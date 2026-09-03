@@ -125,10 +125,10 @@
 </nav>
 <p class="kicker" style="margin-bottom:0.2em">2603645 APP STAT MODEL · เส้นเวลาการสอนทั้งวิชา</p>
 <h1 style="margin:0 0 0.3em">Applied Stat Modeling: จาก Lecture 1 ถึง 14</h1>
-<p>เรียงตามลำดับที่อาจารย์สอนจริง แต่ละสถานี (บท) มี mini-flowchart ของตัวเอง + วิธีทดสอบสมมติฐาน/ทำนาย/ตีความเฉพาะของโมเดลนั้น. เส้นสีม่วงบอกว่า "ทำไมบทถัดไปถึงต้องมี" ลาก/scroll เพื่อสำรวจ คำขีดเส้นประกดดูรายละเอียดได้</p>
+<p>เรียงตามลำดับที่อาจารย์สอนจริง แต่ละสถานี (บท) มี mini-flowchart ของตัวเอง + วิธีทดสอบสมมติฐาน/ทำนาย/ตีความเฉพาะของโมเดลนั้น. เส้นสีม่วงบอกว่า "ทำไมบทนี้ถึงต้องมี ต่อจากบทก่อนหน้า" ลาก/scroll เพื่อสำรวจ คำขีดเส้นประกดดูรายละเอียดได้</p>
 <div class="legend">
 <span><i style="background:#fff;border:2px solid var(--ink);transform:rotate(45deg)"></i> จุดตัดสินใจในบท</span>
-<span><i class="storyline"></i> เหตุผลที่บทถัดไปมีอยู่</span>
+<span><i class="storyline"></i> เหตุผลที่บทนี้มีอยู่</span>
 <span><i class="passline"></i> ผ่าน / <i class="loopdash"></i> ไม่ผ่าน→วนแก้</span>
 <span><i class="termdot"></i> กดดูศัพท์</span>
 <span style="border-left:3px solid #2f6d3e;padding-left:0.3em">ทดสอบ</span>
@@ -619,7 +619,7 @@ const allNodes = [];
 STATIONS.forEach((st, si) => {
   const nodes = {};
   // Row A: header
-  nodes.header = {kind:'header', x:curX, w:HEADER_W, num:st.num, title:st.title, story: si>0 ? STATIONS[si-1].story : null};
+  nodes.header = {kind:'header', x:curX, w:HEADER_W, num:st.num, title:st.title, story: st.story};
   mountCard(nodes.header); measure(nodes.header);
   place(nodes.header, curX, 30);
   let rowBTop = 30 + nodes.header.h + ROW_GAP;
@@ -725,7 +725,7 @@ STATIONS.forEach((st, si) => {
 
 // Closing station
 {
-  const node = {kind:'header', x:curX, w:420, num:CLOSING.num, title:CLOSING.title, story: STATIONS[STATIONS.length-1].story};
+  const node = {kind:'header', x:curX, w:420, num:CLOSING.num, title:CLOSING.title, story: null};
   mountCard(node); measure(node); place(node, curX, 30);
   const body = {kind:'card', x:curX, w:420, title:'', body:CLOSING.body};
   mountCard(body); measure(body); place(body, curX, 30+node.h+ROW_GAP);
