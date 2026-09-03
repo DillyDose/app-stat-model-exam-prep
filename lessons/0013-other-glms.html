@@ -45,8 +45,13 @@
 \(\implies\) \(E[Z_i] \approx \log(\mu_i)\)<br>
 และเมื่อคำนวณ \(E[Z_i^2]\) ต่อด้วยสูตรเดียวกัน จะได้ \(\text{Var}(Z_i) \approx \sigma^2\) (ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป!)
 </div>
-<p>อ่านผลลัพธ์นี้ให้ทะลุ: <strong>ก่อน</strong> แปลง log, variance ของ \(Y_i\) คือ \(\sigma^2\mu_i^2\) — โตขึ้นเรื่อย ๆ ตามค่าเฉลี่ย (สังเกตข้อมูล mean สูงจะกระจายกว้างกว่าข้อมูล mean ต่ำ) <strong>หลัง</strong> แปลง log, variance ของ \(Z_i = \log(Y_i)\) กลายเป็น \(\sigma^2\) คงที่แล้ว ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป — นี่คือความหมายของคำว่า "log transformation stabilizes the variance" พอดี ถ้า variance รูปแบบ quadratic เกิดขึ้นจริง การ log ตัวแปรตอบสนองก่อน fit normal linear regression จะทำให้ constant-variance assumption กลับมาใช้ได้</p>
-<p>แต่สไลด์ก็ระบุทางเลือกที่สอง: <strong>ถ้าอยากทำงานบนสเกลเดิมของ Y</strong> (ไม่อยาก log ก่อน แล้วต้อง back-transform ทีหลัง) <strong>gamma regression คือทางแก้อีกทาง</strong> — เพราะ gamma distribution มี variance function เป็นรูปกำลังสองของ \(\mu\) โดยธรรมชาติอยู่แล้ว (จะเห็นในหัวข้อถัดไป) จึงจับ pattern \(\text{Var}(Y_i) \propto \mu_i^2\) ได้ตรง ๆ โดยไม่ต้องแปลงตัวแปรก่อน</p>
+<p>อ่านผลลัพธ์นี้ให้ทะลุ — เทียบก่อน/หลัง แปลง log:</p>
+<ul>
+<li><strong>ก่อน</strong> แปลง log: variance ของ \(Y_i\) คือ \(\sigma^2\mu_i^2\) — โตขึ้นเรื่อย ๆ ตามค่าเฉลี่ย (สังเกตข้อมูล mean สูงจะกระจายกว้างกว่าข้อมูล mean ต่ำ)</li>
+<li><strong>หลัง</strong> แปลง log: variance ของ \(Z_i = \log(Y_i)\) กลายเป็น \(\sigma^2\) คงที่แล้ว ไม่ขึ้นกับ \(\mu_i\) อีกต่อไป — นี่คือความหมายของคำว่า "log transformation stabilizes the variance" พอดี</li>
+<li>ถ้า variance รูปแบบ quadratic เกิดขึ้นจริง การ log ตัวแปรตอบสนองก่อน fit normal linear regression จะทำให้ constant-variance assumption กลับมาใช้ได้</li>
+</ul>
+<p>สไลด์ระบุทางเลือกที่สองด้วย: <strong>ถ้าอยากทำงานบนสเกลเดิมของ Y</strong> (ไม่อยาก log ก่อน แล้วต้อง back-transform ทีหลัง) <strong>gamma regression คือทางแก้อีกทาง</strong> — เพราะ gamma distribution มี variance function เป็นรูปกำลังสองของ \(\mu\) โดยธรรมชาติอยู่แล้ว (จะเห็นในหัวข้อถัดไป) จึงจับ pattern \(\text{Var}(Y_i) \propto \mu_i^2\) ได้ตรง ๆ โดยไม่ต้องแปลงตัวแปรก่อน</p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 2 (Free response)</span><span>Variance Stabilizing Transformation</span></div>
@@ -89,7 +94,12 @@
 </div>
 
 <h2>4. ตัวอย่างที่ 1: Manufacturing Process for Semiconductors</h2>
-<p>ข้อมูลจาก Myers &amp; Montgomery (1997): 4 ปัจจัย (<code>x1–x4</code>, แต่ละตัวมี 2 ระดับ − /+) ที่คาดว่าส่งผลต่อ resistivity ของ wafer จาก full factorial experiment — สังเกตค่าสรุปของ <code>resist</code>: Min 165.7, Median 214.2, Mean 229.3, Max 339.9 — <strong>Mean (229.3) สูงกว่า Median (214.2)</strong> ชัดเจน ซึ่งเป็นลายเซ็นของการแจกแจงเบ้ขวา (ค่าผิดปกติที่สูงมากดึง mean ขึ้นไปเกิน median) ตรงกับที่สไลด์บอกไว้ล่วงหน้าว่า "resistivity would have a skewed distribution":</p>
+<p>ข้อมูลจาก Myers &amp; Montgomery (1997): 4 ปัจจัย (<code>x1–x4</code>, แต่ละตัวมี 2 ระดับ − /+) ที่คาดว่าส่งผลต่อ resistivity ของ wafer จาก full factorial experiment สังเกตค่าสรุปของ <code>resist</code>:</p>
+<ul>
+<li>Min 165.7, 1st Qu. 201.0, Median 214.2, Mean 229.3, 3rd Qu. 259.3, Max 339.9</li>
+<li><strong>Mean (229.3) สูงกว่า Median (214.2)</strong> ชัดเจน ซึ่งเป็นลายเซ็นของการแจกแจงเบ้ขวา (ค่าผิดปกติที่สูงมากดึง mean ขึ้นไปเกิน median)</li>
+<li>ตรงกับที่สไลด์บอกไว้ล่วงหน้าว่า "resistivity would have a skewed distribution"</li>
+</ul>
 <pre><code>> data(wafer)
 > summary(wafer)
  x1    x2     x3    x4          resist
@@ -142,7 +152,13 @@ x3+:x4+     -0.18195    0.06727 -2.705 0.02687 *
 Residual deviance: 0.036266 on 8 degrees of freedom
 AIC: 139.2
 Number of Fisher Scoring iterations: 4</code></pre>
-<p>เทียบตัวเลขจริงระหว่างสองโมเดล: <code>x1+</code> ได้ 0.20088 ใน log-normal model กับ 0.20029 ใน gamma GLM — ต่างกันแค่ในทศนิยมตำแหน่งที่ 3 แทบไม่มีนัยสำคัญในทางปฏิบัติ และสไลด์ชี้จุดที่แม่นยำกว่านั้นอีก: \(\sqrt{\text{dispersion}} = \sqrt{0.004524942} = 0.06726769\) ตรงกับ <strong>Residual standard error ของ lm = 0.06735</strong> เกือบเป๊ะ — เพราะ \(\nu = 1/\phi = 1/0.004524942 \approx 221\) เป็นค่าที่<strong>ใหญ่มาก</strong> ทำให้ gamma distribution ถูกประมาณได้ดีด้วย normal distribution (gamma distribution เข้าใกล้ normal เมื่อ shape parameter \(\nu\) โตขึ้น) จึงแทบแยกกามาโมเดลกับ log-normal ไม่ออกในกรณีนี้ — ข้อได้เปรียบของ gamma GLM คือ<strong>โมเดลตัวแปรตอบสนองบนสเกลเดิมโดยตรง</strong> (ไม่ต้อง back-transform log กลับ) ในขณะที่ log-normal สะดวกตรงที่ยังเป็น linear model มาตรฐาน</p>
+<p>เทียบตัวเลขจริงระหว่างสองโมเดล:</p>
+<ul>
+<li><code>x1+</code> ได้ 0.20088 ใน log-normal model กับ 0.20029 ใน gamma GLM — ต่างกันแค่ในทศนิยมตำแหน่งที่ 3 แทบไม่มีนัยสำคัญในทางปฏิบัติ</li>
+<li>สไลด์ชี้จุดที่แม่นยำกว่านั้นอีก: \(\sqrt{\text{dispersion}} = \sqrt{0.004524942} = 0.06726769\) ตรงกับ <strong>Residual standard error ของ lm = 0.06735</strong> เกือบเป๊ะ</li>
+<li>เพราะ \(\nu = 1/\phi = 1/0.004524942 \approx 221\) เป็นค่าที่<strong>ใหญ่มาก</strong> ทำให้ gamma distribution ถูกประมาณได้ดีด้วย normal distribution (gamma distribution เข้าใกล้ normal เมื่อ shape parameter \(\nu\) โตขึ้น) จึงแทบแยกกามาโมเดลกับ log-normal ไม่ออกในกรณีนี้</li>
+<li>ข้อได้เปรียบของ gamma GLM คือ<strong>โมเดลตัวแปรตอบสนองบนสเกลเดิมโดยตรง</strong> (ไม่ต้อง back-transform log กลับ) ในขณะที่ log-normal สะดวกตรงที่ยังเป็น linear model มาตรฐาน</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 4</span><span>Gamma vs Log-Normal</span></div>
@@ -186,9 +202,11 @@ AIC: 7167.5</code></pre>
 <div class="box win">
 <div class="label">แปลผลสัมประสิทธิ์ gamma GLM (log link) — เหมือน Poisson ทุกจุด</div>
 <p>เพราะ log link ทำให้ผลของ X เป็นตัวคูณ (multiplicative) จึงต้อง<strong>ยกกำลัง exp() ก่อนแปลผล</strong> เสมอ ไม่ใช่อ่าน \(\hat\beta\) ตรง ๆ แบบ linear regression:</p>
-<p>Bonus: \(\hat\beta = -0.20069 \implies \exp(-0.20069) = 0.8182\) — "เมื่อ Bonus เพิ่มขึ้น 1 ระดับ ค่าสินไหมเฉลี่ยต่อกรมธรรม์คาดว่าจะ<strong>ลดลง 18.18%</strong> โดยประมาณ (คูณด้วย 0.8182) เมื่อควบคุม Kilometres และ Make ให้คงที่ — อย่างมีนัยสำคัญทางสถิติ (p&lt;2e-16)"</p>
-<p>Make8: \(\hat\beta = 0.75038 \implies \exp(0.75038) = 2.1178\) — "รถประเภท Make8 มีค่าสินไหมเฉลี่ยต่อกรมธรรม์สูงกว่ารถประเภทฐาน (Make1) โดยประมาณ <strong>111.78%</strong> (หรือคูณด้วย 2.12 เท่า) เมื่อควบคุมตัวแปรอื่นให้คงที่"</p>
-<p><code>as.numeric(Kilometres)</code>: \(\hat\beta = 0.12007 \implies \exp(0.12007) = 1.1276\) — "เมื่อระดับระยะทางขับเพิ่มขึ้น 1 หน่วย ค่าสินไหมเฉลี่ยคาดว่าจะเพิ่มขึ้นโดยประมาณ 12.76% เมื่อควบคุมตัวแปรอื่น"</p>
+<ul>
+<li>Bonus: \(\hat\beta = -0.20069 \implies \exp(-0.20069) = 0.8182\) — "เมื่อ Bonus เพิ่มขึ้น 1 ระดับ ค่าสินไหมเฉลี่ยต่อกรมธรรม์คาดว่าจะ<strong>ลดลง 18.18%</strong> โดยประมาณ (คูณด้วย 0.8182) เมื่อควบคุม Kilometres และ Make ให้คงที่ — อย่างมีนัยสำคัญทางสถิติ (p&lt;2e-16)"</li>
+<li>Make8: \(\hat\beta = 0.75038 \implies \exp(0.75038) = 2.1178\) — "รถประเภท Make8 มีค่าสินไหมเฉลี่ยต่อกรมธรรม์สูงกว่ารถประเภทฐาน (Make1) โดยประมาณ <strong>111.78%</strong> (หรือคูณด้วย 2.12 เท่า) เมื่อควบคุมตัวแปรอื่นให้คงที่"</li>
+<li><code>as.numeric(Kilometres)</code>: \(\hat\beta = 0.12007 \implies \exp(0.12007) = 1.1276\) — "เมื่อระดับระยะทางขับเพิ่มขึ้น 1 หน่วย ค่าสินไหมเฉลี่ยคาดว่าจะเพิ่มขึ้นโดยประมาณ 12.76% เมื่อควบคุมตัวแปรอื่น"</li>
+</ul>
 <p>สังเกตรูปแบบที่ใช้ซ้ำได้เสมอ: <strong>\(\hat\beta > 0 \implies \exp(\hat\beta) > 1 \implies\) ค่าเฉลี่ยเพิ่มขึ้น</strong>, <strong>\(\hat\beta < 0 \implies \exp(\hat\beta) < 1 \implies\) ค่าเฉลี่ยลดลง</strong> — เปอร์เซ็นต์การเปลี่ยนแปลงคือ \((\exp(\hat\beta) - 1) \times 100\%\)</p>
 </div>
 
@@ -214,8 +232,18 @@ Bonus                  -0.178061   0.022540 -7.900 6.17e-14 ***
     Null deviance: 238.56 on 294 degrees of freedom
 Residual deviance: 173.53 on 284 degrees of freedom
 AIC: 704.64</code></pre>
-<p>ครั้งนี้<strong>ต่างจากตัวอย่าง wafer อย่างชัดเจน</strong>: <code>Kilometres</code> มีนัยสำคัญในโมเดล gamma (p=0.000143) แต่<strong>ไม่มีนัยสำคัญ</strong>ในโมเดล log-normal (p=0.08126 &gt; 0.05) — สัมประสิทธิ์บางตัวก็ต่างกันพอสมควรด้วย (เช่น <code>Bonus</code>: −0.20069 vs −0.178061) นี่คือกรณีที่การเลือก distribution/link มีผลจริงต่อข้อสรุปทางสถิติ ไม่ใช่แค่รายละเอียดปลีกย่อย</p>
-<p>คำถามที่ตามมา: <strong>โมเดลไหนดีกว่ากัน?</strong> สไลด์เตือนว่า<strong>สองโมเดลนี้ไม่ nested กัน</strong> (คนละ distribution assumption กันโดยสิ้นเชิง) จึง<strong>ใช้ Likelihood Ratio Test (LRT) เทียบกันไม่ได้</strong> และ AIC ก็เทียบตรง ๆ ไม่ได้ตรงไปตรงมา เพราะ AIC ขึ้นกับ likelihood ที่คำนวณจาก distribution ที่ต่างกัน อย่างไรก็ตาม สไลด์สังเกตว่า <strong>null deviance ของทั้งสองโมเดลใกล้เคียงกันมาก (238.97 vs 238.56)</strong> ในขณะที่ <strong>residual deviance ของ gamma GLM เล็กกว่า (155.06 vs 173.53)</strong> — เมื่อจุดเริ่มต้น (null deviance) เท่ากันโดยประมาณ แต่ gamma GLM ลดลงได้มากกว่าหลัง fit ตัวแปรอิสระ จึงสรุปว่า <strong>ควรเลือก gamma GLM</strong> ในกรณีนี้</p>
+<p>ครั้งนี้<strong>ต่างจากตัวอย่าง wafer อย่างชัดเจน</strong>:</p>
+<ul>
+<li><code>Kilometres</code> มีนัยสำคัญในโมเดล gamma (p=0.000143) แต่<strong>ไม่มีนัยสำคัญ</strong>ในโมเดล log-normal (p=0.08126 &gt; 0.05)</li>
+<li>สัมประสิทธิ์บางตัวก็ต่างกันพอสมควรด้วย (เช่น <code>Bonus</code>: −0.20069 vs −0.178061)</li>
+</ul>
+<p>นี่คือกรณีที่การเลือก distribution/link มีผลจริงต่อข้อสรุปทางสถิติ ไม่ใช่แค่รายละเอียดปลีกย่อย คำถามที่ตามมา: <strong>โมเดลไหนดีกว่ากัน?</strong></p>
+<ul>
+<li>สไลด์เตือนว่า<strong>สองโมเดลนี้ไม่ nested กัน</strong> (คนละ distribution assumption กันโดยสิ้นเชิง) จึง<strong>ใช้ Likelihood Ratio Test (LRT) เทียบกันไม่ได้</strong></li>
+<li>AIC ก็เทียบตรง ๆ ไม่ได้ตรงไปตรงมา เพราะ AIC ขึ้นกับ likelihood ที่คำนวณจาก distribution ที่ต่างกัน</li>
+<li>อย่างไรก็ตาม สไลด์สังเกตว่า <strong>null deviance ของทั้งสองโมเดลใกล้เคียงกันมาก (238.97 vs 238.56)</strong> ในขณะที่ <strong>residual deviance ของ gamma GLM เล็กกว่า (155.06 vs 173.53)</strong></li>
+<li>เมื่อจุดเริ่มต้น (null deviance) เท่ากันโดยประมาณ แต่ gamma GLM ลดลงได้มากกว่าหลัง fit ตัวแปรอิสระ จึงสรุปว่า <strong>ควรเลือก gamma GLM</strong> ในกรณีนี้</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 6</span><span>เปรียบเทียบโมเดลต่าง Distribution</span></div>
@@ -242,7 +270,12 @@ AIC: 704.64</code></pre>
 <img src="../assets/slides/as13-p19-wald-distribution-plots.png" alt="Three density plots of the inverse Gaussian (Wald) distribution with mu=1 at lambda=0.5, lambda=1, and lambda=5, all right-skewed and peaking near x=0 to 1">
 <figcaption>Slide: Inverse Gaussian GLM — Wald distribution ที่ \(\mu=1\), \(\lambda=0.5/1/5\) (Lecture 13, p.19)</figcaption>
 </figure>
-<p>อ่านตัวเลขในภาพ: ทั้งสามกราฟใช้ \(\mu=1\) เหมือนกัน แต่ปรับ \(\lambda\) จาก 0.5 → 1 → 5 — สังเกตว่ายอดของ density (mode) <strong>ขยับเข้าใกล้ 1 มากขึ้นเรื่อย ๆ และแคบลง</strong> เมื่อ \(\lambda\) เพิ่ม (จากยอดสูงสุดที่ประมาณ 1.4 ใกล้ 0 ตอน \(\lambda=0.5\) ไปเป็นยอดที่ประมาณ 1.1 ใกล้ x=1 ตอน \(\lambda=5\)) — ตรงกับสูตร \(\text{Var}(Y)=\dfrac{\mu^3}{\lambda}\) พอดี: \(\lambda\) มากขึ้น \(\implies\) variance น้อยลง \(\implies\) การกระจายแคบลงและสมมาตรมากขึ้นรอบ \(\mu\) ทุกกราฟยังคงเบ้ขวาชัดเจน (หางขวายาว) ซึ่งเป็นลักษณะร่วมของทั้ง gamma และ inverse Gaussian ตามที่กล่าวไว้ในหัวข้อถัดไป</p>
+<p>อ่านตัวเลขในภาพ: ทั้งสามกราฟใช้ \(\mu=1\) เหมือนกัน แต่ปรับ \(\lambda\) จาก 0.5 → 1 → 5:</p>
+<ul>
+<li>ยอดของ density (mode) <strong>ขยับเข้าใกล้ 1 มากขึ้นเรื่อย ๆ และแคบลง</strong> เมื่อ \(\lambda\) เพิ่ม — จากยอดสูงสุดที่ประมาณ 1.4 ใกล้ 0 ตอน \(\lambda=0.5\) ไปเป็นยอดที่ประมาณ 1.1 ใกล้ x=1 ตอน \(\lambda=5\)</li>
+<li>ตรงกับสูตร \(\text{Var}(Y)=\dfrac{\mu^3}{\lambda}\) พอดี: \(\lambda\) มากขึ้น \(\implies\) variance น้อยลง \(\implies\) การกระจายแคบลงและสมมาตรมากขึ้นรอบ \(\mu\)</li>
+<li>ทุกกราฟยังคงเบ้ขวาชัดเจน (หางขวายาว) ซึ่งเป็นลักษณะร่วมของทั้ง gamma และ inverse Gaussian ตามที่กล่าวไว้ในหัวข้อถัดไป</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 7</span><span>Inverse Gaussian — Canonical Link</span></div>
@@ -289,7 +322,12 @@ AIC: 704.64</code></pre>
 <img src="../assets/slides/as13-p22-lifetest-scatter-voltage-vs-time.png" alt="Scatterplot of voltage stress (28, 30, 32 kV) against breakdown time in minutes, showing points clustered near 0-200 minutes at each voltage level with one high outlier near 1000 minutes at 28 kV">
 <figcaption>Slide: Example — A Life Test Experiment, plot(lifetest$x, lifetest$y) (Lecture 13, p.22)</figcaption>
 </figure>
-<p>อ่านตัวเลขในภาพ: ที่ x=28 kV มีจุดหนึ่งอยู่สูงถึงประมาณ 1050 นาที ในขณะที่จุดอื่น ๆ ที่ x=28 กระจุกอยู่ต่ำกว่า 500 — และที่ x=30, 32 kV จุดข้อมูลส่วนใหญ่กระจุกตัวต่ำกว่า 200 นาทีทั้งหมด สไลด์สรุปว่า "<strong>ทุกระดับของแรงดันมีเวลาเสียหายที่เบ้ขวา</strong>" ไม่ใช่แค่ภาพรวมทั้งชุดข้อมูลเบ้ — เป็นสัญญาณ่ว่า variance สัมพันธ์กับค่าเฉลี่ยของแต่ละกลุ่มด้วย ไม่ใช่แค่ความหลากหลายระหว่างกลุ่ม</p>
+<p>อ่านตัวเลขในภาพ:</p>
+<ul>
+<li>ที่ x=28 kV มีจุดหนึ่งอยู่สูงถึงประมาณ 1050 นาที ในขณะที่จุดอื่น ๆ ที่ x=28 กระจุกอยู่ต่ำกว่า 500</li>
+<li>ที่ x=30, 32 kV จุดข้อมูลส่วนใหญ่กระจุกตัวต่ำกว่า 200 นาทีทั้งหมด</li>
+</ul>
+<p>สไลด์สรุปว่า "<strong>ทุกระดับของแรงดันมีเวลาเสียหายที่เบ้ขวา</strong>" ไม่ใช่แค่ภาพรวมทั้งชุดข้อมูลเบ้ — เป็นสัญญาณ่ว่า variance สัมพันธ์กับค่าเฉลี่ยของแต่ละกลุ่มด้วย ไม่ใช่แค่ความหลากหลายระหว่างกลุ่ม</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 9</span><span>อ่าน Diagnostic Plot</span></div>
@@ -355,7 +393,13 @@ AIC: 364.64
 <img src="../assets/slides/as13-p26-link-function-diagnostic-plots.png" alt="Three scatter plots of x (28, 30, 32) against 1/mu-squared, 1/mu, and mu, showing which transformation produces the most linear relationship with x">
 <figcaption>Slide: Example — A Life Test Experiment, plot(unique(x), 1/mu^2 | 1/mu | mu) (Lecture 13, p.26)</figcaption>
 </figure>
-<p>อ่านภาพ: มีแค่ 3 จุด (ที่ x=28, 30, 32) ในแต่ละกราฟเพราะคำนวณจากค่าเฉลี่ยของแต่ละกลุ่ม แต่รูปแบบชัดเจน — กราฟกลาง (\(\dfrac{1}{\mu}\) เทียบ x) จุดทั้งสามเรียงตัวใกล้เส้นตรงมากที่สุดเมื่อเทียบกับกราฟซ้าย (\(\dfrac{1}{\mu^2}\)) ที่จุดแรกอยู่ติดศูนย์แล้วกระโดดขึ้นแรงตอน x=32 หรือกราฟขวา (\(\mu\)) ที่ก็มีลักษณะโค้งเช่นกัน — เพราะ GLM ตั้งสมมติฐานว่า \(g(\mu) = X\beta\) เป็นเชิงเส้นใน X, link function ที่ทำให้จุดเรียงเป็นเส้นตรงมากที่สุดคือ link ที่เหมาะกับข้อมูลมากที่สุด สไลด์สรุปตรงกับผลจาก AIC และ p-value ก่อนหน้า: <strong>Inverse link คือคำตอบทั้งสามเกณฑ์</strong></p>
+<p>อ่านภาพ: มีแค่ 3 จุด (ที่ x=28, 30, 32) ในแต่ละกราฟเพราะคำนวณจากค่าเฉลี่ยของแต่ละกลุ่ม แต่รูปแบบชัดเจน:</p>
+<ul>
+<li>กราฟซ้าย (\(\dfrac{1}{\mu^2}\) เทียบ x): จุดแรกอยู่ติดศูนย์แล้วกระโดดขึ้นแรงตอน x=32 — ไม่เป็นเส้นตรง</li>
+<li>กราฟกลาง (\(\dfrac{1}{\mu}\) เทียบ x): จุดทั้งสามเรียงตัว<strong>ใกล้เส้นตรงมากที่สุด</strong>เมื่อเทียบกับอีกสองกราฟ</li>
+<li>กราฟขวา (\(\mu\) เทียบ x): ก็มีลักษณะโค้งเช่นกัน — ไม่เป็นเส้นตรง</li>
+</ul>
+<p>เพราะ GLM ตั้งสมมติฐานว่า \(g(\mu) = X\beta\) เป็นเชิงเส้นใน X, link function ที่ทำให้จุดเรียงเป็นเส้นตรงมากที่สุดคือ link ที่เหมาะกับข้อมูลมากที่สุด สไลด์สรุปตรงกับผลจาก AIC และ p-value ก่อนหน้า: <strong>Inverse link คือคำตอบทั้งสามเกณฑ์</strong></p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 10 (Free response)</span><span>เลือก Link Function ด้วยหลายเกณฑ์</span></div>
@@ -372,7 +416,12 @@ AIC: 364.64
 <tr><td>Gamma</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวา (เช่น ค่าใช้จ่ายเคลม, resistivity)</td><td>\(\propto \mu^2\)</td><td>log (multiplicative), canonical/inverse \((\eta=1/\mu)\), linear \((\eta=\mu\), สำหรับ \(\chi^2)\)</td><td>\(\log(\mu_i)=X_i\beta\)</td><td>\(\exp(\hat\beta)\) = ตัวคูณของค่าเฉลี่ยต่อการเพิ่ม X 1 หน่วย; % เปลี่ยนแปลง = \((\exp(\hat\beta)-1)\times100\%\)</td></tr>
 <tr><td>Inverse Gaussian</td><td>ต่อเนื่อง เป็นบวกเสมอ เบ้ขวารุนแรงกว่า มีค่าสุดโต่งมากกว่า Gamma</td><td>\(\propto \mu^3\)</td><td>canonical \((\eta=1/\mu^2)\), inverse \((\eta=1/\mu)\), identity \((\eta=\mu)\), log</td><td>ขึ้นกับ link ที่เลือก เช่น \(\dfrac{1}{\mu_i}=X_i\beta\) ถ้าใช้ inverse link</td><td>ถ้าใช้ log link: แปลผลแบบ \(\exp(\hat\beta)\) เหมือน Gamma; ถ้า link อื่น (identity/inverse) ต้องอ่านทิศทาง (บวก/ลบ) ของผลต่อ \(\eta\) โดยตรง ซึ่งตีความยากกว่า</td></tr>
 </table>
-<p>วิธีเลือกระหว่างสอง family: (1) ถ้า response บวกเบ้ขวาปกติ ให้เริ่มจาก <strong>Gamma</strong> เป็นค่าเริ่มต้น (2) ถ้ามีค่าสุดโต่งมากกว่าปกติ (heavy tail ชัดเจน เช่น histogram มีจุดหลุดไปไกลจากกลุ่มหลัก) ลอง <strong>Inverse Gaussian</strong> เพิ่ม (3) เปรียบเทียบ AIC/deviance ระหว่าง link ภายใน family เดียวกันได้ตรง ๆ แต่เทียบข้าม family/distribution ต้องระวัง (ดูหัวข้อ 5–6)</p>
+<p>วิธีเลือกระหว่างสอง family:</p>
+<ol>
+<li>ถ้า response บวกเบ้ขวาปกติ ให้เริ่มจาก <strong>Gamma</strong> เป็นค่าเริ่มต้น</li>
+<li>ถ้ามีค่าสุดโต่งมากกว่าปกติ (heavy tail ชัดเจน เช่น histogram มีจุดหลุดไปไกลจากกลุ่มหลัก) ลอง <strong>Inverse Gaussian</strong> เพิ่ม</li>
+<li>เปรียบเทียบ AIC/deviance ระหว่าง link ภายใน family เดียวกันได้ตรง ๆ แต่เทียบข้าม family/distribution ต้องระวัง (ดูหัวข้อ 5–6)</li>
+</ol>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 11</span><span>สรุปรวม — Recognition</span></div>
@@ -404,7 +453,13 @@ AIC: 364.64
 
 <div class="box win">
 <div class="label">ชัยชนะของบทเรียนนี้</div>
-ตอนนี้คุณควรบอกได้ว่าเมื่อ response เป็นข้อมูลต่อเนื่องบวกเบ้ขวา ควรเลือก <strong>Gamma GLM</strong> (variance \(\propto\mu^2\)) หรือ <strong>Inverse Gaussian GLM</strong> (variance \(\propto\mu^3\) — เมื่อมี extreme values มากกว่า) เขียนสมการโมเดลพร้อม link function ที่เหมาะสม (มักเป็น log link เมื่อสงสัยผลแบบ multiplicative) แปลผลสัมประสิทธิ์ด้วย \(\exp(\hat\beta)\) แบบเดียวกับ Poisson regression ที่เคยเรียนมา อ่าน dispersion parameter และ deviance จาก R output เพื่อทำ goodness-of-fit test (<code>1-pchisq(deviance, df)</code>) และเลือก link function ที่ดีที่สุดด้วยการเทียบ AIC ภายใน family เดียวกัน — พร้อมรู้ข้อจำกัดว่าเมื่อไรเทียบ AIC/LRT ข้าม distribution ไม่ได้เลย
+<p>ตอนนี้คุณควรบอกได้ว่าเมื่อ response เป็นข้อมูลต่อเนื่องบวกเบ้ขวา ควรเลือก <strong>Gamma GLM</strong> (variance \(\propto\mu^2\)) หรือ <strong>Inverse Gaussian GLM</strong> (variance \(\propto\mu^3\) — เมื่อมี extreme values มากกว่า) และเมื่อเลือกได้แล้ว คุณควรทำสิ่งต่อไปนี้ได้:</p>
+<ul>
+<li>เขียนสมการโมเดลพร้อม link function ที่เหมาะสม (มักเป็น log link เมื่อสงสัยผลแบบ multiplicative)</li>
+<li>แปลผลสัมประสิทธิ์ด้วย \(\exp(\hat\beta)\) แบบเดียวกับ Poisson regression ที่เคยเรียนมา</li>
+<li>อ่าน dispersion parameter และ deviance จาก R output เพื่อทำ goodness-of-fit test (<code>1-pchisq(deviance, df)</code>)</li>
+<li>เลือก link function ที่ดีที่สุดด้วยการเทียบ AIC ภายใน family เดียวกัน — พร้อมรู้ข้อจำกัดว่าเมื่อไรเทียบ AIC/LRT ข้าม distribution ไม่ได้เลย</li>
+</ul>
 </div>
 
 <h2>ภาคผนวก: Slide ทั้งหมดใน Deck (26 หน้า) — เช็คว่าอ่านครบ</h2>

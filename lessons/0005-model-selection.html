@@ -22,8 +22,21 @@
 <p>บทที่แล้ว (Lecture 3–4) สอนวิธี<em>เช็ค</em>ว่าโมเดลที่ fit ไปแล้วใช้ได้ไหม บทนี้ย้อนกลับไปหนึ่งขั้น: <strong>ก่อนจะ fit โมเดลสุดท้าย จะเลือกตัวแปรอิสระตัวไหนเข้าสมการบ้าง</strong> — เพราะโมเดล multiple regression ที่มีตัวแปรอิสระหลายตัว ไม่ได้แปลว่ายิ่งใส่ตัวแปรเยอะยิ่งดี Model Selection คือกระบวนการที่เป็นระบบในการตัดสินใจเรื่องนี้ และท้ายที่สุดทุกวิธีในบทนี้ต้องจบลงที่คุณ<strong>เขียนสมการโมเดลสุดท้ายได้ชัดเจน</strong> — ตรงกับทักษะที่ 1 ของวิชานี้ตามที่ตั้งไว้ใน MISSION เพียงแต่คราวนี้ "การเขียนสมการ" หมายถึงตัดสินใจว่าพจน์ไหนควรอยู่ในสมการด้วย ไม่ใช่แค่เขียนสมการที่กำหนดมาให้แล้ว</p>
 
 <h2>1. ทำไมต้องทำ Model Selection: Occam's Razor</h2>
-<p>เป้าหมายของ Model Building คือหาโมเดลที่มี "ชุดตัวแปรอิสระที่ดีที่สุด" ปัญหานี้เรียกว่า <em class="term">Model selection</em> หรือ <em class="term">Variable selection</em> และมีหลักคิด 2 แนวทาง: (1) <em class="term">Occam's razor principle</em> — หลักปรัชญาที่ว่า "Entities should not be multiplied unnecessarily" (อย่าเพิ่มสิ่งต่าง ๆ เกินความจำเป็น) และ (2) <em class="term">Predictive performance</em> — เลือกโมเดลที่ทำนายข้อมูลใหม่ได้แม่นที่สุด (หัวข้อ 11 เป็นต้นไป)</p>
-<p>ทำไมโมเดลแบบ<em>ประหยัด (parsimonious)</em> ถึงดีกว่า: (1) ตีความง่ายกว่าเมื่อตัดตัวแปรที่ไม่สำคัญออก และ (2) ลดโอกาสเกิด <em class="term">multicollinearity</em> (ตัวแปรอิสระสัมพันธ์กันเองสูง ทำให้ประมาณค่าสัมประสิทธิ์ไม่เสถียร) — สไลด์เสนอ 2 วิธีที่ตั้งอยู่บนหลัก Occam's razor: <strong>Stepwise regression procedure</strong> (ประเมินโมเดลทีละขั้นขณะเพิ่ม/ลดตัวแปร) และ <strong>Best-subset approach</strong> (ลองทุกชุดค่าผสมที่เป็นไปได้แล้วเลือกตัวที่ดีที่สุดตาม criterion ที่เลือก)</p>
+<p>เป้าหมายของ Model Building คือหาโมเดลที่มี "ชุดตัวแปรอิสระที่ดีที่สุด" ปัญหานี้เรียกว่า <em class="term">Model selection</em> หรือ <em class="term">Variable selection</em> และมีหลักคิด 2 แนวทาง:</p>
+<ul>
+<li><em class="term">Occam's razor principle</em> — หลักปรัชญาที่ว่า "Entities should not be multiplied unnecessarily" (อย่าเพิ่มสิ่งต่าง ๆ เกินความจำเป็น)</li>
+<li><em class="term">Predictive performance</em> — เลือกโมเดลที่ทำนายข้อมูลใหม่ได้แม่นที่สุด (หัวข้อ 11 เป็นต้นไป)</li>
+</ul>
+<p>ทำไมโมเดลแบบ<em>ประหยัด (parsimonious)</em> ถึงดีกว่า:</p>
+<ul>
+<li>ตีความง่ายกว่าเมื่อตัดตัวแปรที่ไม่สำคัญออก</li>
+<li>ลดโอกาสเกิด <em class="term">multicollinearity</em> (ตัวแปรอิสระสัมพันธ์กันเองสูง ทำให้ประมาณค่าสัมประสิทธิ์ไม่เสถียร)</li>
+</ul>
+<p>สไลด์เสนอ 2 วิธีที่ตั้งอยู่บนหลัก Occam's razor:</p>
+<ul>
+<li><strong>Stepwise regression procedure</strong> (ประเมินโมเดลทีละขั้นขณะเพิ่ม/ลดตัวแปร)</li>
+<li><strong>Best-subset approach</strong> (ลองทุกชุดค่าผสมที่เป็นไปได้แล้วเลือกตัวที่ดีที่สุดตาม criterion ที่เลือก)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>Occam's Razor</span></div>
@@ -69,7 +82,13 @@ ols_step_forward_p(fullmodel, p_val=0.05)</code></pre>
 <img src="../assets/slides/as5-p06-forward-selection-mtcars-setup.png" alt="R output of ols_step_forward_p on mtcars mpg full model, stepwise summary table showing step 0 base model AIC 208.756, step 1 adding wt AIC 166.029 R2 0.75283, step 2 adding cyl AIC 156.010 R2 0.83023">
 <figcaption>Slide: Forward Selection in R — <code>ols_step_forward_p</code> (Lecture 5, p.6)</figcaption>
 </figure>
-<p>อ่านตาราง Stepwise Summary: เริ่มที่ Base Model (ไม่มีตัวแปรเลย) AIC=208.756, R²=0. ขั้นที่ 1 เพิ่ม <code>wt</code> เข้ามา — AIC ลดฮวบจาก 208.756 เหลือ <strong>166.029</strong> และ R² กระโดดเป็น <strong>0.75283</strong> (wt อธิบายความแปรปรวนของ mpg ได้กว่า 75% ตัวเดียว) ขั้นที่ 2 เพิ่ม <code>cyl</code> เข้ามาอีก — AIC ลดต่อเป็น <strong>156.010</strong>, R² เพิ่มเป็น <strong>0.83023</strong>, Adj. R² เพิ่มเป็น <strong>0.81852</strong> — algorithm หยุดตรงนี้เพราะไม่มีตัวแปรตัวไหนที่เพิ่มเข้าไปแล้วมี p-value &lt; 0.05 อีกแล้ว (ใช้เกณฑ์ <code>p_val=0.05</code> ตามที่ระบุใน argument)</p>
+<p>อ่านตาราง Stepwise Summary ทีละขั้น:</p>
+<ul>
+<li><strong>Base Model</strong> (ไม่มีตัวแปรเลย): AIC=208.756, R²=0</li>
+<li><strong>ขั้นที่ 1</strong> เพิ่ม <code>wt</code> เข้ามา — AIC ลดฮวบจาก 208.756 เหลือ <strong>166.029</strong> และ R² กระโดดเป็น <strong>0.75283</strong> (wt อธิบายความแปรปรวนของ mpg ได้กว่า 75% ตัวเดียว)</li>
+<li><strong>ขั้นที่ 2</strong> เพิ่ม <code>cyl</code> เข้ามาอีก — AIC ลดต่อเป็น <strong>156.010</strong>, R² เพิ่มเป็น <strong>0.83023</strong>, Adj. R² เพิ่มเป็น <strong>0.81852</strong></li>
+<li><strong>หยุด</strong> ตรงนี้ เพราะไม่มีตัวแปรตัวไหนที่เพิ่มเข้าไปแล้วมี p-value &lt; 0.05 อีกแล้ว (ใช้เกณฑ์ <code>p_val=0.05</code> ตามที่ระบุใน argument)</li>
+</ul>
 <p>ผลลัพธ์เต็มของโมเดล 2 ตัวแปรที่ได้ (<code>mpg ~ wt + cyl</code>):</p>
 <figure>
 <img src="../assets/slides/as5-p07-forward-selection-final-model.png" alt="Final model output for forward selection: model summary R-squared 0.830 adjusted R-squared 0.819 AIC 156.010, ANOVA table, parameter estimates intercept 39.686 wt -3.191 cyl -1.508">
@@ -98,13 +117,31 @@ ols_step_forward_p(fullmodel, p_val=0.05)</code></pre>
 <img src="../assets/slides/as5-p08-backward-elimination-mtcars.png" alt="Backward elimination summary table starting from Full Model AIC 163.710 R2 0.86902, removing cyl vs carb gear drat disp hp sequentially, final AIC 154.119 R2 0.84966 adjusted R2 0.83356">
 <figcaption>Slide: Backward Elimination in R — <code>ols_step_backward_p</code> (Lecture 5, p.8)</figcaption>
 </figure>
-<p>ขั้นตอนนี้เริ่มจาก Full Model (ตัวแปรทั้ง 10 ตัว: cyl, disp, hp, drat, wt, qsec, vs, am, gear, carb) แล้วลบตัวแปรที่ p-value สูงที่สุดออกทีละตัว: ลบ <code>cyl</code>, <code>vs</code>, <code>carb</code>, <code>gear</code>, <code>drat</code>, <code>disp</code>, และ <code>hp</code> ตามลำดับ (7 ตัว) จนเหลือ 3 ตัวสุดท้ายคือ <strong>wt, qsec, am</strong> ที่ AIC ต่ำสุดในเส้นทางนี้ (154.119) — สังเกตว่า<strong>ชุดตัวแปรที่ backward เลือกไม่เหมือนกับที่ forward เลือกเลย</strong> (forward ได้ wt+cyl, backward ได้ wt+qsec+am) ทั้งที่ใช้เกณฑ์ p_val=0.05 เหมือนกัน และใช้ข้อมูลชุดเดียวกัน — นี่คือตัวอย่างที่พิสูจน์ข้อสังเกตในหัวข้อ 2 ว่าเส้นทางการค้นหาที่ต่างกันให้ผลลัพธ์ต่างกันได้จริง (สไลด์นี้ไม่ได้แสดงตาราง Parameter Estimates ของโมเดลสุดท้าย จึงเขียนได้แค่ชุดตัวแปร ไม่ใช่สมการตัวเลขเต็ม)</p>
+<p>ขั้นตอนนี้เริ่มจาก Full Model (ตัวแปรทั้ง 10 ตัว: cyl, disp, hp, drat, wt, qsec, vs, am, gear, carb) แล้วลบตัวแปรที่ p-value สูงที่สุดออกทีละตัวตามลำดับนี้:</p>
+<ol>
+<li>ลบ <code>cyl</code></li>
+<li>ลบ <code>vs</code></li>
+<li>ลบ <code>carb</code></li>
+<li>ลบ <code>gear</code></li>
+<li>ลบ <code>drat</code></li>
+<li>ลบ <code>disp</code></li>
+<li>ลบ <code>hp</code></li>
+</ol>
+<p>รวม 7 ตัว จนเหลือ 3 ตัวสุดท้ายคือ <strong>wt, qsec, am</strong> ที่ AIC ต่ำสุดในเส้นทางนี้ (154.119)</p>
+<ul>
+<li>สังเกตว่า<strong>ชุดตัวแปรที่ backward เลือกไม่เหมือนกับที่ forward เลือกเลย</strong> (forward ได้ wt+cyl, backward ได้ wt+qsec+am) ทั้งที่ใช้เกณฑ์ p_val=0.05 เหมือนกัน และใช้ข้อมูลชุดเดียวกัน</li>
+<li>นี่คือตัวอย่างที่พิสูจน์ข้อสังเกตในหัวข้อ 2 ว่าเส้นทางการค้นหาที่ต่างกันให้ผลลัพธ์ต่างกันได้จริง (สไลด์นี้ไม่ได้แสดงตาราง Parameter Estimates ของโมเดลสุดท้าย จึงเขียนได้แค่ชุดตัวแปร ไม่ใช่สมการตัวเลขเต็ม)</li>
+</ul>
 <p>ลองแบบ stepwise (both) ด้วย <code>ols_step_both_p(fullmodel, p_enter=0.05, p_remove=0.05)</code>:</p>
 <figure>
 <img src="../assets/slides/as5-p09-stepwise-both-mtcars.png" alt="Stepwise both summary table: step 1 adds wt AIC 166.029, step 2 adds cyl AIC 156.010 R2 0.83023, identical result to forward selection">
 <figcaption>Slide: Stepwise Regression in R — <code>ols_step_both_p</code> (Lecture 5, p.9)</figcaption>
 </figure>
-<p>ผลลัพธ์ของ stepwise (both) คือ<strong>เพิ่ม wt แล้วเพิ่ม cyl</strong> เหมือนกันเป๊ะกับ forward selection ทุกตัวเลข (AIC=156.010, R²=0.83023) — ในกรณีนี้ stepwise เห็นด้วยกับ forward แต่<strong>ไม่เห็นด้วยกับ backward</strong> ข้อสรุปสำคัญ: การที่สามวิธีนี้ไม่ลงรอยกันไม่ใช่เรื่องแปลก และเป็นเหตุผลที่ข้อสอบมักถามว่า "วิธีไหนให้ผลต่างกันเพราะอะไร" — คำตอบคือแต่ละวิธีเดินเส้นทางการเพิ่ม/ลบตัวแปรคนละเส้นทาง ทำให้อาจติดอยู่ที่ local optimum คนละจุดกัน ไม่มีวิธีไหนรับประกันว่าจะได้ global best model เสมอ (ต่างจาก Best-Subset ในหัวข้อถัดไปที่ลองทุกชุดค่าผสมจริง ๆ)</p>
+<p>ผลลัพธ์ของ stepwise (both) คือ<strong>เพิ่ม wt แล้วเพิ่ม cyl</strong> เหมือนกันเป๊ะกับ forward selection ทุกตัวเลข (AIC=156.010, R²=0.83023) — ในกรณีนี้ stepwise เห็นด้วยกับ forward แต่<strong>ไม่เห็นด้วยกับ backward</strong></p>
+<ul>
+<li>ข้อสรุปสำคัญ: การที่สามวิธีนี้ไม่ลงรอยกันไม่ใช่เรื่องแปลก และเป็นเหตุผลที่ข้อสอบมักถามว่า "วิธีไหนให้ผลต่างกันเพราะอะไร"</li>
+<li>คำตอบคือแต่ละวิธีเดินเส้นทางการเพิ่ม/ลบตัวแปรคนละเส้นทาง ทำให้อาจติดอยู่ที่ local optimum คนละจุดกัน ไม่มีวิธีไหนรับประกันว่าจะได้ global best model เสมอ (ต่างจาก Best-Subset ในหัวข้อถัดไปที่ลองทุกชุดค่าผสมจริง ๆ)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 4</span><span>เปรียบเทียบ Forward/Backward/Stepwise</span></div>
@@ -119,12 +156,30 @@ ols_step_forward_p(fullmodel, p_val=0.05)</code></pre>
 </div>
 
 <h2>5. Best-Subset Approach: สูตร Cp, BIC, AIC — บวกหรือลบ เท่าไหร่ถึง "ดีกว่า"</h2>
-<p><em class="term">Best-subset regression</em> คือการ fit<strong>ทุกชุดค่าผสม</strong>ของตัวแปรอิสระที่เป็นไปได้ แล้วเลือกชุดที่ดีที่สุดตาม criterion ที่กำหนด — ต่างจาก stepwise ที่เดินเส้นทางเดียวแล้วหยุด สไลด์ระบุ criterion ที่ใช้บ่อย 4 ตัว: Adjusted R², Mallow's Cp, BIC (Bayesian Information Criteria), AIC (Akaike Information Criteria) โครงสร้างสูตรของ Cp, BIC, AIC ล้วนแบ่งเป็น 2 ส่วนเสมอ: <strong>ส่วนที่วัดความคลาดเคลื่อนที่เหลือ (SS Res. part)</strong> บวกกับ <strong>ส่วนที่ลงโทษโมเดลที่มีพจน์เยอะเกินไป (penalty)</strong>:</p>
+<p><em class="term">Best-subset regression</em> คือการ fit<strong>ทุกชุดค่าผสม</strong>ของตัวแปรอิสระที่เป็นไปได้ แล้วเลือกชุดที่ดีที่สุดตาม criterion ที่กำหนด — ต่างจาก stepwise ที่เดินเส้นทางเดียวแล้วหยุด สไลด์ระบุ criterion ที่ใช้บ่อย 4 ตัว:</p>
+<ul>
+<li>Adjusted R²</li>
+<li>Mallow's Cp</li>
+<li>BIC (Bayesian Information Criteria)</li>
+<li>AIC (Akaike Information Criteria)</li>
+</ul>
+<p>โครงสร้างสูตรของ Cp, BIC, AIC ล้วนแบ่งเป็น 2 ส่วนเสมอ: <strong>ส่วนที่วัดความคลาดเคลื่อนที่เหลือ (SS Res. part)</strong> บวกกับ <strong>ส่วนที่ลงโทษโมเดลที่มีพจน์เยอะเกินไป (penalty)</strong>:</p>
 <figure>
 <img src="../assets/slides/as5-p11-cp-bic-aic-formulas.png" alt="Table of Cp, BIC, AIC formulas: Cp = (n-(p+1)) times MSE over MSE_full plus 2(p+1)-n; BIC = n log(MSE) plus (p+1) log(n); AIC = n log(MSE) plus 2(p+1); model with smaller Cp, BIC, AIC is preferred">
 <figcaption>Slide: Cp, BIC, and AIC (Lecture 5, p.11)</figcaption>
 </figure>
-<p>สูตรเต็ม: \( C_p = (n-(p+1)) \times \dfrac{MSE}{MSE_{full}} + [2(p+1)-n] \), \( BIC = n\log(MSE) + (p+1)\log(n) \), \( AIC = n\log(MSE) + 2(p+1) \) โดย \(p\) คือจำนวนตัวแปรอิสระในโมเดลย่อยที่กำลังพิจารณา ดังนั้น \(p+1\) คือจำนวนพารามิเตอร์ทั้งหมดรวม intercept — <strong>จุดที่ข้อสอบชอบเช็คและคนสับสนบ่อยที่สุด:</strong> Cp, BIC, AIC ทั้งสามตัว "<strong>ยิ่งน้อยยิ่งดี</strong>" (minimize) สลับทิศทางกับ R²/Adjusted R² ที่ "ยิ่งมากยิ่งดี" (maximize) — เหตุผลเชิงสูตร: MSE ที่เล็กลง (fit ดีขึ้น) ทำให้ทั้งสามค่านี้ลดลง แต่พจน์ penalty ที่เพิ่มขึ้นตามจำนวนพารามิเตอร์ (p+1) จะดึงค่ากลับขึ้น — โมเดลที่ใส่ตัวแปรเยอะเกินไปโดยไม่ช่วย fit จะถูกลงโทษจนค่า Cp/BIC/AIC สูงขึ้นแทนที่จะต่ำลง</p>
+<p>สูตรเต็ม:</p>
+<ul>
+<li>\( C_p = (n-(p+1)) \times \dfrac{MSE}{MSE_{full}} + [2(p+1)-n] \)</li>
+<li>\( BIC = n\log(MSE) + (p+1)\log(n) \)</li>
+<li>\( AIC = n\log(MSE) + 2(p+1) \)</li>
+</ul>
+<p>โดย \(p\) คือจำนวนตัวแปรอิสระในโมเดลย่อยที่กำลังพิจารณา ดังนั้น \(p+1\) คือจำนวนพารามิเตอร์ทั้งหมดรวม intercept</p>
+<p><strong>จุดที่ข้อสอบชอบเช็คและคนสับสนบ่อยที่สุด:</strong> Cp, BIC, AIC ทั้งสามตัว "<strong>ยิ่งน้อยยิ่งดี</strong>" (minimize) สลับทิศทางกับ R²/Adjusted R² ที่ "ยิ่งมากยิ่งดี" (maximize)</p>
+<ul>
+<li>เหตุผลเชิงสูตร: MSE ที่เล็กลง (fit ดีขึ้น) ทำให้ทั้งสามค่านี้ลดลง แต่พจน์ penalty ที่เพิ่มขึ้นตามจำนวนพารามิเตอร์ (p+1) จะดึงค่ากลับขึ้น</li>
+<li>โมเดลที่ใส่ตัวแปรเยอะเกินไปโดยไม่ช่วย fit จะถูกลงโทษจนค่า Cp/BIC/AIC สูงขึ้นแทนที่จะต่ำลง</li>
+</ul>
 <p>สำหรับ Mallow's Cp มีกฎอ่านค่าเพิ่มเติมที่ใช้บ่อยในทางปฏิบัติ: ถ้าโมเดลย่อยนั้น "ดี" (ไม่มี bias จากการตัดตัวแปรสำคัญออก) ค่า Cp ควรจะใกล้เคียงกับ \(p+1\) (จำนวนพารามิเตอร์ของโมเดลนั้นเอง) และยิ่งค่า Cp ต่ำยิ่งดี — จะเห็นตัวอย่างตัวเลขจริงในหัวข้อ 6</p>
 
 <div class="quiz">
@@ -145,7 +200,13 @@ ols_step_forward_p(fullmodel, p_val=0.05)</code></pre>
 <img src="../assets/slides/as5-p12-selection-criteria-r-functions.png" alt="R output: summary(fullmodel)$adj.r.squared = 0.8066423, ols_mallows_cp(fullmodel,fullmodel)=11, ols_mallows_cp(model1,fullmodel)=1.218732 for model1=wt+cyl, AIC(fullmodel)=163.7098, BIC(fullmodel)=181.2986">
 <figcaption>Slide: Selection Criteria in R (Lecture 5, p.12)</figcaption>
 </figure>
-<p>ไล่ตัวเลข: <code>summary(fullmodel)$adj.r.squared</code> ให้ <strong>0.8066423</strong> — Adjusted R² ของโมเดลเต็ม (10 ตัวแปร) ตรงกับที่เห็นใน backward table หัวข้อ 4 (Adj. R2=0.80664 ของ Full Model) พอดี ยืนยันว่าเป็นตัวเลขชุดเดียวกัน. <code>ols_mallows_cp(fullmodel, fullmodel)</code> ให้ <strong>11</strong> — เมื่อเทียบโมเดลกับตัวมันเอง MSE/MSE_full=1 พอดี สูตร Cp จะลดรูปเหลือ \(C_p = p+1\) เสมอ (โมเดลเต็มมี 10 ตัวแปร จึง p+1=11 ตรงเป๊ะ นี่คือจุดตรวจสอบสูตรที่ดี). เทียบกับ <code>ols_mallows_cp(model1, fullmodel)</code> ที่ <code>model1=lm(mpg~wt+cyl)</code> — ได้ <strong>1.218732</strong> ซึ่ง<strong>ต่ำกว่า</strong> p+1=3 ของ model1 เองด้วยซ้ำ (2 ตัวแปร+intercept=3) บ่งชี้ว่าโมเดล wt+cyl เป็นโมเดลที่ดีมากเทียบกับโมเดลเต็ม 10 ตัวแปร ไม่มี bias จากการตัดตัวแปรสำคัญทิ้ง. สุดท้าย <code>AIC(fullmodel)=163.7098</code> และ <code>BIC(fullmodel)=181.2986</code> ตรงกับตัวเลขในหัวข้อ 4 เป๊ะเช่นกัน</p>
+<p>ไล่ตัวเลขทีละบรรทัดจากภาพ:</p>
+<ul>
+<li><code>summary(fullmodel)$adj.r.squared</code> ให้ <strong>0.8066423</strong> — Adjusted R² ของโมเดลเต็ม (10 ตัวแปร) ตรงกับที่เห็นใน backward table หัวข้อ 4 (Adj. R2=0.80664 ของ Full Model) พอดี ยืนยันว่าเป็นตัวเลขชุดเดียวกัน</li>
+<li><code>ols_mallows_cp(fullmodel, fullmodel)</code> ให้ <strong>11</strong> — เมื่อเทียบโมเดลกับตัวมันเอง MSE/MSE_full=1 พอดี สูตร Cp จะลดรูปเหลือ \(C_p = p+1\) เสมอ (โมเดลเต็มมี 10 ตัวแปร จึง p+1=11 ตรงเป๊ะ นี่คือจุดตรวจสอบสูตรที่ดี)</li>
+<li>เทียบกับ <code>ols_mallows_cp(model1, fullmodel)</code> ที่ <code>model1=lm(mpg~wt+cyl)</code> — ได้ <strong>1.218732</strong> ซึ่ง<strong>ต่ำกว่า</strong> p+1=3 ของ model1 เองด้วยซ้ำ (2 ตัวแปร+intercept=3) บ่งชี้ว่าโมเดล wt+cyl เป็นโมเดลที่ดีมากเทียบกับโมเดลเต็ม 10 ตัวแปร ไม่มี bias จากการตัดตัวแปรสำคัญทิ้ง</li>
+<li>สุดท้าย <code>AIC(fullmodel)=163.7098</code> และ <code>BIC(fullmodel)=181.2986</code> ตรงกับตัวเลขในหัวข้อ 4 เป๊ะเช่นกัน</li>
+</ul>
 <div class="box source">
 <div class="label">ข้อควรระวัง: Cp ขึ้นกับว่า "full model" ที่ใช้อ้างอิงคือตัวไหน</div>
 Cp คำนวณจาก \(MSE_{full}\) ของโมเดลอ้างอิงที่คุณเลือก — ถ้าเปลี่ยนโมเดลอ้างอิง (เช่นในหัวข้อ 7 ที่ใช้ full model แค่ 4 ตัวแปรแทนที่จะเป็น 10 ตัวแปร) ค่า Cp ของโมเดลย่อยตัวเดียวกันจะ<strong>ไม่เท่ากัน</strong> — ห้ามเทียบค่า Cp ข้ามชุดการคำนวณที่ใช้ full model คนละตัวกัน
@@ -162,7 +223,12 @@ bic=tmpoutput$result$sbc)</code></pre>
 <img src="../assets/slides/as5-p13-all-possible-models-table.png" alt="Table of 15 possible models from wt, cyl, hp, carb with columns adjr, cp, aic, bic; wt cyl hp has highest adjr 0.8263446 and lowest aic 155.4766 with cp 3.390607; wt cyl has lowest bic 161.8730">
 <figcaption>Slide: Getting Criteria for All Possible Models (Lecture 5, p.13)</figcaption>
 </figure>
-<p>ไล่หาโมเดลที่ดีที่สุดตามแต่ละ criterion จากตาราง 15 แถวนี้: ถ้าดู <strong>Adjusted R² สูงสุด</strong> และ <strong>AIC ต่ำสุด</strong> พร้อมกัน คือแถว <code>wt cyl hp</code> (adjr=<strong>0.8263446</strong>, aic=<strong>155.4766</strong>, cp=3.390607 ≈ p+1=4 พอดี — ดีตามกฎ Cp ในหัวข้อ 5) แต่ถ้าดู <strong>BIC ต่ำสุด</strong> กลับเป็นแถว <code>wt cyl</code> (bic=<strong>161.8730</strong> ต่ำกว่า wt cyl hp ที่ bic=162.8053) — <strong>นี่คือช่องว่างที่ AIC กับ BIC ให้คำตอบต่างกันจริง</strong> เพราะพจน์ penalty ของ BIC คือ \((p+1)\log(n)\) ในขณะที่ AIC คือ \(2(p+1)\) เท่านั้น — เมื่อ n มากพอ \(\log(n) > 2\) เสมอ (ในที่นี้ n=32, log(32)≈3.47 &gt; 2) ทำให้ BIC ลงโทษการเพิ่มตัวแปรตัวที่ 3 (hp) แรงกว่า AIC จนไม่คุ้มที่จะเพิ่ม ในขณะที่ AIC มองว่าคุ้ม — <strong>กฎจำง่าย: BIC มักเลือกโมเดลที่เล็กกว่าหรือเท่ากับที่ AIC เลือกเสมอ เพราะ BIC ลงโทษความซับซ้อนแรงกว่า</strong></p>
+<p>ไล่หาโมเดลที่ดีที่สุดตามแต่ละ criterion จากตาราง 15 แถวนี้:</p>
+<ul>
+<li>ถ้าดู <strong>Adjusted R² สูงสุด</strong> และ <strong>AIC ต่ำสุด</strong> พร้อมกัน คือแถว <code>wt cyl hp</code> (adjr=<strong>0.8263446</strong>, aic=<strong>155.4766</strong>, cp=3.390607 ≈ p+1=4 พอดี — ดีตามกฎ Cp ในหัวข้อ 5)</li>
+<li>แต่ถ้าดู <strong>BIC ต่ำสุด</strong> กลับเป็นแถว <code>wt cyl</code> (bic=<strong>161.8730</strong> ต่ำกว่า wt cyl hp ที่ bic=162.8053) — <strong>นี่คือช่องว่างที่ AIC กับ BIC ให้คำตอบต่างกันจริง</strong></li>
+</ul>
+<p>เหตุผลเชิงสูตร: พจน์ penalty ของ BIC คือ \((p+1)\log(n)\) ในขณะที่ AIC คือ \(2(p+1)\) เท่านั้น — เมื่อ n มากพอ \(\log(n) > 2\) เสมอ (ในที่นี้ n=32, log(32)≈3.47 &gt; 2) ทำให้ BIC ลงโทษการเพิ่มตัวแปรตัวที่ 3 (hp) แรงกว่า AIC จนไม่คุ้มที่จะเพิ่ม ในขณะที่ AIC มองว่าคุ้ม — <strong>กฎจำง่าย: BIC มักเลือกโมเดลที่เล็กกว่าหรือเท่ากับที่ AIC เลือกเสมอ เพราะ BIC ลงโทษความซับซ้อนแรงกว่า</strong></p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 6 (Free response — เทียบ 2 โมเดลจริงจากตาราง)</span><span>AIC vs BIC เลือกโมเดลต่างกัน</span></div>
@@ -194,13 +260,20 @@ bic=tmpoutput$result$sbc)</code></pre>
 <img src="../assets/slides/as5-p14-forward-stepwise-aic-mtcars.png" alt="Selection summary using AIC criterion: wt AIC 166.029, cyl AIC 156.010, hp AIC 155.477 with R-Sq 0.84315 Adj R-Sq 0.82634 — three variables selected, unlike the p-value-based forward selection which stopped at two">
 <figcaption>Slide: Stepwise with AIC — Forward (Lecture 5, p.14)</figcaption>
 </figure>
-<p>เปรียบเทียบกับหัวข้อ 3 ตรง ๆ: forward-AIC เพิ่ม <code>wt</code> (AIC=166.029) แล้ว <code>cyl</code> (AIC=156.010) เหมือนแบบ p-value ทุกตัวเลข แต่ขั้นที่ 3 เพิ่ม <code>hp</code> เข้ามาอีก — AIC ลดลงต่อเป็น <strong>155.477</strong> (R²=0.84315, Adj.R²=0.82634) ในขณะที่ forward-p-value (หัวข้อ 3) <strong>หยุดที่ 2 ตัวแปร</strong> เพราะ p-value ของ hp ตอนเข้าโมเดลไม่ผ่านเกณฑ์ 0.05 — นี่คือเหตุผลของความต่าง: <strong>เกณฑ์ AIC ยอมรับตัวแปรตัวที่ทำให้ AIC ลดลงแม้จะไม่ผ่าน α=0.05 แบบ p-value test</strong> (การลด AIC กับ p-value&lt;0.05 เป็นเงื่อนไขคนละแบบ ไม่ได้เทียบเท่ากันเป๊ะเมื่อมีตัวแปรมากกว่า 1 ตัวในการทดสอบ) — ผลคือ AIC-based selection มักได้โมเดลที่มีตัวแปรมากกว่าหรือเท่ากับ p-value-based selection เสมอ</p>
+<p>เปรียบเทียบกับหัวข้อ 3 ตรง ๆ:</p>
+<ul>
+<li>forward-AIC เพิ่ม <code>wt</code> (AIC=166.029) แล้ว <code>cyl</code> (AIC=156.010) เหมือนแบบ p-value ทุกตัวเลข</li>
+<li>แต่ขั้นที่ 3 เพิ่ม <code>hp</code> เข้ามาอีก — AIC ลดลงต่อเป็น <strong>155.477</strong> (R²=0.84315, Adj.R²=0.82634)</li>
+<li>ในขณะที่ forward-p-value (หัวข้อ 3) <strong>หยุดที่ 2 ตัวแปร</strong> เพราะ p-value ของ hp ตอนเข้าโมเดลไม่ผ่านเกณฑ์ 0.05</li>
+</ul>
+<p>นี่คือเหตุผลของความต่าง: <strong>เกณฑ์ AIC ยอมรับตัวแปรตัวที่ทำให้ AIC ลดลงแม้จะไม่ผ่าน α=0.05 แบบ p-value test</strong> (การลด AIC กับ p-value&lt;0.05 เป็นเงื่อนไขคนละแบบ ไม่ได้เทียบเท่ากันเป๊ะเมื่อมีตัวแปรมากกว่า 1 ตัวในการทดสอบ) — ผลคือ AIC-based selection มักได้โมเดลที่มีตัวแปรมากกว่าหรือเท่ากับ p-value-based selection เสมอ</p>
 <p>ลองแบบ stepwise (both) ด้วยเกณฑ์ AIC ผ่าน <code>ols_step_both_aic(fullmodel)</code>:</p>
 <figure>
 <img src="../assets/slides/as5-p16-stepwise-both-aic-mtcars.png" alt="Stepwise summary using AIC: wt addition AIC 166.029, cyl addition AIC 156.010, hp addition AIC 155.477, identical three-variable result to forward-AIC">
 <figcaption>Slide: Stepwise with AIC — Stepwise (both) (Lecture 5, p.16)</figcaption>
 </figure>
-<p>ผลลัพธ์ของ stepwise-AIC (both) คือ \(\text{wt} \to \text{cyl} \to \text{hp}\) เหมือนกันเป๊ะกับ forward-AIC — สอดคล้องกับที่เห็นในหัวข้อ 4 ว่า forward กับ stepwise มักลงรอยกัน (backward ต่างหากที่มักเดินคนละเส้นทาง) ส่วนผลของ <code>ols_step_backward_aic(fullmodel)</code> (ไม่แสดงภาพในที่นี้เพราะตัวเลขซ้ำกับตารางในหัวข้อ 4 ทุกประการ) ก็ยังคงลบตัวแปรลงจนเหลือ <strong>wt, qsec, am</strong> ที่ AIC=154.119 เหมือนแบบ p-value ทุกตัวเลข — สรุปภาพรวมของทั้งหัวข้อ 4 และ 8: ในตัวอย่าง mtcars นี้ <strong>เกณฑ์ (p-value vs AIC) ไม่ได้เปลี่ยนผลของ backward แต่เปลี่ยนผลของ forward/stepwise</strong> — ต้องอ่านทั้งเกณฑ์และวิธีการเดินเส้นทางประกอบกันเสมอ ห้ามด่วนสรุปว่าวิธีไหน "ถูก" กว่ากันโดยไม่ดูบริบท</p>
+<p>ผลลัพธ์ของ stepwise-AIC (both) คือ \(\text{wt} \to \text{cyl} \to \text{hp}\) เหมือนกันเป๊ะกับ forward-AIC — สอดคล้องกับที่เห็นในหัวข้อ 4 ว่า forward กับ stepwise มักลงรอยกัน (backward ต่างหากที่มักเดินคนละเส้นทาง) ส่วนผลของ <code>ols_step_backward_aic(fullmodel)</code> (ไม่แสดงภาพในที่นี้เพราะตัวเลขซ้ำกับตารางในหัวข้อ 4 ทุกประการ) ก็ยังคงลบตัวแปรลงจนเหลือ <strong>wt, qsec, am</strong> ที่ AIC=154.119 เหมือนแบบ p-value ทุกตัวเลข</p>
+<p>สรุปภาพรวมของทั้งหัวข้อ 4 และ 8: ในตัวอย่าง mtcars นี้ <strong>เกณฑ์ (p-value vs AIC) ไม่ได้เปลี่ยนผลของ backward แต่เปลี่ยนผลของ forward/stepwise</strong> — ต้องอ่านทั้งเกณฑ์และวิธีการเดินเส้นทางประกอบกันเสมอ ห้ามด่วนสรุปว่าวิธีไหน "ถูก" กว่ากันโดยไม่ดูบริบท</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 8</span><span>ทำไมผลต่างกัน</span></div>
@@ -220,7 +293,17 @@ bic=tmpoutput$result$sbc)</code></pre>
 <img src="../assets/slides/as5-p17-sat-data-variable-definitions.png" alt="Model definition: E[Y] = beta0 + beta1 X1 + ... + beta6 X6 where Y is state average SAT score, X1=takers (percent of eligible seniors who took exam), X2=income, X3=years of formal education, X4=percent public school, X5=expend (education spending per student), X6=rank (percentile rank of test takers); ltakers is log(TAKERS) since right-skewed">
 <figcaption>Slide: Stepwise with Standard Function — นิยามตัวแปร SAT Data (Lecture 5, p.17)</figcaption>
 </figure>
-<p>โมเดลเต็มทางทฤษฎีคือ \( E[Y] = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_3 + \beta_4 X_4 + \beta_5 X_5 + \beta_6 X_6 \) โดย Y=คะแนน SAT เฉลี่ยของรัฐ, X₁=<code>ltakers</code>(=log ของ % นักเรียนที่สอบ เพราะตัวแปรเบ้ขวาจึง log ก่อน), X₂=<code>INCOME</code>(รายได้ครัวเรือนมัธยฐาน), X₃=<code>YEARS</code>(จำนวนปีการศึกษาเฉลี่ย), X₄=<code>PUBLIC</code>(% ที่เรียนโรงเรียนรัฐ), X₅=<code>EXPEND</code>(งบใช้จ่ายต่อหัวนักเรียน), X₆=<code>RANK</code>(percentile rank ในโรงเรียนของตัวเอง) — สังเกตว่าโค้ดแปลง <code>TAKERS</code> เป็น <code>log(TAKERS)</code> ก่อนใช้งานเสมอ เพราะตัวแปรดิบเบ้ขวามาก การ log ช่วยให้ความสัมพันธ์เชิงเส้นกับ Y สมเหตุสมผลกว่า</p>
+<p>โมเดลเต็มทางทฤษฎีคือ \( E[Y] = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_3 + \beta_4 X_4 + \beta_5 X_5 + \beta_6 X_6 \) โดย:</p>
+<ul>
+<li>Y = คะแนน SAT เฉลี่ยของรัฐ</li>
+<li>X₁ = <code>ltakers</code> (=log ของ % นักเรียนที่สอบ เพราะตัวแปรเบ้ขวาจึง log ก่อน)</li>
+<li>X₂ = <code>INCOME</code> (รายได้ครัวเรือนมัธยฐาน)</li>
+<li>X₃ = <code>YEARS</code> (จำนวนปีการศึกษาเฉลี่ย)</li>
+<li>X₄ = <code>PUBLIC</code> (% ที่เรียนโรงเรียนรัฐ)</li>
+<li>X₅ = <code>EXPEND</code> (งบใช้จ่ายต่อหัวนักเรียน)</li>
+<li>X₆ = <code>RANK</code> (percentile rank ในโรงเรียนของตัวเอง)</li>
+</ul>
+<p>สังเกตว่าโค้ดแปลง <code>TAKERS</code> เป็น <code>log(TAKERS)</code> ก่อนใช้งานเสมอ เพราะตัวแปรดิบเบ้ขวามาก การ log ช่วยให้ความสัมพันธ์เชิงเส้นกับ Y สมเหตุสมผลกว่า</p>
 
 <h3>9.1 Forward ด้วย <code>add1()</code>: ขั้นแรก</h3>
 <p>ขั้นตอนคือเริ่มจากโมเดลว่าง <code>SAT~1</code> แล้วลอง "เพิ่ม" ตัวแปรแต่ละตัวทีละตัว ดูว่าตัวไหนช่วยได้มากที่สุด (F สูงสุด/p-value ต่ำสุด):</p>
@@ -230,7 +313,12 @@ bic=tmpoutput$result$sbc)</code></pre>
 <figcaption>Slide: Forward Variable Selection: F-tests — ขั้นที่ 1 (Lecture 5, p.18)</figcaption>
 </figure>
 <p>ดูคอลัมน์ <code>F value</code>: <code>ltakers</code> ให้ F สูงสุด (<strong>205.6494</strong>, p&lt;2.2e-16) ตามมาด้วย <code>RANK</code> (F=164.6152) ส่วน <code>PUBLIC</code> และ <code>EXPEND</code> ไม่มีนัยสำคัญเลย (p=0.579 และ 0.664 ตามลำดับ) — เพิ่ม <code>ltakers</code> เข้าโมเดลก่อนเป็นตัวแรก เพราะให้ F สูงสุดและ RSS ลดจาก 246011 เหลือ 46554 มากที่สุดในบรรดาตัวแปรทั้งหมด</p>
-<p>ทำซ้ำ <code>add1(lm(SAT~ltakers), ...)</code> — ตัวที่ดีที่สุดรอบสองคือ <code>EXPEND</code> (F=20.1388, p=4.642e-05) แซง <code>YEARS</code> (F=6.7167) และตัวอื่น ๆ ที่ไม่นัยสำคัญ จึงเพิ่ม EXPEND เป็นตัวที่สอง แล้วทำซ้ำอีกครั้ง <code>add1(lm(SAT~ltakers+EXPEND), ...)</code> — รอบนี้เหลือ <code>YEARS</code> ตัวเดียวที่นัยสำคัญ (F=5.9415, p=0.01871) จึงเพิ่มเป็นตัวที่สาม กระบวนการ "ลองเพิ่มทีละตัวแล้วเลือก F สูงสุดที่มีนัยสำคัญ" นี้เองคือหัวใจของ forward selection แบบทำมือ ซึ่งจะเห็นว่าให้ผลลัพธ์ตรงกับ <code>step()</code> อัตโนมัติในหัวข้อ 9.2 ทุกประการ</p>
+<p>ทำซ้ำอีก 2 รอบ ในแต่ละรอบเลือกตัวแปรที่มี F สูงสุดและมีนัยสำคัญเข้าโมเดลต่อ:</p>
+<ul>
+<li><code>add1(lm(SAT~ltakers), ...)</code> — ตัวที่ดีที่สุดรอบสองคือ <code>EXPEND</code> (F=20.1388, p=4.642e-05) แซง <code>YEARS</code> (F=6.7167) และตัวอื่น ๆ ที่ไม่นัยสำคัญ จึงเพิ่ม EXPEND เป็นตัวที่สอง</li>
+<li><code>add1(lm(SAT~ltakers+EXPEND), ...)</code> — รอบนี้เหลือ <code>YEARS</code> ตัวเดียวที่นัยสำคัญ (F=5.9415, p=0.01871) จึงเพิ่มเป็นตัวที่สาม</li>
+</ul>
+<p>กระบวนการ "ลองเพิ่มทีละตัวแล้วเลือก F สูงสุดที่มีนัยสำคัญ" นี้เองคือหัวใจของ forward selection แบบทำมือ ซึ่งจะเห็นว่าให้ผลลัพธ์ตรงกับ <code>step()</code> อัตโนมัติในหัวข้อ 9.2 ทุกประการ</p>
 
 <h3>9.2 Forward Stepwise อัตโนมัติด้วย <code>step()</code> (เกณฑ์ AIC)</h3>
 <p>แทนที่จะทำ <code>add1()</code> ทีละรอบด้วยมือ ใช้ <code>step()</code> ให้ทำอัตโนมัติทั้งกระบวนการ (ค่าเริ่มต้นของ <code>step()</code> ใช้เกณฑ์ AIC):</p>
@@ -243,17 +331,35 @@ bic=tmpoutput$result$sbc)</code></pre>
 <img src="../assets/slides/as5-p25-step-forward-aic-sat-final-model.png" alt="step() forward continuation: adds RANK AIC=323.90, no more additions improve AIC, final Call lm(SAT ~ ltakers + EXPEND + YEARS + RANK), Coefficients Intercept 388.425 ltakers -38.015 EXPEND 2.423 YEARS 17.857 RANK 4.004">
 <figcaption>Slide: Forward Stepwise: AIC — โมเดลสุดท้าย (Lecture 5, p.25)</figcaption>
 </figure>
-<p><code>step()</code> เดินเส้นทางเดียวกับที่ทำด้วยมือใน 9.1 เป๊ะ: เพิ่ม <code>ltakers</code> (AIC 427.06→345.82) แล้ว <code>EXPEND</code> (→329.99) แล้ว <code>YEARS</code> (→325.91) แล้ว <code>RANK</code> (→323.90) และหยุดตรงนี้เพราะการเพิ่ม INCOME หรือ PUBLIC จะทำให้ AIC สูงขึ้น (325.85 และ 325.89 ตามลำดับ ซึ่งแย่กว่า &lt;none&gt;=323.90) — ผลลัพธ์สุดท้ายที่ R พิมพ์ให้ตรง ๆ คือสัมประสิทธิ์ครบทุกตัว จึงเขียนสมการโมเดลสุดท้ายได้ทันทีโดยไม่ต้องคำนวณเอง</p>
+<p><code>step()</code> เดินเส้นทางเดียวกับที่ทำด้วยมือใน 9.1 เป๊ะ:</p>
+<ol>
+<li>เพิ่ม <code>ltakers</code> (AIC 427.06→345.82)</li>
+<li>เพิ่ม <code>EXPEND</code> (→329.99)</li>
+<li>เพิ่ม <code>YEARS</code> (→325.91)</li>
+<li>เพิ่ม <code>RANK</code> (→323.90)</li>
+</ol>
+<p>และหยุดตรงนี้เพราะการเพิ่ม INCOME หรือ PUBLIC จะทำให้ AIC สูงขึ้น (325.85 และ 325.89 ตามลำดับ ซึ่งแย่กว่า &lt;none&gt;=323.90) — ผลลัพธ์สุดท้ายที่ R พิมพ์ให้ตรง ๆ คือสัมประสิทธิ์ครบทุกตัว จึงเขียนสมการโมเดลสุดท้ายได้ทันทีโดยไม่ต้องคำนวณเอง</p>
 
 <h3>9.3 Backward ด้วย <code>drop1()</code> และยืนยันด้วย <code>step()</code> (เกณฑ์ BIC)</h3>
-<p>ทำย้อนกลับ: เริ่มจากโมเดลเต็ม 6 ตัวแปร แล้วลองลบทีละตัวด้วย <code>drop1(lm(SAT~ltakers+INCOME+YEARS+PUBLIC+EXPEND+RANK), test="F")</code> — ดูคอลัมน์ F value/Pr(&gt;F): <code>PUBLIC</code> มี p-value สูงสุด (0.841684) จึงถูกลบก่อน จากนั้นทำซ้ำกับโมเดล 5 ตัวแปรที่เหลือ ได้ <code>INCOME</code> เป็นตัวที่มี p-value สูงสุด (0.834803) จึงถูกลบต่อ เหลือ 4 ตัวแปร (<code>ltakers, YEARS, EXPEND, RANK</code>) ที่ทุกตัวมี p-value ต่ำพอที่จะไม่ถูกลบต่อ (สูงสุดคือ RANK ที่ p=0.058793 ซึ่งยังไม่แย่พอที่กระบวนการ manual นี้จะตัดออก)</p>
+<p>ทำย้อนกลับ: เริ่มจากโมเดลเต็ม 6 ตัวแปร แล้วลองลบทีละตัวด้วย <code>drop1(lm(SAT~ltakers+INCOME+YEARS+PUBLIC+EXPEND+RANK), test="F")</code> ดูคอลัมน์ F value/Pr(&gt;F) ทีละรอบ:</p>
+<ul>
+<li>รอบ 1 (6 ตัวแปร): <code>PUBLIC</code> มี p-value สูงสุด (0.841684) จึงถูกลบก่อน</li>
+<li>รอบ 2 (5 ตัวแปรที่เหลือ): <code>INCOME</code> เป็นตัวที่มี p-value สูงสุด (0.834803) จึงถูกลบต่อ</li>
+<li>เหลือ 4 ตัวแปร (<code>ltakers, YEARS, EXPEND, RANK</code>) ที่ทุกตัวมี p-value ต่ำพอที่จะไม่ถูกลบต่อ (สูงสุดคือ RANK ที่ p=0.058793 ซึ่งยังไม่แย่พอที่กระบวนการ manual นี้จะตัดออก)</li>
+</ul>
 <p>ยืนยันด้วย <code>step()</code> แบบ backward แต่เปลี่ยนเกณฑ์เป็น BIC โดยใส่ <code>k=log(sat.n)</code> (ปกติ <code>step()</code> ใช้ <code>k=2</code>=AIC เป็นค่าเริ่มต้น การใส่ <code>k=log(n)</code> เปลี่ยนพจน์ penalty ให้ตรงกับสูตร BIC แทน):</p>
 <pre><code>step(lm(SAT ~ (ltakers+INCOME+YEARS+PUBLIC+EXPEND+RANK)), direction="backward", k=log(sat.n))</code></pre>
 <figure>
 <img src="../assets/slides/as5-p27-step-backward-bic-sat-final-model.png" alt="step() backward BIC final step: model SAT~ltakers+YEARS+EXPEND+RANK criterion 333.46, removing any further variable increases criterion, final Call lm(SAT~ltakers+YEARS+EXPEND+RANK), Coefficients Intercept 388.425 ltakers -38.015 YEARS 17.857 EXPEND 2.423 RANK 4.004">
 <figcaption>Slide: Backward Stepwise: BIC — โมเดลสุดท้าย (Lecture 5, p.27)</figcaption>
 </figure>
-<p><strong>ผลลัพธ์ที่น่าทึ่ง:</strong> ไม่ว่าจะเดินจาก manual <code>add1()</code>/<code>drop1()</code>, <code>step()</code> แบบ forward-AIC, หรือ <code>step()</code> แบบ backward-BIC ทั้งสามเส้นทางก็มาบรรจบที่<strong>โมเดลเดียวกันเป๊ะ</strong>: <code>SAT ~ ltakers + EXPEND + YEARS + RANK</code> พร้อมสัมประสิทธิ์ชุดเดียวกันทุกตัว (388.425, −38.015, 2.423, 17.857, 4.004) — ต่างจากตัวอย่าง mtcars ในหัวข้อ 4 ที่ forward/backward ให้ผลไม่ตรงกัน! <strong>บทเรียนสำคัญ: การที่หลายวิธี/หลายเกณฑ์ลงเอยที่โมเดลเดียวกัน เป็นสัญญาณที่ดีว่าโมเดลนั้นมีเสถียรภาพ (robust) ไม่ได้ขึ้นกับวิธีการเลือกที่ใช้</strong> เขียนสมการโมเดลสุดท้ายได้เต็มรูป:</p>
+<p><strong>ผลลัพธ์ที่น่าทึ่ง:</strong> ทั้งสามเส้นทางต่อไปนี้มาบรรจบที่<strong>โมเดลเดียวกันเป๊ะ</strong>:</p>
+<ul>
+<li>manual <code>add1()</code>/<code>drop1()</code></li>
+<li><code>step()</code> แบบ forward-AIC</li>
+<li><code>step()</code> แบบ backward-BIC</li>
+</ul>
+<p>ทั้งหมดได้ <code>SAT ~ ltakers + EXPEND + YEARS + RANK</code> พร้อมสัมประสิทธิ์ชุดเดียวกันทุกตัว (388.425, −38.015, 2.423, 17.857, 4.004) — ต่างจากตัวอย่าง mtcars ในหัวข้อ 4 ที่ forward/backward ให้ผลไม่ตรงกัน! <strong>บทเรียนสำคัญ: การที่หลายวิธี/หลายเกณฑ์ลงเอยที่โมเดลเดียวกัน เป็นสัญญาณที่ดีว่าโมเดลนั้นมีเสถียรภาพ (robust) ไม่ได้ขึ้นกับวิธีการเลือกที่ใช้</strong> เขียนสมการโมเดลสุดท้ายได้เต็มรูป:</p>
 <div class="box win">
 \[ \hat{SAT}_i = 388.425 - 38.015 \times ltakers_i + 2.423 \times EXPEND_i + 17.857 \times YEARS_i + 4.004 \times RANK_i \]
 </div>
@@ -290,7 +396,13 @@ bic=tmpoutput$result$sbc)</code></pre>
 </div>
 
 <h2>10. ข้อควรระวังเมื่อใช้ Automatic Selection กับ Polynomial / Interaction / Dummy Variable</h2>
-<p>สไลด์เตือนไว้สั้น ๆ ว่ามี 3 สถานการณ์ที่ automatic stepwise/best-subset "อันตราย" ถ้าใช้แบบไม่ระวัง: (1) <strong>Polynomial model</strong> — ถ้าโมเดลมีทั้ง \(X\) และ \(X^2\) algorithm อาจตัด \(X\) (พจน์อันดับต่ำ) ทิ้งแต่เก็บ \(X^2\) ไว้ ทำให้ได้สมการที่ตีความไม่ได้ในทางปฏิบัติ (2) <strong>Model with interaction term</strong> — ถ้ามีพจน์ \(X_1{:}X_2\) algorithm อาจตัด main effect \(X_1\) หรือ \(X_2\) ทิ้งแต่เก็บ interaction ไว้ ซึ่งขัดกับหลักการที่ว่า interaction termควรมี main effect ของมันอยู่ในโมเดลด้วยเสมอ (marginality principle) (3) <strong>Dummy variable</strong> — ถ้าตัวแปร categorical ถูกแปลงเป็น dummy หลายตัว (เช่น 3 ระดับ → 2 dummy) algorithm อาจเลือกเก็บ dummy บางตัวแต่ตัดบางตัวทิ้ง ทำให้ตีความ "ระดับฐาน (baseline)" ของตัวแปรนั้นผิดเพี้ยนไป — ข้อสรุปเชิงปฏิบัติ: เมื่อโมเดลมีพจน์ 3 ประเภทนี้ ควรตรวจสอบผลของ automatic selection ด้วยสายตาเสมอ ไม่ควรเชื่อผลลัพธ์อัตโนมัติแบบไม่คิด</p>
+<p>สไลด์เตือนไว้สั้น ๆ ว่ามี 3 สถานการณ์ที่ automatic stepwise/best-subset "อันตราย" ถ้าใช้แบบไม่ระวัง:</p>
+<ol>
+<li><strong>Polynomial model</strong> — ถ้าโมเดลมีทั้ง \(X\) และ \(X^2\) algorithm อาจตัด \(X\) (พจน์อันดับต่ำ) ทิ้งแต่เก็บ \(X^2\) ไว้ ทำให้ได้สมการที่ตีความไม่ได้ในทางปฏิบัติ</li>
+<li><strong>Model with interaction term</strong> — ถ้ามีพจน์ \(X_1{:}X_2\) algorithm อาจตัด main effect \(X_1\) หรือ \(X_2\) ทิ้งแต่เก็บ interaction ไว้ ซึ่งขัดกับหลักการที่ว่า interaction term ควรมี main effect ของมันอยู่ในโมเดลด้วยเสมอ (marginality principle)</li>
+<li><strong>Dummy variable</strong> — ถ้าตัวแปร categorical ถูกแปลงเป็น dummy หลายตัว (เช่น 3 ระดับ → 2 dummy) algorithm อาจเลือกเก็บ dummy บางตัวแต่ตัดบางตัวทิ้ง ทำให้ตีความ "ระดับฐาน (baseline)" ของตัวแปรนั้นผิดเพี้ยนไป</li>
+</ol>
+<p>ข้อสรุปเชิงปฏิบัติ: เมื่อโมเดลมีพจน์ 3 ประเภทนี้ ควรตรวจสอบผลของ automatic selection ด้วยสายตาเสมอ ไม่ควรเชื่อผลลัพธ์อัตโนมัติแบบไม่คิด</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 12</span><span>ข้อควรระวัง</span></div>
@@ -305,7 +417,12 @@ bic=tmpoutput$result$sbc)</code></pre>
 </div>
 
 <h2>11. Overfitting และเป้าหมายของ Model Selection เพื่อการพยากรณ์</h2>
-<p>แนวทางที่สองของ Model Selection (นอกจาก Occam's razor) คือมองผ่านมุม <em class="term">predictive performance</em> — หัวใจของแนวทางนี้คือป้องกัน <em class="term">overfitting</em>: เกิดขึ้นเมื่อโมเดลพยายามอธิบาย "noise" ในข้อมูล ไม่ใช่แค่สัญญาณ (signal) ที่แท้จริง ทำไมถึงเป็นปัญหา: การพยายามอธิบาย noise จะทำให้ได้ข้อสรุปที่ผิดเพี้ยนและ<strong>ไม่ generalize ไปยังข้อมูลใหม่ที่ไม่เคยเห็น</strong> ทั้งที่เป้าหมายจริงของโมเดลเชิงพยากรณ์คือการทำนายข้อมูลที่ไม่เคยเห็นมาก่อน — วิธีป้องกันมี 2 แนวทาง: (1) ทำ Model Selection ให้ดี (หัวข้อ 1–10) และ (2) วัด<strong>ความแม่นยำนอกกลุ่มตัวอย่าง (out-of-sample accuracy)</strong> ด้วยการแบ่งข้อมูล ซึ่งเป็นหัวข้อถัดไป</p>
+<p>แนวทางที่สองของ Model Selection (นอกจาก Occam's razor) คือมองผ่านมุม <em class="term">predictive performance</em> — หัวใจของแนวทางนี้คือป้องกัน <em class="term">overfitting</em>: เกิดขึ้นเมื่อโมเดลพยายามอธิบาย "noise" ในข้อมูล ไม่ใช่แค่สัญญาณ (signal) ที่แท้จริง</p>
+<p>ทำไมถึงเป็นปัญหา: การพยายามอธิบาย noise จะทำให้ได้ข้อสรุปที่ผิดเพี้ยนและ<strong>ไม่ generalize ไปยังข้อมูลใหม่ที่ไม่เคยเห็น</strong> ทั้งที่เป้าหมายจริงของโมเดลเชิงพยากรณ์คือการทำนายข้อมูลที่ไม่เคยเห็นมาก่อน — วิธีป้องกันมี 2 แนวทาง:</p>
+<ol>
+<li>ทำ Model Selection ให้ดี (หัวข้อ 1–10)</li>
+<li>วัด<strong>ความแม่นยำนอกกลุ่มตัวอย่าง (out-of-sample accuracy)</strong> ด้วยการแบ่งข้อมูล ซึ่งเป็นหัวข้อถัดไป</li>
+</ol>
 
 <h2>12. Data Splitting: Cross-sectional vs Time Series</h2>
 <p>วิธีพื้นฐานที่สุดในการวัด out-of-sample accuracy คือแบ่งข้อมูลเป็นสองส่วน สำหรับ<strong>ข้อมูล cross-sectional</strong> (แต่ละแถวเป็นอิสระจากกัน ไม่มีลำดับเวลา) ขั้นตอนคือ<strong>สุ่ม</strong>แบ่งแถวข้อมูลออกเป็นชุดฝึกฝน (training) กับชุดทดสอบ (test) ก่อน ฝึกโมเดลด้วยชุดฝึกฝนเท่านั้น แล้ววัดผลบนชุดทดสอบที่โมเดลไม่เคยเห็น:</p>
@@ -327,7 +444,13 @@ bic=tmpoutput$result$sbc)</code></pre>
 <img src="../assets/slides/as5-p33-k-fold-cross-validation.png" alt="Diagram of 5-fold cross-validation: data split into 5 colored folds, then 5 rounds each using 4 folds as training data and rotating one fold as test data, producing 5 separate models and 5 performance metrics">
 <figcaption>Slide: K-fold Cross-Validation (Lecture 5, p.33)</figcaption>
 </figure>
-<p>อ่านภาพ: ข้อมูลถูกแบ่งเป็น 5 ส่วน (fold 1–5) แล้ววนสร้าง<strong>ตัวแบบ 5 ตัว</strong> — ตัวแบบ 1 ใช้ fold 2,3,4,5 เป็นชุดฝึกฝนและ fold 1 เป็นชุดทดสอบ, ตัวแบบ 2 ใช้ fold 1,3,4,5 ฝึกฝนและ fold 2 ทดสอบ ทำแบบนี้จนครบ 5 รอบ ได้<strong>ตัววัดประสิทธิภาพ 5 ค่า</strong> (ตัววัด 1–5) แทนที่จะมีแค่ค่าเดียวจาก one split — ข้อดีคือทุกจุดข้อมูลได้เป็นทั้งชุดฝึกฝนและชุดทดสอบสลับกันไป ทำให้ผลวัดความแม่นยำเสถียรกว่าและไม่ขึ้นกับความบังเอิญของการสุ่มครั้งเดียว (มักนำ 5 ค่าที่ได้มาเฉลี่ยกันเป็นผลสรุป)</p>
+<p>อ่านภาพ: ข้อมูลถูกแบ่งเป็น 5 ส่วน (fold 1–5) แล้ววนสร้าง<strong>ตัวแบบ 5 ตัว</strong>:</p>
+<ul>
+<li>ตัวแบบ 1 ใช้ fold 2,3,4,5 เป็นชุดฝึกฝนและ fold 1 เป็นชุดทดสอบ</li>
+<li>ตัวแบบ 2 ใช้ fold 1,3,4,5 ฝึกฝนและ fold 2 ทดสอบ</li>
+<li>ทำแบบนี้จนครบ 5 รอบ ได้<strong>ตัววัดประสิทธิภาพ 5 ค่า</strong> (ตัววัด 1–5) แทนที่จะมีแค่ค่าเดียวจาก one split</li>
+</ul>
+<p>ข้อดีคือทุกจุดข้อมูลได้เป็นทั้งชุดฝึกฝนและชุดทดสอบสลับกันไป ทำให้ผลวัดความแม่นยำเสถียรกว่าและไม่ขึ้นกับความบังเอิญของการสุ่มครั้งเดียว (มักนำ 5 ค่าที่ได้มาเฉลี่ยกันเป็นผลสรุป)</p>
 <p>ใน R ใช้ library <code>splitTools</code> สร้าง fold ได้ตรง ๆ — ตัวอย่างแบ่งข้อมูล 9 จุดเป็น 3 fold:</p>
 <pre><code>library(splitTools)
 create_folds(y=1:9, k=3, type="basic", seed=5)
@@ -345,8 +468,20 @@ $Fold3
 <img src="../assets/slides/as5-p35-sliding-window.png" alt="Diagram comparing Sliding Window (fixed-size window of 2 slides forward each round, using only the most recent points as training) versus Cumulative Sliding Window (training set grows to include all past points as the window advances, always predicting the next single point as test)">
 <figcaption>Slide: Sliding Window (Lecture 5, p.35)</figcaption>
 </figure>
-<p>อ่านภาพฝั่งซ้าย (Sliding Window): รอบที่ 1 ใช้จุด 1 เป็นฝึกฝน (สีฟ้า) และจุด 2 เป็นทดสอบ (สีเหลือง) จุด 3,4 ยังไม่ถูกใช้ (สีเทา) — รอบที่ 2 <strong>เลื่อนหน้าต่างไปข้างหน้า</strong>: จุด 2 กลายเป็นฝึกฝน จุด 3 เป็นทดสอบ (จุด 1 ถูกทิ้งไปแล้ว ไม่ใช้อีก) — รอบที่ 3 จุด 3 เป็นฝึกฝน จุด 4 เป็นทดสอบ — <strong>ขนาดชุดฝึกฝนคงที่ตลอด</strong> (แค่ 1 จุดในภาพนี้) เพียงแต่เลื่อนตำแหน่งไปเรื่อย ๆ ตามเวลา</p>
-<p>อ่านภาพฝั่งขวา (Cumulative Sliding Window): รอบที่ 1 เหมือนกัน (จุด 1 ฝึกฝน, จุด 2 ทดสอบ) แต่รอบที่ 2 ชุดฝึกฝน<strong>ไม่ทิ้งจุด 1 ไป</strong> กลับ<strong>สะสมเพิ่ม</strong>เป็นจุด 1,2 (ทั้งคู่สีฟ้า) แล้วทดสอบที่จุด 3 — รอบที่ 3 ชุดฝึกฝนสะสมเป็นจุด 1,2,3 แล้วทดสอบที่จุด 4 — <strong>ขนาดชุดฝึกฝนโตขึ้นเรื่อย ๆ ทุกรอบ (สะสมข้อมูลอดีตทั้งหมด) ต่างจาก Sliding Window ธรรมดาที่ขนาดคงที่และ "ลืม" ข้อมูลเก่าที่เลยหน้าต่างไปแล้ว</strong> — ทั้งสองแบบยังคงหลักการเดียวกับหัวข้อ 12 คือใช้เฉพาะข้อมูล<strong>อดีต</strong>ทำนาย<strong>อนาคต</strong>เท่านั้น ไม่เคยย้อนกลับ</p>
+<p>อ่านภาพฝั่งซ้าย (Sliding Window) ทีละรอบ:</p>
+<ul>
+<li>รอบที่ 1: ใช้จุด 1 เป็นฝึกฝน (สีฟ้า) และจุด 2 เป็นทดสอบ (สีเหลือง) จุด 3,4 ยังไม่ถูกใช้ (สีเทา)</li>
+<li>รอบที่ 2: <strong>เลื่อนหน้าต่างไปข้างหน้า</strong> — จุด 2 กลายเป็นฝึกฝน จุด 3 เป็นทดสอบ (จุด 1 ถูกทิ้งไปแล้ว ไม่ใช้อีก)</li>
+<li>รอบที่ 3: จุด 3 เป็นฝึกฝน จุด 4 เป็นทดสอบ</li>
+</ul>
+<p><strong>ขนาดชุดฝึกฝนคงที่ตลอด</strong> (แค่ 1 จุดในภาพนี้) เพียงแต่เลื่อนตำแหน่งไปเรื่อย ๆ ตามเวลา</p>
+<p>อ่านภาพฝั่งขวา (Cumulative Sliding Window) ทีละรอบ:</p>
+<ul>
+<li>รอบที่ 1: เหมือนกัน (จุด 1 ฝึกฝน, จุด 2 ทดสอบ)</li>
+<li>รอบที่ 2: ชุดฝึกฝน<strong>ไม่ทิ้งจุด 1 ไป</strong> กลับ<strong>สะสมเพิ่ม</strong>เป็นจุด 1,2 (ทั้งคู่สีฟ้า) แล้วทดสอบที่จุด 3</li>
+<li>รอบที่ 3: ชุดฝึกฝนสะสมเป็นจุด 1,2,3 แล้วทดสอบที่จุด 4</li>
+</ul>
+<p><strong>ขนาดชุดฝึกฝนโตขึ้นเรื่อย ๆ ทุกรอบ (สะสมข้อมูลอดีตทั้งหมด) ต่างจาก Sliding Window ธรรมดาที่ขนาดคงที่และ "ลืม" ข้อมูลเก่าที่เลยหน้าต่างไปแล้ว</strong> — ทั้งสองแบบยังคงหลักการเดียวกับหัวข้อ 12 คือใช้เฉพาะข้อมูล<strong>อดีต</strong>ทำนาย<strong>อนาคต</strong>เท่านั้น ไม่เคยย้อนกลับ</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 13</span><span>Sliding Window vs Cumulative</span></div>
@@ -366,7 +501,12 @@ $Fold3
 <img src="../assets/slides/as5-p36-rmse-mae-mape-formulas.png" alt="Three formulas: RMSE = sqrt of sum of squared errors over ntest, MAE = average of absolute errors over ntest, MAPE = average of absolute percentage errors (error divided by actual Y) over ntest">
 <figcaption>Slide: Measuring Prediction Accuracy in Regression (Lecture 5, p.36)</figcaption>
 </figure>
-<p>\( RMSE = \sqrt{\dfrac{\sum (Y_i-\hat{Y}_i)^2}{n_{test}}} \) — หน่วยเดียวกับ Y ยกกำลังสองก่อนถ่วงน้ำหนัก ทำให้ค่าที่ทำนายพลาดมาก ๆ (outlier ของ error) มีผลกระทบต่อ RMSE รุนแรงกว่าสัดส่วน (เหมือนตรรกะเดียวกับ SSE ในหัวข้อ 6 ของ Lecture 1). \( MAE = \dfrac{1}{n_{test}}\sum |Y_i-\hat{Y}_i| \) — ค่าเฉลี่ยของ error สัมบูรณ์ตรง ๆ ไม่ยกกำลังสอง จึงไม่ถูก outlier ดึงแรงเท่า RMSE และตีความง่ายกว่า (หน่วยเดียวกับ Y พอดี). \( MAPE = \dfrac{1}{n_{test}}\sum \left|\dfrac{Y_i-\hat{Y}_i}{Y_i}\right| \) — หาร error ด้วยค่าจริง \(Y_i\) ก่อน ทำให้ค่าที่ได้เป็น<strong>สัดส่วน/เปอร์เซ็นต์ ไม่มีหน่วย</strong> ข้อดีคือเปรียบเทียบความแม่นยำข้ามโมเดลที่ทำนายตัวแปรคนละสเกล/คนละหน่วยกันได้ (RMSE, MAE เทียบข้ามหน่วยกันไม่ได้ตรง ๆ) — ทั้งสามตัว<strong>ยิ่งน้อยยิ่งดี</strong> เหมือนกันหมด (ต่างจาก R² ที่ยิ่งมากยิ่งดี ต้องระวังอย่าจำสลับกับหัวข้อ 5)</p>
+<ul>
+<li>\( RMSE = \sqrt{\dfrac{\sum (Y_i-\hat{Y}_i)^2}{n_{test}}} \) — หน่วยเดียวกับ Y ยกกำลังสองก่อนถ่วงน้ำหนัก ทำให้ค่าที่ทำนายพลาดมาก ๆ (outlier ของ error) มีผลกระทบต่อ RMSE รุนแรงกว่าสัดส่วน (เหมือนตรรกะเดียวกับ SSE ในหัวข้อ 6 ของ Lecture 1)</li>
+<li>\( MAE = \dfrac{1}{n_{test}}\sum |Y_i-\hat{Y}_i| \) — ค่าเฉลี่ยของ error สัมบูรณ์ตรง ๆ ไม่ยกกำลังสอง จึงไม่ถูก outlier ดึงแรงเท่า RMSE และตีความง่ายกว่า (หน่วยเดียวกับ Y พอดี)</li>
+<li>\( MAPE = \dfrac{1}{n_{test}}\sum \left|\dfrac{Y_i-\hat{Y}_i}{Y_i}\right| \) — หาร error ด้วยค่าจริง \(Y_i\) ก่อน ทำให้ค่าที่ได้เป็น<strong>สัดส่วน/เปอร์เซ็นต์ ไม่มีหน่วย</strong> ข้อดีคือเปรียบเทียบความแม่นยำข้ามโมเดลที่ทำนายตัวแปรคนละสเกล/คนละหน่วยกันได้ (RMSE, MAE เทียบข้ามหน่วยกันไม่ได้ตรง ๆ)</li>
+</ul>
+<p>ทั้งสามตัว<strong>ยิ่งน้อยยิ่งดี</strong> เหมือนกันหมด (ต่างจาก R² ที่ยิ่งมากยิ่งดี ต้องระวังอย่าจำสลับกับหัวข้อ 5)</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 14</span><span>RMSE / MAE / MAPE</span></div>
@@ -394,13 +534,27 @@ medv~crim+zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+black+lstat, direction="b
   output&lt;-data.frame(RMSE=RMSE, MAE=MAE, MAPE=MAPE)
   output
 }</code></pre>
-<p>โดยให้ทำ 2 รูปแบบการวัด: <strong>(1) One split</strong> (แบ่ง train/test ครั้งเดียวตามหัวข้อ 12) และ <strong>(2) 10-fold cross-validation</strong> (ตามหัวข้อ 13 แต่ใช้ k=10 แทน k=5 หรือ k=3 ในตัวอย่างก่อนหน้า)</p>
-<p><strong>Exercise 2 — Pollution in Changping:</strong> ข้อมูลคุณภาพอากาศจากเขต Changping กรุงปักกิ่ง ช่วง 1/3/2013–28/2/2017 (4 ปี) จาก package <code>AppRegR</code> (<code>data(changping)</code>) มีตัวแปร PM2.5, PM10, SO2, NO2, CO, O3, TEMP, PRES, DEWP รายวัน เป้าหมายคือทำนาย <code>PM2.5</code> โดยเปรียบเทียบ (1) โมเดลที่ใส่ตัวแปรทุกตัว กับ (2) โมเดลที่มี AIC ต่ำสุดจาก best-subset (<code>ols_step_all_possible()</code> เหมือนหัวข้อ 7 แล้วเลือกแถวที่ <code>aic</code> น้อยที่สุดด้วย <code>which.min()</code>):</p>
+<p>โดยให้ทำ 2 รูปแบบการวัด:</p>
+<ol>
+<li><strong>One split</strong> (แบ่ง train/test ครั้งเดียวตามหัวข้อ 12)</li>
+<li><strong>10-fold cross-validation</strong> (ตามหัวข้อ 13 แต่ใช้ k=10 แทน k=5 หรือ k=3 ในตัวอย่างก่อนหน้า)</li>
+</ol>
+<p><strong>Exercise 2 — Pollution in Changping:</strong> ข้อมูลคุณภาพอากาศจากเขต Changping กรุงปักกิ่ง ช่วง 1/3/2013–28/2/2017 (4 ปี) จาก package <code>AppRegR</code> (<code>data(changping)</code>) มีตัวแปร PM2.5, PM10, SO2, NO2, CO, O3, TEMP, PRES, DEWP รายวัน เป้าหมายคือทำนาย <code>PM2.5</code> โดยเปรียบเทียบ 2 โมเดล:</p>
+<ol>
+<li>โมเดลที่ใส่ตัวแปรทุกตัว</li>
+<li>โมเดลที่มี AIC ต่ำสุดจาก best-subset (<code>ols_step_all_possible()</code> เหมือนหัวข้อ 7 แล้วเลือกแถวที่ <code>aic</code> น้อยที่สุดด้วย <code>which.min()</code>)</li>
+</ol>
 <pre><code>bestsubset&lt;-ols_step_all_possible(fullmodel)
 minAICpredictor&lt;-bestsubset[which.min(bestsubset$result$aic),3]
 formula&lt;-paste("PM2.5~", gsub(" ", "+", minAICpredictor), sep="")
 minAICmodel&lt;-lm(formula, data=traindata)</code></pre>
-<p>เนื่องจากเป็นข้อมูล time series (มีวันที่กำกับ) การแบ่ง train/test ต้อง<strong>ตัดตามเวลา</strong>เท่านั้น (<code>traindata&lt;-changping[changping$date&lt;="2016-02-29",]</code>, <code>testdata&lt;-changping[changping$date&gt;"2016-02-29",]</code>) ตรงตามหลักในหัวข้อ 12 แล้ววัดผลด้วย RMSE/MAE/MAPE ผ่าน 3 วิธี: <strong>(1) One split, (2) Sliding Window, (3) Cumulative Sliding Window</strong> (หัวข้อ 14) — สังเกตว่าโจทย์ทั้งสองข้อนี้คือการเอาทุกเทคนิคในบทนี้ (model selection + data splitting + accuracy metric) มาประกอบร่างกันเป็นงานวิเคราะห์ฉบับเต็ม ตรงกับรูปแบบข้อสอบ/การบ้านของวิชานี้ตาม MISSION</p>
+<p>เนื่องจากเป็นข้อมูล time series (มีวันที่กำกับ) การแบ่ง train/test ต้อง<strong>ตัดตามเวลา</strong>เท่านั้น (<code>traindata&lt;-changping[changping$date&lt;="2016-02-29",]</code>, <code>testdata&lt;-changping[changping$date&gt;"2016-02-29",]</code>) ตรงตามหลักในหัวข้อ 12 แล้ววัดผลด้วย RMSE/MAE/MAPE ผ่าน 3 วิธี (หัวข้อ 14):</p>
+<ol>
+<li>One split</li>
+<li>Sliding Window</li>
+<li>Cumulative Sliding Window</li>
+</ol>
+<p>สังเกตว่าโจทย์ทั้งสองข้อนี้คือการเอาทุกเทคนิคในบทนี้ (model selection + data splitting + accuracy metric) มาประกอบร่างกันเป็นงานวิเคราะห์ฉบับเต็ม ตรงกับรูปแบบข้อสอบ/การบ้านของวิชานี้ตาม MISSION</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 15</span><span>Exercise 2 — เลือกวิธีแบ่งข้อมูลให้ถูก</span></div>
@@ -420,7 +574,15 @@ minAICmodel&lt;-lm(formula, data=traindata)</code></pre>
 
 <div class="box win">
 <div class="label">ชัยชนะของบทเรียนนี้</div>
-ตอนนี้คุณควรแยกความต่างระหว่าง Forward/Backward/Stepwise ได้ และรู้ว่าทั้งสามวิธีไม่รับประกันว่าจะให้โมเดลเดียวกัน, อ่านสูตร Cp/BIC/AIC ได้และจำได้ขึ้นใจว่าทั้งสามตัว "ยิ่งน้อยยิ่งดี" สวนทางกับ Adjusted R² ที่ "ยิ่งมากยิ่งดี", อธิบายได้ว่าทำไม AIC กับ BIC บางครั้งเลือกโมเดลต่างกัน (BIC ลงโทษความซับซ้อนแรงกว่าเสมอเมื่อ n มากพอ), ใช้ <code>add1()</code>/<code>drop1()</code>/<code>step()</code> เดินกระบวนการ selection ด้วยมือได้และเขียนสมการโมเดลสุดท้ายจากผลลัพธ์ได้ทันที, และแยกวิธีวัด out-of-sample accuracy ที่เหมาะกับข้อมูล cross-sectional (random split, k-fold) กับข้อมูล time series (chronological split, sliding window) ได้ถูกต้อง — ทักษะทั้งหมดนี้คือขั้นตอนที่ต้องทำ<strong>ก่อน</strong>จะได้สมการโมเดลที่พร้อมเอาไปเช็ค assumption และแปลผลตามที่ฝึกไว้ใน Lecture 1–4
+<p>ตอนนี้คุณควรทำสิ่งต่อไปนี้ได้:</p>
+<ul>
+<li>แยกความต่างระหว่าง Forward/Backward/Stepwise ได้ และรู้ว่าทั้งสามวิธีไม่รับประกันว่าจะให้โมเดลเดียวกัน</li>
+<li>อ่านสูตร Cp/BIC/AIC ได้และจำได้ขึ้นใจว่าทั้งสามตัว "ยิ่งน้อยยิ่งดี" สวนทางกับ Adjusted R² ที่ "ยิ่งมากยิ่งดี"</li>
+<li>อธิบายได้ว่าทำไม AIC กับ BIC บางครั้งเลือกโมเดลต่างกัน (BIC ลงโทษความซับซ้อนแรงกว่าเสมอเมื่อ n มากพอ)</li>
+<li>ใช้ <code>add1()</code>/<code>drop1()</code>/<code>step()</code> เดินกระบวนการ selection ด้วยมือได้และเขียนสมการโมเดลสุดท้ายจากผลลัพธ์ได้ทันที</li>
+<li>แยกวิธีวัด out-of-sample accuracy ที่เหมาะกับข้อมูล cross-sectional (random split, k-fold) กับข้อมูล time series (chronological split, sliding window) ได้ถูกต้อง</li>
+</ul>
+<p>ทักษะทั้งหมดนี้คือขั้นตอนที่ต้องทำ<strong>ก่อน</strong>จะได้สมการโมเดลที่พร้อมเอาไปเช็ค assumption และแปลผลตามที่ฝึกไว้ใน Lecture 1–4</p>
 </div>
 
 <h2>ภาคผนวก: Slide ทั้งหมดใน Deck (44 หน้า) — เช็คว่าอ่านครบ</h2>

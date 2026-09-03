@@ -28,7 +28,12 @@ Ramsey &amp; Schafer, <em>The Statistical Sleuth</em> คือแหล่ง�
 
 <h2>1. Residual คืออะไร — และทำไมไม่ใช่ตัวเดียวกับ Error</h2>
 <p>Residual นิยามจากข้อมูลจริง: \(e_i = Y_i - \hat{Y}_i\) (ค่าจริงลบค่าทำนาย) — ต่างจาก error term ทฤษฎี \(\varepsilon_i\) ที่เป็นส่วนเบี่ยงเบนจากเส้น<strong>จริง</strong> (ไม่มีใครรู้ค่า \(\beta_0, \beta_1\) จริง). \(e_i\) คำนวณได้จากข้อมูล (observable) ส่วน \(\varepsilon_i\) ไม่มีทางรู้ค่าจริง (unobservable) — diagnostic ทั้งบทนี้ใช้ \(e_i\) เป็นตัวแทนเพื่อ "เดา" ว่า \(\varepsilon_i\) น่าจะมีพฤติกรรมตาม assumption หรือไม่.</p>
-<p>Residual มีสมบัติที่ต้องจำ 3 ข้อ: (1) <strong>ค่าเฉลี่ยของ residual เป็นศูนย์เป๊ะเสมอ</strong> \(\bar{e} = \sum e_i/n = 0\) — เป็นผลจากพีชคณิตของ OLS ไม่ใช่สิ่งที่ต้องเช็ค (2) variance ของ residual ประมาณด้วย \(s^2 = MSE\) (3) <strong>residual ไม่เป็นอิสระต่อกันเอง</strong> เพราะทุกตัวคำนวณมาจากเส้นถดถอยเส้นเดียวกัน — แต่ถ้า n มากกว่าจำนวนพารามิเตอร์มาก ๆ ผลจากการไม่อิสระนี้เล็กจนละเลยได้ในทางปฏิบัติ.</p>
+<p>Residual มีสมบัติที่ต้องจำ 3 ข้อ:</p>
+<ol>
+<li><strong>ค่าเฉลี่ยของ residual เป็นศูนย์เป๊ะเสมอ</strong> \(\bar{e} = \sum e_i/n = 0\) — เป็นผลจากพีชคณิตของ OLS ไม่ใช่สิ่งที่ต้องเช็ค</li>
+<li>variance ของ residual ประมาณด้วย \(s^2 = MSE\)</li>
+<li><strong>residual ไม่เป็นอิสระต่อกันเอง</strong> เพราะทุกตัวคำนวณมาจากเส้นถดถอยเส้นเดียวกัน — แต่ถ้า n มากกว่าจำนวนพารามิเตอร์มาก ๆ ผลจากการไม่อิสระนี้เล็กจนละเลยได้ในทางปฏิบัติ</li>
+</ol>
 <p>ข้อสังเกตสำคัญ: เพราะ \(\bar{e}\) เป็นศูนย์เสมอโดยพีชคณิต <strong>assumption ข้อ "mean zero" จึงไม่มี diagnostic แยกให้เช็ค</strong> — สไลด์จัดกลุ่ม diagnostic เหลือ 4 เรื่องเท่านั้น: linearity, normality, constant variance, independence (การพัง mean-zero ที่แท้จริงจะออกอาการเป็น "pattern" ในกราฟ residual-vs-fitted แทน ซึ่งคือสิ่งที่ linearity check ตรวจอยู่แล้ว).</p>
 
 <h2>2. ภาพรวม: 4 Assumption ↔ Diagnostic ที่ใช้เช็ค</h2>
@@ -40,7 +45,12 @@ Ramsey &amp; Schafer, <em>The Statistical Sleuth</em> คือแหล่ง�
 <tr><td>3. Constant variance</td><td>Residuals vs fitted values</td><td>Breusch-Pagan Test</td></tr>
 <tr><td>4. Independence</td><td>Residuals vs time/order</td><td>Run Test (cross-sectional) / Durbin-Watson Test (time-series)</td></tr>
 </table>
-<p>สังเกตว่า <strong>residuals-vs-fitted ถูกใช้ตรวจทั้ง linearity และ constant variance พร้อมกัน</strong> — สองเรื่องนี้อ่านจากกราฟเดียวกันแต่มองคนละมิติ: linearity ดูว่ามี "โค้ง/แนวโน้ม" หรือไม่ (แกน y เอนไปทางบวกหรือลบเป็นช่วง ๆ), constant variance ดูว่า "ความกว้างของแถบ" คงที่ตลอดแกน x หรือไม่ (บานออกเป็นกรวยหรือเปล่า) — สอบมักถามแยกสองแง่มุมจากภาพเดียวกันนี้ ต้องแยกให้ออก.</p>
+<p>สังเกตว่า <strong>residuals-vs-fitted ถูกใช้ตรวจทั้ง linearity และ constant variance พร้อมกัน</strong> — สองเรื่องนี้อ่านจากกราฟเดียวกันแต่มองคนละมิติ:</p>
+<ul>
+<li><strong>Linearity</strong> ดูว่ามี "โค้ง/แนวโน้ม" หรือไม่ (แกน y เอนไปทางบวกหรือลบเป็นช่วง ๆ)</li>
+<li><strong>Constant variance</strong> ดูว่า "ความกว้างของแถบ" คงที่ตลอดแกน x หรือไม่ (บานออกเป็นกรวยหรือเปล่า)</li>
+</ul>
+<p>สอบมักถามแยกสองแง่มุมจากภาพเดียวกันนี้ ต้องแยกให้ออก.</p>
 <p>สำหรับ formal test ทุกตัวในบทนี้ <strong>ทิศทางการอ่านผลเหมือนกันหมด</strong>: H₀ คือ "assumption เป็นจริง" (residual is normal / has constant variance / is independent) ดังนั้น <strong>ต้องการ p-value สูง (ไม่ปฏิเสธ H₀)</strong> — กลับด้านกับการทดสอบ \(H_0: \beta=0\) ในบทก่อนที่อยากปฏิเสธ H₀ ต้องระวังจุดนี้เป็นพิเศษ.</p>
 
 <h2>3. เช็ค Linearity Assumption</h2>
@@ -49,13 +59,21 @@ Ramsey &amp; Schafer, <em>The Statistical Sleuth</em> คือแหล่ง�
 <img src="../assets/slides/as3-p07-linearity-check-pass-fail.png" alt="Two residual-vs-fitted scatterplots side by side: left labeled pass with a checkmark showing residuals scattered randomly around zero with a flat red smoother line; right labeled fail with an X showing residuals with a clear dip-then-rise curved pattern in the red smoother line">
 <figcaption>Slide: 1. Checking Linearity Assumption (Lecture 3, p.7)</figcaption>
 </figure>
-<p>อ่านสองแผงนี้ให้ละเอียด: แผงซ้าย (✓) เส้นสีแดง (smoother/loess) ที่ลากผ่านกลุ่มจุดแทบจะเป็นเส้นตรงราบอยู่ที่ 0 ตลอดช่วงแกน x — จุดกระจายทั้งเหนือและใต้เส้น 0 ในสัดส่วนใกล้เคียงกันทุกช่วง ไม่มี "รูปทรง" ที่มองเห็นได้ด้วยตา นี่คือสิ่งที่ต้องเห็นเมื่อโมเดลเชิงเส้น fit ข้อมูลได้ดี. แผงขวา (✗) เส้นแดงหักโค้งชัดเจน: เริ่มจากค่าบวก ลดฮวบลงต่ำกว่า 0 ในช่วงกลาง แล้วดีดกลับขึ้นมาที่ปลายขวา — รูปตัว U คว่ำ-หงายนี้คือสัญญาณ<strong>ตรงไปตรงมาที่สุด</strong>ว่าโมเดลเชิงเส้นพลาดความสัมพันธ์ที่แท้จริงซึ่งเป็นเส้นโค้ง (บางทีเรียก "lack of fit").</p>
+<p>อ่านสองแผงนี้ให้ละเอียด:</p>
+<ul>
+<li><strong>แผงซ้าย (✓):</strong> เส้นสีแดง (smoother/loess) ที่ลากผ่านกลุ่มจุดแทบจะเป็นเส้นตรงราบอยู่ที่ 0 ตลอดช่วงแกน x — จุดกระจายทั้งเหนือและใต้เส้น 0 ในสัดส่วนใกล้เคียงกันทุกช่วง ไม่มี "รูปทรง" ที่มองเห็นได้ด้วยตา นี่คือสิ่งที่ต้องเห็นเมื่อโมเดลเชิงเส้น fit ข้อมูลได้ดี</li>
+<li><strong>แผงขวา (✗):</strong> เส้นแดงหักโค้งชัดเจน — เริ่มจากค่าบวก ลดฮวบลงต่ำกว่า 0 ในช่วงกลาง แล้วดีดกลับขึ้นมาที่ปลายขวา — รูปตัว U คว่ำ-หงายนี้คือสัญญาณ<strong>ตรงไปตรงมาที่สุด</strong>ว่าโมเดลเชิงเส้นพลาดความสัมพันธ์ที่แท้จริงซึ่งเป็นเส้นโค้ง (บางทีเรียก "lack of fit")</li>
+</ul>
 <p>ตัวอย่างจริงจาก R — <code>plot(fitted(model1), resid(model1))</code> เทียบกับ built-in <code>plot(model1, 1)</code> (ซึ่งให้ผลเหมือนกันแต่ R เติม label จุดที่ residual ใหญ่ผิดปกติให้อัตโนมัติ):</p>
 <figure>
 <img src="../assets/slides/as3-p08-residuals-vs-fitted-example.png" alt="Two versions of the same residuals vs fitted plot for model1: left is plain resid(model1) vs fitted(model1) scatter, right is R's built-in plot(model1,1) with a loess smoother line and three points labeled 46, 36, and 55 flagged as having large residuals">
 <figcaption>Slide: Residuals Plot (Lecture 3, p.8)</figcaption>
 </figure>
-<p>สองแผงนี้เป็น<strong>ข้อมูลชุดเดียวกัน</strong> พล็อตสองวิธี — แผงขวาที่ได้จาก <code>plot(model1,1)</code> มีเส้น smoother สีแดงช่วยตาให้เห็นแนวโน้มชัดขึ้น และ R ติด label จุดที่ 46, 36, 55 อัตโนมัติเพราะเป็นจุดที่ residual ห่างจาก 0 มากที่สุดสามอันดับแรก (นี่ยังไม่ใช่ influence diagnostic เต็มรูปแบบ — แค่ช่วยตาดู อธิบายลึกใน Lecture 4). เส้น smoother ที่นี่ค่อนข้างราบใกล้ 0 ตลอดช่วง มีหยักขึ้นลงเล็กน้อยแต่ไม่ได้โค้งเป็นระบบแบบภาพก่อนหน้า — ตีความได้ว่า linearity assumption <strong>ผ่านในระดับที่ยอมรับได้</strong> แม้จะมีจุด outlier 3 จุดที่ยังต้องตรวจสอบต่อ (เรื่อง influence point เต็ม ๆ อยู่ใน Lecture 4).</p>
+<p>สองแผงนี้เป็น<strong>ข้อมูลชุดเดียวกัน</strong> พล็อตสองวิธี:</p>
+<ul>
+<li>แผงขวาที่ได้จาก <code>plot(model1,1)</code> มีเส้น smoother สีแดงช่วยตาให้เห็นแนวโน้มชัดขึ้น และ R ติด label จุดที่ 46, 36, 55 อัตโนมัติเพราะเป็นจุดที่ residual ห่างจาก 0 มากที่สุดสามอันดับแรก (นี่ยังไม่ใช่ influence diagnostic เต็มรูปแบบ — แค่ช่วยตาดู อธิบายลึกใน Lecture 4)</li>
+<li>เส้น smoother ที่นี่ค่อนข้างราบใกล้ 0 ตลอดช่วง มีหยักขึ้นลงเล็กน้อยแต่ไม่ได้โค้งเป็นระบบแบบภาพก่อนหน้า — ตีความได้ว่า linearity assumption <strong>ผ่านในระดับที่ยอมรับได้</strong> แม้จะมีจุด outlier 3 จุดที่ยังต้องตรวจสอบต่อ (เรื่อง influence point เต็ม ๆ อยู่ใน Lecture 4)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>Linearity Check</span></div>
@@ -75,13 +93,22 @@ Ramsey &amp; Schafer, <em>The Statistical Sleuth</em> คือแหล่ง�
 <img src="../assets/slides/as3-p09-normality-check-pass-fail-qq.png" alt="Two Normal QQ plots side by side: left labeled pass with a checkmark showing points forming a tight straight diagonal line; right labeled fail with an X showing points curving sharply upward away from the line at the upper-right tail">
 <figcaption>Slide: 2. Checking Normality Assumption (Lecture 3, p.9)</figcaption>
 </figure>
-<p>แผงซ้าย (✓): จุดทุกจุดเรียงตัวเป็นเส้นตรงทแยงมุมสม่ำเสมอตั้งแต่มุมล่างซ้ายถึงบนขวา ไม่มีจุดไหนหลุดออกจากแนว — สรุปว่า empirical quantile กับ theoretical quantile (จากการแจกแจงปกติ) ตรงกันตลอดช่วง = residual แจกแจงแบบปกติ. แผงขวา (✗): ช่วงกลางจุดยังเกาะเส้นได้ดี แต่ที่<strong>หางบนขวา</strong> จุดหักโค้งชันขึ้นแยกออกจากเส้นตรงอย่างชัดเจน — แปลว่าค่า residual ที่ควรจะมากตามทฤษฎี (theoretical quantile สูง) จริง ๆ แล้วมากกว่านั้นอีก (empirical quantile สูงกว่าที่ทฤษฎีทำนาย) นี่คือลักษณะของ<strong>การแจกแจงเบ้ขวา (right-skewed)</strong> หรือมี outlier ที่หางขวา.</p>
+<ul>
+<li><strong>แผงซ้าย (✓):</strong> จุดทุกจุดเรียงตัวเป็นเส้นตรงทแยงมุมสม่ำเสมอตั้งแต่มุมล่างซ้ายถึงบนขวา ไม่มีจุดไหนหลุดออกจากแนว — สรุปว่า empirical quantile กับ theoretical quantile (จากการแจกแจงปกติ) ตรงกันตลอดช่วง = residual แจกแจงแบบปกติ</li>
+<li><strong>แผงขวา (✗):</strong> ช่วงกลางจุดยังเกาะเส้นได้ดี แต่ที่<strong>หางบนขวา</strong> จุดหักโค้งชันขึ้นแยกออกจากเส้นตรงอย่างชัดเจน — แปลว่าค่า residual ที่ควรจะมากตามทฤษฎี (theoretical quantile สูง) จริง ๆ แล้วมากกว่านั้นอีก (empirical quantile สูงกว่าที่ทฤษฎีทำนาย) นี่คือลักษณะของ<strong>การแจกแจงเบ้ขวา (right-skewed)</strong> หรือมี outlier ที่หางขวา</li>
+</ul>
 <p>Ramsey &amp; Schafer สรุปรูปแบบที่พบบ่อยไว้ 4 แบบ ให้จำรูปทรงเทียบกัน:</p>
 <figure>
 <img src="../assets/slides/as3-p10-qqplot-four-patterns.png" alt="Four normal probability plots side by side labeled A Normal (points on straight diagonal line), B Long-tailed (points forming an S-curve, flat in the middle steep at both ends), C Skewed positive (points curving upward, concave shape), and D Outlier (points on a line with one point far separated at the top right)">
 <figcaption>Slide: Normal Probability Plots (QQ Plots) — 4 รูปแบบ (Ramsey &amp; Schafer) (Lecture 3, p.10)</figcaption>
 </figure>
-<p>อ่านทีละแบบ: <strong>(A) NORMAL</strong> — เส้นตรงสม่ำเสมอ ไม่มีอะไรผิดปกติ (มาตรฐานที่ต้องเทียบด้วยทุกครั้ง). <strong>(B) LONG-TAILED</strong> — จุดโค้งเป็นรูปตัว S: ตรงกลางแบนราบ (จุดกระจุกตัวแน่นกว่าที่ทฤษฎีทำนาย) ส่วนหางทั้งสองข้างชันขึ้น/ลงแรง (หางหนากว่าปกติทั้งสองด้าน) — เป็น distribution ที่มี kurtosis สูง ไม่ใช่แค่เบ้ด้านเดียว. <strong>(C) SKEWED (+)</strong> — จุดทั้งเส้นโค้งเป็นส่วนโค้งเว้าเดียวตลอด (ไม่ใช่ S-curve) บ่งบอกความเบ้ไปทางบวกอย่างต่อเนื่อง ตรงกับรูปแบบที่เห็นในแผงขวาของภาพก่อนหน้า. <strong>(D) OUTLIER</strong> — จุดส่วนใหญ่เกาะเส้นตรงได้ดีเกือบทั้งหมด มีเพียง<strong>จุดเดียว</strong>ที่หลุดออกไปไกลจากกลุ่มที่มุมขวาบน — ต่างจาก (B) และ (C) ตรงที่ปัญหาไม่ได้อยู่ที่รูปร่างการแจกแจงโดยรวม แต่อยู่ที่ observation ผิดปกติตัวเดียว (ต้องเช็คว่าเป็น data-entry error หรือ influential point จริงใน Lecture 4).</p>
+<p>อ่านทีละแบบ:</p>
+<ul>
+<li><strong>(A) NORMAL</strong> — เส้นตรงสม่ำเสมอ ไม่มีอะไรผิดปกติ (มาตรฐานที่ต้องเทียบด้วยทุกครั้ง)</li>
+<li><strong>(B) LONG-TAILED</strong> — จุดโค้งเป็นรูปตัว S: ตรงกลางแบนราบ (จุดกระจุกตัวแน่นกว่าที่ทฤษฎีทำนาย) ส่วนหางทั้งสองข้างชันขึ้น/ลงแรง (หางหนากว่าปกติทั้งสองด้าน) — เป็น distribution ที่มี kurtosis สูง ไม่ใช่แค่เบ้ด้านเดียว</li>
+<li><strong>(C) SKEWED (+)</strong> — จุดทั้งเส้นโค้งเป็นส่วนโค้งเว้าเดียวตลอด (ไม่ใช่ S-curve) บ่งบอกความเบ้ไปทางบวกอย่างต่อเนื่อง ตรงกับรูปแบบที่เห็นในแผงขวาของภาพก่อนหน้า</li>
+<li><strong>(D) OUTLIER</strong> — จุดส่วนใหญ่เกาะเส้นตรงได้ดีเกือบทั้งหมด มีเพียง<strong>จุดเดียว</strong>ที่หลุดออกไปไกลจากกลุ่มที่มุมขวาบน — ต่างจาก (B) และ (C) ตรงที่ปัญหาไม่ได้อยู่ที่รูปร่างการแจกแจงโดยรวม แต่อยู่ที่ observation ผิดปกติตัวเดียว (ต้องเช็คว่าเป็น data-entry error หรือ influential point จริงใน Lecture 4)</li>
+</ul>
 <p>ผลจริงจาก R บนข้อมูลเดียวกับภาพหน้า 7-8 (<code>model1</code>) — เทียบสองวิธีสร้าง QQ plot ที่ให้ผลเหมือนกัน:</p>
 <figure>
 <img src="../assets/slides/as3-p11-qqplot-r-output-model1.png" alt="R Normal Q-Q plot for model1 with standardized residuals on the y-axis and theoretical quantiles on x-axis, points closely following the diagonal dotted line with slight deviation at both tails, points labeled 46 at top right and 36, 55 at bottom left">
@@ -121,7 +148,10 @@ W = 0.96496, p-value = 0.2741</code></pre>
 <figure>
 <img src="../assets/slides/as3-p13-constant-variance-pass-fail.png" alt="Two residual-vs-fitted plots: left labeled pass with a checkmark showing points contained within two parallel horizontal dashed bands of constant width; right labeled fail with an X showing points fanning out from a narrow point on the left into a wide cone shape on the right, bounded by two diverging dashed lines"><figcaption>Slide: 3. Checking Constant Variance Assumption (Lecture 3, p.13)</figcaption>
 </figure>
-<p>แผงซ้าย (✓): เส้นประบนกับล่างขนานกันตลอดช่วงแกน x — "ความสูง" ของแถบที่จุดกระจายอยู่คงที่ ไม่ว่าจะมองที่ค่า X̂ หรือ X ต่ำหรือสูง นี่คือ homoscedasticity. แผงขวา (✗): เส้นประสองเส้นเริ่มจากจุดแคบ ๆ ทางซ้ายแล้วบานออกเป็นรูปกรวยไปทางขวา — <strong>ความกว้างของแถบไม่คงที่</strong> ยิ่งค่า fitted/X มาก residual ยิ่งกระจายกว้าง นี่คือรูปแบบ heteroscedasticity ที่พบบ่อยที่สุด (มักเรียก "megaphone shape" หรือ "fan shape") ซึ่งจะเห็นตัวอย่างจริงในหัวข้อ Weighted Regression ด้านล่าง.</p>
+<ul>
+<li><strong>แผงซ้าย (✓):</strong> เส้นประบนกับล่างขนานกันตลอดช่วงแกน x — "ความสูง" ของแถบที่จุดกระจายอยู่คงที่ ไม่ว่าจะมองที่ค่า X̂ หรือ X ต่ำหรือสูง นี่คือ homoscedasticity</li>
+<li><strong>แผงขวา (✗):</strong> เส้นประสองเส้นเริ่มจากจุดแคบ ๆ ทางซ้ายแล้วบานออกเป็นรูปกรวยไปทางขวา — <strong>ความกว้างของแถบไม่คงที่</strong> ยิ่งค่า fitted/X มาก residual ยิ่งกระจายกว้าง นี่คือรูปแบบ heteroscedasticity ที่พบบ่อยที่สุด (มักเรียก "megaphone shape" หรือ "fan shape") ซึ่งจะเห็นตัวอย่างจริงในหัวข้อ Weighted Regression ด้านล่าง</li>
+</ul>
 <pre><code>> install.packages('lmtest')
 > library(lmtest)
 > bptest(model1)
@@ -150,7 +180,14 @@ BP = 7.0918, df = 3, p-value = 0.06903</code></pre>
 <img src="../assets/slides/as3-p16-residuals-vs-time-four-patterns.png" alt="Four scatterplots of residual versus time labeled A Normal Noise (random scatter around zero, no pattern), B Time Trend (residuals drift upward over time), C Positive Serial Correlation (long smooth up-and-down swings), D Negative Serial Correlation (residuals zigzag rapidly between high and low every consecutive point)">
 <figcaption>Slide: Residuals vs time order — 4 รูปแบบ (Ramsey &amp; Schafer) (Lecture 3, p.16)</figcaption>
 </figure>
-<p>อ่านทีละแบบ: <strong>(A) Normal Noise</strong> — จุดกระจายสุ่มรอบ 0 ไม่มีรูปแบบ ค่าที่ time ใดค่าหนึ่งไม่บอกอะไรเกี่ยวกับค่าที่ time ถัดไป = ผ่าน. <strong>(B) Time Trend</strong> — residual ค่อย ๆ ไต่ระดับสูงขึ้นเรื่อย ๆ ตามเวลา (เริ่มจากติดลบ จบที่เป็นบวก) สไลด์แนะนำว่ากรณีนี้<strong>อาจแก้ได้ง่าย ๆ โดยใส่ time เป็นตัวแปรอิสระเพิ่มเข้าไปในโมเดล</strong> (ไม่ต้องใช้เทคนิค time series เต็มรูปแบบ เพราะรูปแบบนี้คือ deterministic trend ที่จับได้ด้วย regression ธรรมดา). <strong>(C) Positive Serial Correlation</strong> — จุดแกว่งขึ้นลงเป็นช่วงยาว ๆ ราบเรียบ (ถ้าติดลบคราวนี้ คราวถัดไปมักติดลบต่อ) — ค่าที่ time ใกล้กันมี "ความจำ" กัน. <strong>(D) Negative Serial Correlation</strong> — จุดสลับบวก-ลบแทบทุกจุดติดกันเป็นซิกแซกถี่ ๆ (ถ้าบวกคราวนี้ คราวถัดไปมักติดลบ) — ทั้ง (C) และ (D) สไลด์ระบุว่า<strong>ต้องใช้ time series techniques</strong>แก้ (ไม่ใช่แค่เติมตัวแปร time เข้าไปเฉย ๆ เหมือน (B)) เพราะโครงสร้างสหสัมพันธ์อยู่ในตัว error เอง.</p>
+<p>อ่านทีละแบบ:</p>
+<ul>
+<li><strong>(A) Normal Noise</strong> — จุดกระจายสุ่มรอบ 0 ไม่มีรูปแบบ ค่าที่ time ใดค่าหนึ่งไม่บอกอะไรเกี่ยวกับค่าที่ time ถัดไป = ผ่าน</li>
+<li><strong>(B) Time Trend</strong> — residual ค่อย ๆ ไต่ระดับสูงขึ้นเรื่อย ๆ ตามเวลา (เริ่มจากติดลบ จบที่เป็นบวก) สไลด์แนะนำว่ากรณีนี้<strong>อาจแก้ได้ง่าย ๆ โดยใส่ time เป็นตัวแปรอิสระเพิ่มเข้าไปในโมเดล</strong> (ไม่ต้องใช้เทคนิค time series เต็มรูปแบบ เพราะรูปแบบนี้คือ deterministic trend ที่จับได้ด้วย regression ธรรมดา)</li>
+<li><strong>(C) Positive Serial Correlation</strong> — จุดแกว่งขึ้นลงเป็นช่วงยาว ๆ ราบเรียบ (ถ้าติดลบคราวนี้ คราวถัดไปมักติดลบต่อ) — ค่าที่ time ใกล้กันมี "ความจำ" กัน</li>
+<li><strong>(D) Negative Serial Correlation</strong> — จุดสลับบวก-ลบแทบทุกจุดติดกันเป็นซิกแซกถี่ ๆ (ถ้าบวกคราวนี้ คราวถัดไปมักติดลบ)</li>
+</ul>
+<p>ทั้ง (C) และ (D) สไลด์ระบุว่า<strong>ต้องใช้ time series techniques</strong>แก้ (ไม่ใช่แค่เติมตัวแปร time เข้าไปเฉย ๆ เหมือน (B)) เพราะโครงสร้างสหสัมพันธ์อยู่ในตัว error เอง.</p>
 <p>ตัวอย่างจริง — ข้อมูล Corn Yield, <code>plot(resid(model))</code> ให้ผลตาม index ของข้อมูล (แกน x คือลำดับที่เก็บข้อมูล ไม่ใช่ fitted value):</p>
 <figure>
 <img src="../assets/slides/as3-p17-corn-yield-residuals-vs-index.png" alt="Scatterplot of residuals against observation index for the corn yield model, points scattered without any visible upward trend or cyclical swing pattern across the index range 0 to about 38">
@@ -215,7 +252,15 @@ greater than 0</code></pre>
 <img src="../assets/slides/as3-p21-scatterplot-decision-guide.png" alt="Six hypothetical scatterplots of response vs explanatory variable with suggested remedies: A ideal linear relationship with equal spread, B curved means with equal spread suggesting transform X, C parabolic humped shape suggesting include X squared, D curved increasing spread suggesting transform Y, E skewed spread suggesting report skewness, F straight means with increasing spread suggesting use weighted regression">
 <figcaption>Slide: Scatterplot of the Y vs X — คู่มือเลือกวิธีแก้ (Ramsey &amp; Schafer) (Lecture 3, p.21)</figcaption>
 </figure>
-<p>อ่านทีละแผง: <strong>(A)</strong> เส้นค่าเฉลี่ยตรง SD เท่ากันทุกช่วง = ไม่ต้องแก้อะไร (ideal). <strong>(B)</strong> เส้นค่าเฉลี่ยโค้ง แต่ SD ยังเท่ากันทุกช่วง → <strong>Transform X</strong> (ปัญหาอยู่ที่รูปทรงของความสัมพันธ์ ไม่ใช่ variance จึงแก้ที่ X พอ). <strong>(C)</strong> เส้นค่าเฉลี่ยเป็นรูปโค้งขึ้นแล้วลง (parabola) SD เท่ากัน → <strong>เพิ่มพจน์ X²</strong> เข้าไปในโมเดล (จะพบตัวอย่างจริงในหัวข้อ 8.1 ด้านล่าง). <strong>(D)</strong> เส้นค่าเฉลี่ยโค้งและ SD เพิ่มขึ้นตาม X พร้อมกัน → <strong>Transform Y</strong> (แก้ปัญหาสองเรื่องพร้อมกันด้วยการแปลงตัวแปรตามตัวเดียว — Box-Cox ในหัวข้อ 8.2 มักใช้กรณีนี้). <strong>(E)</strong> ข้อมูลเบ้ (skewed) ในแต่ละแถบแนวตั้ง → บางครั้งแก้ไม่ได้ด้วยการแปลงตัวแปร ให้<strong>รายงานความเบ้ไว้ตรง ๆ</strong> แทน. <strong>(F)</strong> เส้นค่าเฉลี่ยตรง แต่ SD เพิ่มขึ้นตาม X (megaphone) → <strong>ใช้ Weighted Regression</strong> (หัวข้อ 9 ด้านล่าง — สังเกตว่ากรณีนี้ไม่ต้องแปลงตัวแปรเลย เพราะเส้นค่าเฉลี่ยตรงอยู่แล้ว ปัญหามีแค่ variance ไม่คงที่).</p>
+<p>อ่านทีละแผง:</p>
+<ul>
+<li><strong>(A)</strong> เส้นค่าเฉลี่ยตรง SD เท่ากันทุกช่วง = ไม่ต้องแก้อะไร (ideal)</li>
+<li><strong>(B)</strong> เส้นค่าเฉลี่ยโค้ง แต่ SD ยังเท่ากันทุกช่วง → <strong>Transform X</strong> (ปัญหาอยู่ที่รูปทรงของความสัมพันธ์ ไม่ใช่ variance จึงแก้ที่ X พอ)</li>
+<li><strong>(C)</strong> เส้นค่าเฉลี่ยเป็นรูปโค้งขึ้นแล้วลง (parabola) SD เท่ากัน → <strong>เพิ่มพจน์ X²</strong> เข้าไปในโมเดล (จะพบตัวอย่างจริงในหัวข้อ 8.1 ด้านล่าง)</li>
+<li><strong>(D)</strong> เส้นค่าเฉลี่ยโค้งและ SD เพิ่มขึ้นตาม X พร้อมกัน → <strong>Transform Y</strong> (แก้ปัญหาสองเรื่องพร้อมกันด้วยการแปลงตัวแปรตามตัวเดียว — Box-Cox ในหัวข้อ 8.2 มักใช้กรณีนี้)</li>
+<li><strong>(E)</strong> ข้อมูลเบ้ (skewed) ในแต่ละแถบแนวตั้ง → บางครั้งแก้ไม่ได้ด้วยการแปลงตัวแปร ให้<strong>รายงานความเบ้ไว้ตรง ๆ</strong> แทน</li>
+<li><strong>(F)</strong> เส้นค่าเฉลี่ยตรง แต่ SD เพิ่มขึ้นตาม X (megaphone) → <strong>ใช้ Weighted Regression</strong> (หัวข้อ 9 ด้านล่าง — สังเกตว่ากรณีนี้ไม่ต้องแปลงตัวแปรเลย เพราะเส้นค่าเฉลี่ยตรงอยู่แล้ว ปัญหามีแค่ variance ไม่คงที่)</li>
+</ul>
 <p>ตารางรูปแบบการแปลงตัวแปรที่ใช้บ่อยที่สุด (log ทั้งคู่, log ตัวใดตัวหนึ่ง, หรือ reciprocal):</p>
 <figure>
 <img src="../assets/slides/as3-p22-variable-transformation-table.png" alt="Thai-language table listing four transformation schemes: Y transform ln(Y) with model Y-hat-prime = beta0+beta1X giving relationship Y-hat=e^beta0 e^(beta1X); X transform ln(X) giving Y-hat=beta0+beta1 ln(X); both Y and X log-transformed giving Y-hat=e^beta0 X^beta1; and reciprocal transform of both Y and X giving Y-hat=X/(beta0X+beta1)">
@@ -233,7 +278,13 @@ greater than 0</code></pre>
 <img src="../assets/slides/as3-p24-animal-brain-raw-scatter.png" alt="Scatterplot of raw brain weight versus raw body weight for animals, almost all points crushed near the origin at bottom-left because one outlier (Dipliodocus, body weight about 87000) stretches the x-axis, making the relationship among the rest of the animals invisible">
 <figcaption>Slide: Example: Animal Brain Weight — สเกลดิบ (Lecture 3, p.24)</figcaption>
 </figure>
-<p>อ่านตัวเลขจริง: <code>Dipliodocus</code> body=11700, brain=50 กับ <code>Cow</code> body=465, brain=423 — เทียบกับ <code>Guinea pig</code> body=1.04, brain=5.5 ความต่างของสเกล body คือ<strong>หมื่นเท่า</strong> (1.04 ถึง 11700) ทำให้จุดข้อมูลของสัตว์ตัวเล็กเกือบทั้งหมดถูกอัดกระจุกอยู่ที่มุมล่างซ้ายจนแยกไม่ออกเลยด้วยตาเปล่า plot แบบดิบนี้จึงใช้ตัดสินความสัมพันธ์ไม่ได้ — สอดคล้องกับสิ่งที่บทเรียนที่ 1 หัวข้อ 5 เตือนไว้ว่าต้อง plot ก่อนเสมอ.</p>
+<p>อ่านตัวเลขจริง:</p>
+<ul>
+<li><code>Dipliodocus</code> body=11700, brain=50</li>
+<li><code>Cow</code> body=465, brain=423</li>
+<li><code>Guinea pig</code> body=1.04, brain=5.5 — ความต่างของสเกล body ระหว่างสองปลายคือ<strong>หมื่นเท่า</strong> (1.04 ถึง 11700)</li>
+</ul>
+<p>ทำให้จุดข้อมูลของสัตว์ตัวเล็กเกือบทั้งหมดถูกอัดกระจุกอยู่ที่มุมล่างซ้ายจนแยกไม่ออกเลยด้วยตาเปล่า plot แบบดิบนี้จึงใช้ตัดสินความสัมพันธ์ไม่ได้ — สอดคล้องกับสิ่งที่บทเรียนที่ 1 หัวข้อ 5 เตือนไว้ว่าต้อง plot ก่อนเสมอ.</p>
 <p>แก้ด้วย log ทั้งสองแกน — สังเกตว่าจุดกระจายตัวเต็มพื้นที่กราฟและเห็นความสัมพันธ์เชิงเส้นชัดเจนขึ้นทันที:</p>
 <figure>
 <img src="../assets/slides/as3-p25-animal-brain-log-log-scatter.png" alt="Scatterplot of log(brain weight) versus log(body weight), points now spread across the full plot area from bottom-left to top-right showing a clear increasing linear relationship with modest scatter">
@@ -277,7 +328,11 @@ Multiple R-squared: 0.7532,     Adjusted R-squared: 0.7425</code></pre>
 <img src="../assets/slides/as3-p30-plasma-diagnostics-before-transform.png" alt="Three plots for the raw linear plasmamodel: scatter of PlasmaLevel decreasing with Age across 5 groups; Residuals vs Fitted showing residuals slightly wider spread at low fitted values than high, with one point labeled 4 or 10 near the top right at residual about 6; Normal QQ plot with most points near the line but the same top point deviating upward at the right tail">
 <figcaption>Slide: Example: Plasma Level (cont.) — diagnostic ก่อนแปลงตัวแปร (Lecture 3, p.30)</figcaption>
 </figure>
-<p>สังเกตแผงกลาง (Residuals vs Fitted): แถบ residual ที่ fitted value ต่ำ (ซ้าย, ตรงกับ Age น้อย) ดูกว้างกว่าฝั่ง fitted สูง (ขวา, Age มาก) เล็กน้อย และมีจุดหนึ่งดันขึ้นไปสูงถึง residual ≈ 6 ผิดจากกลุ่ม — แผงขวา (QQ) จุดเดียวกันนี้ก็เบี่ยงออกจากเส้นทแยงที่หางบนขวาเช่นกัน (ตรงกับรูปแบบ D-OUTLIER ในหัวข้อ 4) นี่คือสัญญาณว่าโมเดลเชิงเส้นตรงยังไม่ใช่ตัวเลือกที่ดีที่สุด — ให้ Box-Cox ช่วยหา λ ที่เหมาะสม:</p>
+<ul>
+<li><strong>แผงกลาง (Residuals vs Fitted):</strong> แถบ residual ที่ fitted value ต่ำ (ซ้าย, ตรงกับ Age น้อย) ดูกว้างกว่าฝั่ง fitted สูง (ขวา, Age มาก) เล็กน้อย และมีจุดหนึ่งดันขึ้นไปสูงถึง residual ≈ 6 ผิดจากกลุ่ม</li>
+<li><strong>แผงขวา (QQ):</strong> จุดเดียวกันนี้ก็เบี่ยงออกจากเส้นทแยงที่หางบนขวาเช่นกัน (ตรงกับรูปแบบ D-OUTLIER ในหัวข้อ 4)</li>
+</ul>
+<p>นี่คือสัญญาณว่าโมเดลเชิงเส้นตรงยังไม่ใช่ตัวเลือกที่ดีที่สุด — ให้ Box-Cox ช่วยหา λ ที่เหมาะสม:</p>
 <figure>
 <img src="../assets/slides/as3-p31-boxcox-loglikelihood-and-transformed-scatter.png" alt="Left: Box-Cox log-likelihood plot against lambda, peak near lambda=-0.5 with a 95% confidence interval (dotted vertical lines) spanning roughly -1.1 to 0.1; right: scatterplot of Age vs 1/sqrt(PlasmaLevel) showing an increasing roughly linear trend across the 5 age groups">
 <figcaption>Slide: Example: Plasma Level (cont.) — boxcox() และ scatter หลังแปลง (Lecture 3, p.31)</figcaption>
@@ -298,7 +353,12 @@ Multiple R-squared: 0.8665,     Adjusted R-squared: 0.8606</code></pre>
 <img src="../assets/slides/as3-p33-plasma-diagnostics-after-transform.png" alt="Two plots for plasmamodel2 after transformation: Residuals vs Fitted showing residuals evenly spread across all fitted value ranges with no funnel shape, point 18 slightly high; Normal QQ plot with points hugging the diagonal line closely across almost the entire range, only point 4 at bottom-left and point 18 at top-right deviating slightly">
 <figcaption>Slide: Example: Plasma Level (cont.) — diagnostic หลังแปลงตัวแปร (Lecture 3, p.33)</figcaption>
 </figure>
-<p>เทียบกับภาพก่อนแปลง (หน้า 30) โดยตรง: แถบ residual ในแผงซ้ายตอนนี้กว้าง<strong>สม่ำเสมอกว่าเดิม</strong>ตลอดช่วง fitted values ไม่เห็นความกว้างที่ต่างกันชัดเจนระหว่างซ้าย-ขวาแบบก่อนหน้า และในแผง QQ ขวา จุดส่วนใหญ่เกาะเส้นทแยงได้แนบสนิทกว่าเดิมมาก — ยังเหลือจุด 18 กับ 4 ที่เบี่ยงเล็กน้อยที่หางทั้งสองข้าง แต่degree ของการเบี่ยงน้อยกว่าก่อนแปลงชัดเจน สรุปได้ว่า<strong>การแปลงตัวแปรด้วย Box-Cox ช่วยให้ทั้ง linearity และ diagnostic โดยรวมดีขึ้นพร้อมกัน</strong> แม้จะไม่ได้สมบูรณ์แบบ 100% ก็ตาม (ข้อมูลจริงแทบไม่มีทางสมบูรณ์แบบ — เป้าหมายคือ "ดีขึ้นอย่างมีนัยสำคัญ" ไม่ใช่ "สมบูรณ์แบบ").</p>
+<p>เทียบกับภาพก่อนแปลง (หน้า 30) โดยตรง:</p>
+<ul>
+<li><strong>แผงซ้าย (Residuals vs Fitted):</strong> แถบ residual กว้าง<strong>สม่ำเสมอกว่าเดิม</strong>ตลอดช่วง fitted values ไม่เห็นความกว้างที่ต่างกันชัดเจนระหว่างซ้าย-ขวาแบบก่อนหน้า</li>
+<li><strong>แผงขวา (QQ):</strong> จุดส่วนใหญ่เกาะเส้นทแยงได้แนบสนิทกว่าเดิมมาก — ยังเหลือจุด 18 กับ 4 ที่เบี่ยงเล็กน้อยที่หางทั้งสองข้าง แต่degree ของการเบี่ยงน้อยกว่าก่อนแปลงชัดเจน</li>
+</ul>
+<p>สรุปได้ว่า<strong>การแปลงตัวแปรด้วย Box-Cox ช่วยให้ทั้ง linearity และ diagnostic โดยรวมดีขึ้นพร้อมกัน</strong> แม้จะไม่ได้สมบูรณ์แบบ 100% ก็ตาม (ข้อมูลจริงแทบไม่มีทางสมบูรณ์แบบ — เป้าหมายคือ "ดีขึ้นอย่างมีนัยสำคัญ" ไม่ใช่ "สมบูรณ์แบบ").</p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 7 (Free response)</span><span>Before/After Transformation</span></div>
@@ -338,7 +398,12 @@ Multiple R-squared: 0.8665,     Adjusted R-squared: 0.8606</code></pre>
 <img src="../assets/slides/as3-p38-bloodpressure-residual-megaphone.png" alt="Two residual plots for the blood pressure model: left is R's Residuals vs Fitted showing residuals ranging tightly around -5 to +5 at low fitted values but fanning to -20 to +20 at high fitted values, clear cone shape; right is residuals vs Age showing the same widening spread with age, points labeled 54, 28, 43">
 <figcaption>Slide: Example: Diastolic Blood Pressure (cont.) — megaphone shape (Lecture 3, p.38)</figcaption>
 </figure>
-<p>อ่านตัวเลขจริง: ที่ fitted value ต่ำ (~68-70, ตรงกับ Age น้อย) residual อยู่ในช่วงแคบ ๆ ประมาณ ±5 แต่ที่ fitted value สูง (~90, Age มาก) residual กระจายกว้างถึง ±20 — <strong>ความกว้างของแถบต่างกันถึง 4 เท่า</strong>ระหว่างสองปลาย นี่คือ heteroscedasticity ที่ชัดเจนมาก ตรงกับแผง (F) ในหัวข้อ 8 (เส้นค่าเฉลี่ยตรง แต่ SD เพิ่มตาม X) — ทางแก้ที่เหมาะคือ weighted regression ไม่ใช่ transform Y (เพราะ mean function เป็นเส้นตรงอยู่แล้ว การ transform Y จะทำให้ linearity เสียไปแทน).</p>
+<p>อ่านตัวเลขจริง:</p>
+<ul>
+<li>ที่ fitted value ต่ำ (~68-70, ตรงกับ Age น้อย) residual อยู่ในช่วงแคบ ๆ ประมาณ ±5</li>
+<li>ที่ fitted value สูง (~90, Age มาก) residual กระจายกว้างถึง ±20 — <strong>ความกว้างของแถบต่างกันถึง 4 เท่า</strong>ระหว่างสองปลาย</li>
+</ul>
+<p>นี่คือ heteroscedasticity ที่ชัดเจนมาก ตรงกับแผง (F) ในหัวข้อ 8 (เส้นค่าเฉลี่ยตรง แต่ SD เพิ่มตาม X) — ทางแก้ที่เหมาะคือ weighted regression ไม่ใช่ transform Y (เพราะ mean function เป็นเส้นตรงอยู่แล้ว การ transform Y จะทำให้ linearity เสียไปแทน).</p>
 <p>ขั้นตอน: หา standard deviation function จาก |residual| แล้วคำนวณ weight:</p>
 <figure>
 <img src="../assets/slides/as3-p39-bloodpressure-abs-resid-vs-age.png" alt="Scatterplot of absolute residual from the blood pressure model against Age, showing a clear increasing trend from near 0 at low ages to around 15-20 at high ages">
@@ -389,7 +454,14 @@ Multiple R-squared: 0.5214,     Adjusted R-squared: 0.5122</code></pre>
 <p>ภาพนี้คือภาพเดียวกับหัวข้อ 6 (หน้า 16) แต่ครูวงกลมสีแดงเน้นเฉพาะสองแผงล่าง (C) และ (D) — ย้ำว่า Cochrane-Orcutt ใช้แก้เฉพาะกรณี<strong>สหสัมพันธ์แบบอนุกรมจริง</strong> ไม่ใช่กรณี Time Trend (B) ที่แก้ง่ายกว่าด้วยการเติมตัวแปร time.</p>
 <div class="box">
 โมเดล: \(Y_t = \beta_0+\beta_1 X_{1t}+\cdots+\beta_p X_{pt}+\varepsilon_t\) โดย \(\varepsilon_t = \rho \varepsilon_{t-1}+u_t\), \(u_t \sim \text{iid } N(0,\sigma^2)\)<br>
-ขั้นตอน: (1) fit Y on X ธรรมดา ได้ residual e_t (2) ประมาณ \(r = \dfrac{\sum e_t e_{t-1}}{\sum e_t^2}\) (3) แปลงข้อมูล \(Y^*_t = Y_t - rY_{t-1}\), \(X^*_t = X_t - rX_{t-1}\) (4) regress Y* on X* (5) ทำซ้ำ 2-4 จนกว่า Durbin-Watson test จะไม่พบ autocorrelation แล้ว
+ขั้นตอน:
+<ol>
+<li>fit Y on X ธรรมดา ได้ residual e_t</li>
+<li>ประมาณ \(r = \dfrac{\sum e_t e_{t-1}}{\sum e_t^2}\)</li>
+<li>แปลงข้อมูล \(Y^*_t = Y_t - rY_{t-1}\), \(X^*_t = X_t - rX_{t-1}\)</li>
+<li>regress Y* on X*</li>
+<li>ทำซ้ำ 2-4 จนกว่า Durbin-Watson test จะไม่พบ autocorrelation แล้ว</li>
+</ol>
 </div>
 
 <h3>ตัวอย่าง: Toothpaste Market Share</h3>
@@ -436,7 +508,12 @@ Durbin-Watson statistic
 
 > comodel$rho
 [1] 0.6103753</code></pre>
-<p>หลังแปลงข้อมูลด้วย Cochrane-Orcutt: DW ขยับจาก 0.73596 (p=0.0003, ปฏิเสธ H₀) เป็น <strong>1.67445 (p=0.1658, ไม่ปฏิเสธ H₀)</strong> — autocorrelation ที่เคยมีนัยสำคัญตอนนี้หายไป (แม้ยังไม่ถึง 2 เป๊ะ แต่ p-value สูงพอที่จะสรุปว่าไม่มีนัยสำคัญ). ค่า \(\rho \text{ (rho)} = 0.6104\) ที่ประมาณได้คือระดับ correlation ระหว่าง error ที่ติดกัน — ค่อนข้างสูง (ρ ยิ่งใกล้ 1 ยิ่งมี autocorrelation แรง) อธิบายได้ว่าทำไมโมเดลเดิมถึงมีปัญหาชัดเจนขนาดนี้. สังเกตด้วยว่าค่าประมาณ <code>Marketshare</code> เปลี่ยนจาก 0.293930 เป็น 0.299296 (ใกล้เคียงเดิม) แต่ <code>Std. Error</code> เปลี่ยนจาก 0.005913 เป็น 0.012326 — <strong>SE เพิ่มขึ้นเป็นสองเท่า</strong> สะท้อนว่า SE เดิมจาก OLS ธรรมดาถูกประเมินต่ำเกินจริงไปมาก (ตรงกับที่ตารางหัวข้อ 7 บอกว่า independence ที่พังทำให้ SE ไม่แม่นยำ).</p>
+<p>หลังแปลงข้อมูลด้วย Cochrane-Orcutt:</p>
+<ul>
+<li><strong>DW</strong> ขยับจาก 0.73596 (p=0.0003, ปฏิเสธ H₀) เป็น <strong>1.67445 (p=0.1658, ไม่ปฏิเสธ H₀)</strong> — autocorrelation ที่เคยมีนัยสำคัญตอนนี้หายไป (แม้ยังไม่ถึง 2 เป๊ะ แต่ p-value สูงพอที่จะสรุปว่าไม่มีนัยสำคัญ)</li>
+<li>ค่า \(\rho \text{ (rho)} = 0.6104\) ที่ประมาณได้คือระดับ correlation ระหว่าง error ที่ติดกัน — ค่อนข้างสูง (ρ ยิ่งใกล้ 1 ยิ่งมี autocorrelation แรง) อธิบายได้ว่าทำไมโมเดลเดิมถึงมีปัญหาชัดเจนขนาดนี้</li>
+<li>ค่าประมาณ <code>Marketshare</code> เปลี่ยนจาก 0.293930 เป็น 0.299296 (ใกล้เคียงเดิม) แต่ <code>Std. Error</code> เปลี่ยนจาก 0.005913 เป็น 0.012326 — <strong>SE เพิ่มขึ้นเป็นสองเท่า</strong> สะท้อนว่า SE เดิมจาก OLS ธรรมดาถูกประเมินต่ำเกินจริงไปมาก (ตรงกับที่ตารางหัวข้อ 7 บอกว่า independence ที่พังทำให้ SE ไม่แม่นยำ)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 11</span><span>Cochrane-Orcutt</span></div>
@@ -451,12 +528,22 @@ Durbin-Watson statistic
 </div>
 
 <h2>11. Multicollinearity — ปัญหาที่มีเฉพาะใน Multiple Regression</h2>
-<p>เมื่อตัวแปรอิสระหลายตัวมีความสัมพันธ์กันเองสูง (correlated กันเอง ไม่ใช่กับ Y) — ผลที่ตามมาคือ<strong>สัมประสิทธิ์ไม่เสถียร</strong> (ค่าประมาณเปลี่ยนแปลงมากถ้าตัดตัวแปรใดตัวหนึ่งออก หรือเพิ่ม observation เข้ามาเล็กน้อย) และ<strong>ค่า standard error ไม่น่าเชื่อถือ</strong>. สัญญาณที่บ่งชี้ว่ามี multicollinearity: (1) correlation ระหว่างคู่ตัวแปรอิสระสูง (2) ค่าประมาณสัมประสิทธิ์เปลี่ยนไปมากเมื่อลองโมเดลต่าง ๆ (3) <strong>t-test รายตัวไม่มีนัยสำคัญ แต่ F-test ภาพรวมกลับมีนัยสำคัญ</strong> — สัญญาณข้อ (3) นี้เป็นตัวที่ตรวจจับได้ง่ายที่สุดจากการอ่าน output.</p>
+<p>เมื่อตัวแปรอิสระหลายตัวมีความสัมพันธ์กันเองสูง (correlated กันเอง ไม่ใช่กับ Y) — ผลที่ตามมาคือ<strong>สัมประสิทธิ์ไม่เสถียร</strong> (ค่าประมาณเปลี่ยนแปลงมากถ้าตัดตัวแปรใดตัวหนึ่งออก หรือเพิ่ม observation เข้ามาเล็กน้อย) และ<strong>ค่า standard error ไม่น่าเชื่อถือ</strong>. สัญญาณที่บ่งชี้ว่ามี multicollinearity:</p>
+<ol>
+<li>correlation ระหว่างคู่ตัวแปรอิสระสูง</li>
+<li>ค่าประมาณสัมประสิทธิ์เปลี่ยนไปมากเมื่อลองโมเดลต่าง ๆ</li>
+<li><strong>t-test รายตัวไม่มีนัยสำคัญ แต่ F-test ภาพรวมกลับมีนัยสำคัญ</strong> — สัญญาณข้อนี้เป็นตัวที่ตรวจจับได้ง่ายที่สุดจากการอ่าน output</li>
+</ol>
 <p>วัดเชิงปริมาณด้วย Variance Inflation Factor (VIF):</p>
 <div class="box">
 \(\text{VIF}_j = 1/(1-R^2_j)\), โดย R²_j คือ R² จากการ regress ตัวแปรอิสระตัวที่ j กับตัวแปรอิสระที่เหลือทั้งหมด
 </div>
-<p>Rule of thumb ที่ต้องจำ: <strong>VIF = 1</strong> ไม่มี correlation กับตัวแปรอื่นเลย, <strong>VIF &gt; 4</strong> เริ่มมี multicollinearity ระดับปานกลาง, <strong>VIF &gt; 10</strong> multicollinearity รุนแรง.</p>
+<p>Rule of thumb ที่ต้องจำ:</p>
+<ul>
+<li><strong>VIF = 1</strong> — ไม่มี correlation กับตัวแปรอื่นเลย</li>
+<li><strong>VIF &gt; 4</strong> — เริ่มมี multicollinearity ระดับปานกลาง</li>
+<li><strong>VIF &gt; 10</strong> — multicollinearity รุนแรง</li>
+</ul>
 <p>ตัวอย่างจริง — ข้อมูล ConsumerIndex (food, clothing, fuel, household, transport):</p>
 <pre><code>> library(usdm)
 > vif(ConsumerIndex[,-6])
@@ -482,7 +569,12 @@ transport     0.50537    0.10412   4.854 2.75e-06 ***
 Residual standard error: 2.57 on 168 degrees of freedom
 Multiple R-squared: 0.974,    Adjusted R-squared: 0.9732
 F-statistic: 1257 on 5 and 168 DF, p-value: < 2.2e-16</code></pre>
-<p>เจอสัญญาณข้อ (3) ตรงเป๊ะ: <code>clothing</code> มี t=−0.600, p=0.54935 (<strong>ไม่มีนัยสำคัญเลย</strong>) ในขณะที่ F-statistic ภาพรวมของทั้งโมเดล = 1257, p &lt; 2.2e-16 (<strong>มีนัยสำคัญสูงมาก</strong>) — ถ้าดูแค่ตัวแปร <code>clothing</code> ตัวเดียวอาจสรุปผิดว่ามันไม่เกี่ยวข้องกับ housing เลย ทั้งที่จริง ๆ แล้วมันแค่ถูก "บัง" ด้วยตัวแปรอื่นที่สัมพันธ์กันสูง (โดยเฉพาะ household ที่ VIF สูงพอ ๆ กัน) — นี่คือผลของ unstable coefficients และ unreliable SE ที่ multicollinearity ก่อขึ้นพอดี.</p>
+<p>เจอสัญญาณข้อ (3) ตรงเป๊ะ:</p>
+<ul>
+<li><code>clothing</code> มี t=−0.600, p=0.54935 (<strong>ไม่มีนัยสำคัญเลย</strong>)</li>
+<li>F-statistic ภาพรวมของทั้งโมเดล = 1257, p &lt; 2.2e-16 (<strong>มีนัยสำคัญสูงมาก</strong>)</li>
+</ul>
+<p>ถ้าดูแค่ตัวแปร <code>clothing</code> ตัวเดียวอาจสรุปผิดว่ามันไม่เกี่ยวข้องกับ housing เลย ทั้งที่จริง ๆ แล้วมันแค่ถูก "บัง" ด้วยตัวแปรอื่นที่สัมพันธ์กันสูง (โดยเฉพาะ household ที่ VIF สูงพอ ๆ กัน) — นี่คือผลของ unstable coefficients และ unreliable SE ที่ multicollinearity ก่อขึ้นพอดี.</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 12</span><span>VIF Rule of Thumb</span></div>
@@ -505,7 +597,14 @@ F-statistic: 1257 on 5 and 168 DF, p-value: < 2.2e-16</code></pre>
 </div>
 
 <h2>12. Remedy สำหรับ Multicollinearity: Centering, ตัดตัวแปร, Ridge, PCA</h2>
-<p>สไลด์เสนอ 4 แนวทาง: (1) Centering ตัวแปรอิสระแต่ละตัว (ลบด้วยค่าเฉลี่ยก่อน fit) (2) ตัดตัวแปรที่สัมพันธ์กันสูงออกบางตัว (3) ใช้ Ridge Regression (4) ใช้ Principal Component Analysis (PCA) — สองข้อหลังนี้สไลด์ลงรายละเอียดและมีตัวอย่าง R จริง จะดูทีละอัน.</p>
+<p>สไลด์เสนอ 4 แนวทาง:</p>
+<ol>
+<li>Centering ตัวแปรอิสระแต่ละตัว (ลบด้วยค่าเฉลี่ยก่อน fit)</li>
+<li>ตัดตัวแปรที่สัมพันธ์กันสูงออกบางตัว</li>
+<li>ใช้ Ridge Regression</li>
+<li>ใช้ Principal Component Analysis (PCA)</li>
+</ol>
+<p>สองข้อหลังนี้สไลด์ลงรายละเอียดและมีตัวอย่าง R จริง จะดูทีละอัน.</p>
 
 <h3>12.1 Ridge Regression</h3>
 <p>Ridge regression อยู่ในกลุ่ม penalized regression — เพิ่มพจน์ลงโทษ (penalty) ที่ขนาดของสัมประสิทธิ์เข้าไปในเป้าหมายที่ต้องการ minimize:</p>
@@ -519,7 +618,11 @@ F-statistic: 1257 on 5 and 168 DF, p-value: < 2.2e-16</code></pre>
 <img src="../assets/slides/as3-p53-ridge-trace-plot.png" alt="Ridge trace plot showing ridge coefficients for food, clothing, fuel, household, transport as functions of the biasing parameter K from 0 to 3, coefficients start wildly spread (some very high, some negative) near K=0 and rapidly stabilize into a tight converging bundle by around K=0.5, with an annotation 'min MSE=1983.259 at K=0'">
 <figcaption>Slide: Example: Consumer Index — Ridge Trace Plot (Lecture 3, p.53)</figcaption>
 </figure>
-<p>อ่านภาพนี้ให้ตรงประเด็น: ที่ K=0 (ซึ่งเทียบเท่า OLS ธรรมดา) เส้นสัมประสิทธิ์ของแต่ละตัวแปรกระจัดกระจายรุนแรงมาก — บางเส้นพุ่งขึ้นสูงถึง 200 บางเส้นดิ่งลงต่ำกว่า −50 — นี่คือภาพสะท้อนโดยตรงของ "unstable regression coefficients" ที่ multicollinearity ก่อขึ้น (ตรงกับที่ OLS output หน้าก่อนแสดงค่า clothing ที่ไม่มีนัยสำคัญ) พอ K เพิ่มขึ้นเพียงเล็กน้อย (~0.2-0.5) เส้นทุกเส้นก็รวมตัวกันแน่นเป็นกลุ่มแคบ ๆ อย่างรวดเร็ว และคงตัวเสถียรตลอดช่วง K ที่เหลือ — นี่คือเป้าหมายของ ridge regression: เลือก K ที่มากพอจะทำให้สัมประสิทธิ์เสถียร แต่ไม่มากเกินจนทำให้ bias สูงเกินความจำเป็น.</p>
+<p>อ่านภาพนี้ให้ตรงประเด็น:</p>
+<ul>
+<li><strong>ที่ K=0</strong> (ซึ่งเทียบเท่า OLS ธรรมดา) เส้นสัมประสิทธิ์ของแต่ละตัวแปรกระจัดกระจายรุนแรงมาก — บางเส้นพุ่งขึ้นสูงถึง 200 บางเส้นดิ่งลงต่ำกว่า −50 — นี่คือภาพสะท้อนโดยตรงของ "unstable regression coefficients" ที่ multicollinearity ก่อขึ้น (ตรงกับที่ OLS output หน้าก่อนแสดงค่า clothing ที่ไม่มีนัยสำคัญ)</li>
+<li><strong>พอ K เพิ่มขึ้นเพียงเล็กน้อย</strong> (~0.2-0.5) เส้นทุกเส้นก็รวมตัวกันแน่นเป็นกลุ่มแคบ ๆ อย่างรวดเร็ว และคงตัวเสถียรตลอดช่วง K ที่เหลือ — นี่คือเป้าหมายของ ridge regression: เลือก K ที่มากพอจะทำให้สัมประสิทธิ์เสถียร แต่ไม่มากเกินจนทำให้ bias สูงเกินความจำเป็น</li>
+</ul>
 <pre><code>> ridgeConsumer<-lmridge(housing~., ConsumerIndex, K=0.25)
 > summary(ridgeConsumer)
 
@@ -539,7 +642,12 @@ transport      0.4239       36.8233       2.5871      14.233 < 2.2e-16 ***</code
 <img src="../assets/slides/as3-p57-pca-geometry-diagram.png" alt="Scatterplot of correlated data points forming an elongated cloud oriented diagonally, with two arrows labeled PC1 pointing along the long axis of the cloud (direction of greatest spread) and PC2 pointing perpendicular to PC1 along the short axis">
 <figcaption>Slide: Geometry Representation of PCA (Lecture 3, p.57)</figcaption>
 </figure>
-<p>อ่านภาพเชิงเรขาคณิต: กลุ่มจุดข้อมูล (สีเทา) เรียงตัวเป็นวงรียาวเฉียง ๆ — ทิศทางที่จุดกระจายตัว<strong>มากที่สุด</strong>คือแนวเฉียงยาวของวงรี ลูกศร PC1 ชี้ไปตามแนวนั้นพอดี (นี่คือนิยามของ PC1: ทิศทางที่มี variance มากที่สุด) ส่วน PC2 ตั้งฉากกับ PC1 พอดี ชี้ไปตามแนว "แคบ" ของวงรี (ทิศทางที่เหลือหลังตัด PC1 ออกไปแล้ว) — สังเกตว่า PC1 และ PC2 ตั้งฉากกันเสมอ (orthogonal) นี่คือเหตุผลที่ PC ที่ได้ไม่มี multicollinearity ระหว่างกันเองเลย แม้ตัวแปรดิบเดิมจะสัมพันธ์กันสูงแค่ไหนก็ตาม.</p>
+<p>อ่านภาพเชิงเรขาคณิต: กลุ่มจุดข้อมูล (สีเทา) เรียงตัวเป็นวงรียาวเฉียง ๆ —</p>
+<ul>
+<li><strong>PC1:</strong> ทิศทางที่จุดกระจายตัว<strong>มากที่สุด</strong>คือแนวเฉียงยาวของวงรี ลูกศร PC1 ชี้ไปตามแนวนั้นพอดี (นี่คือนิยามของ PC1: ทิศทางที่มี variance มากที่สุด)</li>
+<li><strong>PC2:</strong> ตั้งฉากกับ PC1 พอดี ชี้ไปตามแนว "แคบ" ของวงรี (ทิศทางที่เหลือหลังตัด PC1 ออกไปแล้ว)</li>
+</ul>
+<p>สังเกตว่า PC1 และ PC2 ตั้งฉากกันเสมอ (orthogonal) นี่คือเหตุผลที่ PC ที่ได้ไม่มี multicollinearity ระหว่างกันเองเลย แม้ตัวแปรดิบเดิมจะสัมพันธ์กันสูงแค่ไหนก็ตาม.</p>
 <div class="box">
 Eigenvalue-eigenvector pair จาก covariance matrix S: \((\lambda_1,e_1),(\lambda_2,e_2),\ldots,(\lambda_p,e_p)\) โดย \(\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_p \geq 0\)<br>
 \(PC_k = e_{k1}X_1+e_{k2}X_2+\cdots+e_{kp}X_p\) (e_k เรียกว่า "loading" ของ PC_k)<br>
@@ -563,7 +671,13 @@ Cumulative Proportion 0.944 0.97919 0.99481 0.99916 1.00000</code></pre>
 <img src="../assets/slides/as3-p65-consumer-index-scree-plot.png" alt="Scree plot from R's plot(consumer.pca, type='l') for the ConsumerIndex data, y-axis Variances from 0 to about 4.7, x-axis component 1 to 5, showing a very steep drop from component 1 (about 4.7) to component 2 (about 0.18), then a nearly flat line for components 3 through 5">
 <figcaption>Slide: Example: Consumer Index — scree plot จริง (Lecture 3, p.65)</figcaption>
 </figure>
-<p>ยืนยันตัวเลขจาก <code>summary()</code> ด้วยภาพ: PC1 เพียงตัวเดียวอธิบายความแปรปรวนได้ถึง <strong>94.4%</strong> ของทั้งหมด (Proportion of Variance = 0.944) PC2 อธิบายเพิ่มอีกแค่ 3.5% รวมสองตัวแรกได้ 97.9% (Cumulative) — สอดคล้องกับภาพ scree plot ที่ลดฮวบจาก ~4.7 เหลือ ~0.18 แล้วราบสนิท — เหตุผลที่ PC1 อธิบายได้มากขนาดนี้คือ<strong>ตัวแปรทั้ง 5 ตัวสัมพันธ์กันสูงมากอยู่แล้ว</strong> (ตรงกับ VIF ที่สูงลิ่วในหัวข้อ 11) ทำให้ทิศทางความแปรปรวนหลักมีแค่ทิศทางเดียวจริง ๆ — ตัดสินใจใช้ <strong>PC1 และ PC2</strong> แทนตัวแปรดิบทั้ง 5 ตัว:</p>
+<p>ยืนยันตัวเลขจาก <code>summary()</code> ด้วยภาพ:</p>
+<ul>
+<li>PC1 เพียงตัวเดียวอธิบายความแปรปรวนได้ถึง <strong>94.4%</strong> ของทั้งหมด (Proportion of Variance = 0.944)</li>
+<li>PC2 อธิบายเพิ่มอีกแค่ 3.5% รวมสองตัวแรกได้ 97.9% (Cumulative)</li>
+<li>สอดคล้องกับภาพ scree plot ที่ลดฮวบจาก ~4.7 เหลือ ~0.18 แล้วราบสนิท</li>
+</ul>
+<p>เหตุผลที่ PC1 อธิบายได้มากขนาดนี้คือ<strong>ตัวแปรทั้ง 5 ตัวสัมพันธ์กันสูงมากอยู่แล้ว</strong> (ตรงกับ VIF ที่สูงลิ่วในหัวข้อ 11) ทำให้ทิศทางความแปรปรวนหลักมีแค่ทิศทางเดียวจริง ๆ — ตัดสินใจใช้ <strong>PC1 และ PC2</strong> แทนตัวแปรดิบทั้ง 5 ตัว:</p>
 <pre><code>> newdf<-data.frame(PC1=pc[,1], PC2=pc[,2], housing=ConsumerIndex[,6])
 > modelPC<-lm(housing~., data=newdf)
 > summary(modelPC)

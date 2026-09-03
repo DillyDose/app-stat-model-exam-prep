@@ -19,10 +19,23 @@
 <p class="kicker">Lecture 11 — Count Regression</p>
 <h1>Count Regression: Poisson, Rate Ratio Interpretation, และ Negative Binomial</h1>
 
-<p>บทเรียนนี้ต่อยอดจากกรอบ GLM ใน Lecture 8: ตัวแปรตอบสนอง (response) เปลี่ยนจาก binary/proportion (Lecture 9–10) มาเป็น<strong>ค่านับ (count)</strong> — จำนวนเหตุการณ์ที่เกิดขึ้น เช่น จำนวนชนิดพืชบนเกาะ, จำนวนความผิดปกติของโครโมโซม, จำนวนสายเรียกเข้า. โครงสร้าง 4 ทักษะเดิมยังใช้ได้: <strong>เขียนสมการโมเดล</strong> (random component เป็น Poisson หรือ Negative Binomial, link function เป็น log), <strong>เช็ค assumption</strong> (ตอนนี้เพิ่มเรื่อง overdispersion ที่ไม่เคยเจอใน SLR/MLR), <strong>แปลผลสัมประสิทธิ์เป็น rate ratio</strong> (ญาติของ odds ratio ใน Lecture 9 แต่ตีความคนละแบบ — ห้ามสับสน), และ<strong>อ่าน R output</strong> จาก <code>glm(family=poisson)</code> และ <code>glm.nb()</code>.</p>
+<p>บทเรียนนี้ต่อยอดจากกรอบ GLM ใน Lecture 8: ตัวแปรตอบสนอง (response) เปลี่ยนจาก binary/proportion (Lecture 9–10) มาเป็น<strong>ค่านับ (count)</strong> — จำนวนเหตุการณ์ที่เกิดขึ้น เช่น จำนวนชนิดพืชบนเกาะ, จำนวนความผิดปกติของโครโมโซม, จำนวนสายเรียกเข้า. โครงสร้าง 4 ทักษะเดิมยังใช้ได้:</p>
+<ul>
+<li><strong>เขียนสมการโมเดล</strong> (random component เป็น Poisson หรือ Negative Binomial, link function เป็น log)</li>
+<li><strong>เช็ค assumption</strong> (ตอนนี้เพิ่มเรื่อง overdispersion ที่ไม่เคยเจอใน SLR/MLR)</li>
+<li><strong>แปลผลสัมประสิทธิ์เป็น rate ratio</strong> (ญาติของ odds ratio ใน Lecture 9 แต่ตีความคนละแบบ — ห้ามสับสน)</li>
+<li><strong>อ่าน R output</strong> จาก <code>glm(family=poisson)</code> และ <code>glm.nb()</code></li>
+</ul>
 
 <h2>1. Poisson Regression: สมการโมเดลและทำไมต้องใช้ Log Link</h2>
-<p>ข้อมูลนับพบได้ทั่วไป: จำนวนผู้ป่วยมะเร็งต่อพื้นที่, จำนวนสายเรียกเข้าศูนย์บริการต่อวัน, จำนวนอนุภาครังสีที่ Geiger counter นับได้ต่อวินาที, จำนวนอุบัติเหตุจราจรต่อสุดสัปดาห์ — โมเดลตามธรรมชาติของข้อมูลแบบนี้คือสมมติว่าเกิดจาก Poisson process:</p>
+<p>ข้อมูลนับพบได้ทั่วไป:</p>
+<ul>
+<li>จำนวนผู้ป่วยมะเร็งต่อพื้นที่</li>
+<li>จำนวนสายเรียกเข้าศูนย์บริการต่อวัน</li>
+<li>จำนวนอนุภาครังสีที่ Geiger counter นับได้ต่อวินาที</li>
+<li>จำนวนอุบัติเหตุจราจรต่อสุดสัปดาห์</li>
+</ul>
+<p>โมเดลตามธรรมชาติของข้อมูลแบบนี้คือสมมติว่าเกิดจาก Poisson process:</p>
 <div class="box">
 \(y \sim \text{Poisson}(\lambda)\)&nbsp;&nbsp; \(P(y) = \dfrac{e^{-\lambda}\lambda^y}{y!}\), &nbsp;y = 0,1,2,…<br>
 \(E[y] = \lambda\) &nbsp;และ&nbsp; \(\text{Var}(y) = \lambda\)
@@ -38,7 +51,12 @@
 <div class="box win">
 \[\log(\mu_i) = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip}\]
 </div>
-<p>นี่คือสมการที่ต้องเขียนให้ได้ทันทีเมื่อโจทย์บอกว่า response เป็นค่านับ: <strong>random component คือ \(y \sim \text{Poisson}(\mu_i)\), link function คือ log, linear predictor คือ \(\beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\)</strong> — สามพจน์นี้ครบเมื่อไรคือเขียนสมการ Poisson regression ถูกแล้ว.</p>
+<p>นี่คือสมการที่ต้องเขียนให้ได้ทันทีเมื่อโจทย์บอกว่า response เป็นค่านับ — สามพจน์นี้ครบเมื่อไรคือเขียนสมการ Poisson regression ถูกแล้ว:</p>
+<ul>
+<li><strong>Random component</strong>: \(y \sim \text{Poisson}(\mu_i)\)</li>
+<li><strong>Link function</strong>: log</li>
+<li><strong>Linear predictor</strong>: \(\beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>สมการ Poisson Regression</span></div>
@@ -53,12 +71,24 @@
 </div>
 
 <h2>2. ตัวอย่างจริง: Species Diversity on the Galapagos Islands</h2>
-<p>สไลด์ใช้ข้อมูล <code>gala</code> จาก package <code>faraway</code>: จำนวนชนิดพืช (Species) และตัวแปรภูมิศาสตร์ 5 ตัวของเกาะกาลาปาโกส 30 เกาะ เป้าหมายคือเช็คว่าจำนวนชนิดพืชสัมพันธ์กับตัวแปรภูมิศาสตร์เหล่านี้หรือไม่: <code>Area</code> (พื้นที่เกาะ, km²), <code>Elevation</code> (ความสูงสุดของเกาะ, m), <code>Nearest</code> (ระยะห่างจากเกาะที่ใกล้ที่สุด, km), <code>Scruz</code> (ระยะห่างจากเกาะ Santa Cruz, km), <code>Adjacent</code> (พื้นที่เกาะข้างเคียง, km²):</p>
+<p>สไลด์ใช้ข้อมูล <code>gala</code> จาก package <code>faraway</code>: จำนวนชนิดพืช (Species) และตัวแปรภูมิศาสตร์ 5 ตัวของเกาะกาลาปาโกส 30 เกาะ เป้าหมายคือเช็คว่าจำนวนชนิดพืชสัมพันธ์กับตัวแปรภูมิศาสตร์เหล่านี้หรือไม่:</p>
+<ul>
+<li><code>Area</code> — พื้นที่เกาะ, km²</li>
+<li><code>Elevation</code> — ความสูงสุดของเกาะ, m</li>
+<li><code>Nearest</code> — ระยะห่างจากเกาะที่ใกล้ที่สุด, km</li>
+<li><code>Scruz</code> — ระยะห่างจากเกาะ Santa Cruz, km</li>
+<li><code>Adjacent</code> — พื้นที่เกาะข้างเคียง, km²</li>
+</ul>
 <figure>
 <img src="../assets/slides/as11-p07-galapagos-islands-map.png" alt="Map of the Galapagos Islands showing Fernandina, Isabela, Santiago, Santa Cruz, San Cristobal, and other named islands used in the gala dataset">
 <figcaption>Slide: แผนที่หมู่เกาะกาลาปาโกส (Lecture 11, p.7)</figcaption>
 </figure>
-<p>เกาะที่ปรากฏชื่อในแผนที่นี้คือแถวจริงของข้อมูล <code>gala</code> — เช่น Isabela (เกาะใหญ่สุดในแผนที่ ทางซ้ายล่าง) มี Species=347, Area=4669.32 km², Elevation=1707 m ซึ่งเป็นค่ามากที่สุดในทุกตัวแปรของทั้งชุดข้อมูล ในขณะที่ Onslow (จุดเล็กที่ไม่ได้ติดชื่อในแผนที่แต่ปรากฏในตาราง) มี Species=2, Area=0.01 km² เท่านั้น — ความแตกต่างสุดขั้วของขนาดเกาะแบบนี้ (0.01 ถึง 4669.32 km²) เป็นเหตุผลที่ทำให้ค่าสัมประสิทธิ์ของ <code>Area</code> ที่จะเห็นต่อไปมีขนาดเล็กมากต่อหน่วย km² เดียว (ต้องคูณเป็นช่วงใหญ่ถึงจะเห็นผลชัด):</p>
+<p>เกาะที่ปรากฏชื่อในแผนที่นี้คือแถวจริงของข้อมูล <code>gala</code>:</p>
+<ul>
+<li><strong>Isabela</strong> (เกาะใหญ่สุดในแผนที่ ทางซ้ายล่าง): Species=347, Area=4669.32 km², Elevation=1707 m — ค่ามากที่สุดในทุกตัวแปรของทั้งชุดข้อมูล</li>
+<li><strong>Onslow</strong> (จุดเล็กที่ไม่ได้ติดชื่อในแผนที่แต่ปรากฏในตาราง): Species=2, Area=0.01 km² เท่านั้น</li>
+</ul>
+<p>ความแตกต่างสุดขั้วของขนาดเกาะแบบนี้ (0.01 ถึง 4669.32 km²) เป็นเหตุผลที่ทำให้ค่าสัมประสิทธิ์ของ <code>Area</code> ที่จะเห็นต่อไปมีขนาดเล็กมากต่อหน่วย km² เดียว (ต้องคูณเป็นช่วงใหญ่ถึงจะเห็นผลชัด):</p>
 <pre><code>> library(faraway)
 > data(gala)
 > gala
@@ -106,7 +136,13 @@ Residual deviance:  716.85  on 24  degrees of freedom
 AIC: 889.68
 
 Number of Fisher Scoring iterations: 5</code></pre>
-<p>อ่านทีละส่วนเหมือน <code>lm()</code> แต่คอลัมน์ต่างออกไปนิดหน่อย: <strong>Estimate</strong> คือ β̂ บนสเกล log(μ) ไม่ใช่สเกลของ Y ตรง ๆ (ต้อง exponentiate ก่อนถึงจะตีความเป็นค่านับได้ — หัวข้อ 3), <strong>z value</strong> (ไม่ใช่ t value เหมือน <code>lm()</code> เพราะ Poisson ไม่มีพารามิเตอร์ variance แยกต่างหากให้ประมาณ — \(\phi=1\) ตายตัว), <strong>Dispersion parameter ... taken to be 1</strong> คือสมมติฐานที่ตั้งไว้ (ยังไม่ใช่ค่าที่ตรวจสอบแล้ว — หัวข้อ 4 จะเช็คว่าสมมติฐานนี้เป็นจริงไหม), และ <strong>Null/Residual deviance</strong> ที่จะใช้ทำ goodness-of-fit test ต่อไป.</p>
+<p>อ่านทีละส่วนเหมือน <code>lm()</code> แต่คอลัมน์ต่างออกไปนิดหน่อย:</p>
+<ul>
+<li><strong>Estimate</strong> คือ β̂ บนสเกล log(μ) ไม่ใช่สเกลของ Y ตรง ๆ (ต้อง exponentiate ก่อนถึงจะตีความเป็นค่านับได้ — หัวข้อ 3)</li>
+<li><strong>z value</strong> ไม่ใช่ t value เหมือน <code>lm()</code> เพราะ Poisson ไม่มีพารามิเตอร์ variance แยกต่างหากให้ประมาณ — \(\phi=1\) ตายตัว</li>
+<li><strong>Dispersion parameter ... taken to be 1</strong> คือสมมติฐานที่ตั้งไว้ (ยังไม่ใช่ค่าที่ตรวจสอบแล้ว — หัวข้อ 4 จะเช็คว่าสมมติฐานนี้เป็นจริงไหม)</li>
+<li><strong>Null/Residual deviance</strong> ที่จะใช้ทำ goodness-of-fit test ต่อไป</li>
+</ul>
 
 <h2>2.1 Rate Ratio Interpretation — ทักษะที่ออกสอบหนักที่สุดของบทนี้</h2>
 <div class="box win">
@@ -116,9 +152,23 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <p><strong>ข้อควรระวังที่ต่างจาก odds ratio (Lecture 9):</strong> rate ratio คือตัวคูณของ<em>ค่านับที่คาดหวัง</em>โดยตรง (multiplicative effect บน μ) ไม่ใช่ตัวคูณของ odds — อย่าเผลอพูดว่า "odds ของการนับเพิ่มขึ้น" เพราะ Poisson ไม่มีแนวคิด odds เลย มีแต่ expected count/rate</p>
 </div>
 
-<p>ลองใช้จริงกับสัมประสิทธิ์ของ <code>Elevation = 3.541e-03</code>: \(\exp(0.003541) \approx 1.00355\) — แปลว่า <strong>เมื่อ Elevation เพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวังจะเพิ่มขึ้นเป็น 1.00355 เท่าของเดิม (เพิ่มขึ้นประมาณ 0.355%) โดยตัวแปรภูมิศาสตร์อื่นคงที่</strong> — ค่านัยสำคัญทางสถิติชัดเจน (p < 2e-16) แม้ตัวคูณต่อ 1 เมตรจะดูเล็ก เพราะ Elevation ในข้อมูลมีช่วงกว้างถึง 1707 เมตร (Isabela) การเปลี่ยน 1 เมตรจึงเป็นสัดส่วนน้อยมากของช่วงทั้งหมด.</p>
-<p>ตัวอย่างที่ต้องระวังเรื่องสเกล: <code>Area = -5.799e-04</code> ให้ \(\exp(-0.0005799) \approx 0.99942\) ต่อ 1 km² — ตัวเลขนี้ใกล้ 1 มากจนดูเหมือน "ไม่มีผล" แต่ถ้าคิดเป็นช่วง <strong>100 km²</strong> (สเกลที่ Area ในข้อมูลจริงแปรผัน เช่น Espanola=58.27 ถึง Isabela=4669.32): \(\exp(-0.0005799\times100) = \exp(-0.05799) \approx 0.9437\) — พื้นที่เกาะเพิ่มขึ้นทุก 100 km² สัมพันธ์กับจำนวนชนิดพืชที่คาดหวังลดลงเหลือ 94.37% ของเดิม (ลดลง ~5.6%) <strong>กฎที่ต้องจำ: ถ้า β̂ มีขนาดเล็กมาก ให้ลองคูณด้วยขนาดช่วงที่สมเหตุสมผลของ X ก่อนสรุปว่าตัวแปรนั้น "ไม่มีผล" — สัมประสิทธิ์เล็กไม่ได้แปลว่าผลกระทบทางปฏิบัติเล็กเสมอไป</strong> ถ้าหน่วยของ X มีสเกลใหญ่.</p>
-<p>สังเกตอีกจุดที่น่าสนใจ: <code>Nearest = 8.826e-03</code> เป็น<strong>บวก</strong> (p=1.26e-06) — \(\exp(0.008826) \approx 1.00887\) แปลว่ายิ่งเกาะอยู่<strong>ไกล</strong>จากเกาะที่ใกล้ที่สุด จำนวนชนิดพืชที่คาดหวังกลับ<strong>เพิ่มขึ้น</strong> เล็กน้อยต่อ 1 กม. — ทิศทางนี้ขัดสามัญสำนึกเบื้องต้น (island biogeography theory คาดว่ายิ่งใกล้แหล่งพันธุ์ยิ่งมีชนิดพืชมาก) แต่เป็นสิ่งที่โมเดลนี้บอกเมื่อควบคุมตัวแปรอื่นแล้ว — ข้อสอบมักถามแบบนี้เพื่อเช็คว่าอ่านทิศทางเครื่องหมาย (+/−) ถูกไหม ไม่ใช่แค่ท่องสูตร.</p>
+<p>ลองใช้จริงกับสัมประสิทธิ์ของ <code>Elevation = 3.541e-03</code>: \(\exp(0.003541) \approx 1.00355\)</p>
+<ul>
+<li>แปลว่า <strong>เมื่อ Elevation เพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวังจะเพิ่มขึ้นเป็น 1.00355 เท่าของเดิม (เพิ่มขึ้นประมาณ 0.355%) โดยตัวแปรภูมิศาสตร์อื่นคงที่</strong></li>
+<li>ค่านัยสำคัญทางสถิติชัดเจน (p &lt; 2e-16) แม้ตัวคูณต่อ 1 เมตรจะดูเล็ก เพราะ Elevation ในข้อมูลมีช่วงกว้างถึง 1707 เมตร (Isabela) การเปลี่ยน 1 เมตรจึงเป็นสัดส่วนน้อยมากของช่วงทั้งหมด</li>
+</ul>
+<p>ตัวอย่างที่ต้องระวังเรื่องสเกล: <code>Area = -5.799e-04</code> ให้ \(\exp(-0.0005799) \approx 0.99942\) ต่อ 1 km² — ตัวเลขนี้ใกล้ 1 มากจนดูเหมือน "ไม่มีผล"</p>
+<ul>
+<li>แต่ถ้าคิดเป็นช่วง <strong>100 km²</strong> (สเกลที่ Area ในข้อมูลจริงแปรผัน เช่น Espanola=58.27 ถึง Isabela=4669.32): \(\exp(-0.0005799\times100) = \exp(-0.05799) \approx 0.9437\)</li>
+<li>พื้นที่เกาะเพิ่มขึ้นทุก 100 km² สัมพันธ์กับจำนวนชนิดพืชที่คาดหวังลดลงเหลือ 94.37% ของเดิม (ลดลง ~5.6%)</li>
+<li><strong>กฎที่ต้องจำ: ถ้า β̂ มีขนาดเล็กมาก ให้ลองคูณด้วยขนาดช่วงที่สมเหตุสมผลของ X ก่อนสรุปว่าตัวแปรนั้น "ไม่มีผล" — สัมประสิทธิ์เล็กไม่ได้แปลว่าผลกระทบทางปฏิบัติเล็กเสมอไปถ้าหน่วยของ X มีสเกลใหญ่</strong></li>
+</ul>
+<p>สังเกตอีกจุดที่น่าสนใจ: <code>Nearest = 8.826e-03</code> เป็น<strong>บวก</strong> (p=1.26e-06) — \(\exp(0.008826) \approx 1.00887\)</p>
+<ul>
+<li>แปลว่ายิ่งเกาะอยู่<strong>ไกล</strong>จากเกาะที่ใกล้ที่สุด จำนวนชนิดพืชที่คาดหวังกลับ<strong>เพิ่มขึ้น</strong>เล็กน้อยต่อ 1 กม.</li>
+<li>ทิศทางนี้ขัดสามัญสำนึกเบื้องต้น (island biogeography theory คาดว่ายิ่งใกล้แหล่งพันธุ์ยิ่งมีชนิดพืชมาก) แต่เป็นสิ่งที่โมเดลนี้บอกเมื่อควบคุมตัวแปรอื่นแล้ว</li>
+<li>ข้อสอบมักถามแบบนี้เพื่อเช็คว่าอ่านทิศทางเครื่องหมาย (+/−) ถูกไหม ไม่ใช่แค่ท่องสูตร</li>
+</ul>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 2 (Free response)</span><span>Rate Ratio Interpretation</span></div>
@@ -135,11 +185,20 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <p>เหมือนกับ Lecture 9–10 ใช้ deviance เทียบกับ χ² distribution เพื่อเช็คว่าโมเดลฟิตข้อมูลดีพอไหม:</p>
 <pre><code>> pchisq(deviance(model), model$df.residual, lower=FALSE)
 [1] 7.073157e-136</code></pre>
-<p>H₀ ของการทดสอบนี้คือ "โมเดลฟิตข้อมูลได้ดี (residual deviance ควรใกล้เคียงกับ df ถ้าโมเดลถูก)" — p-value ที่ได้คือ <strong>7.073157×10⁻¹³⁶</strong> น้อยกว่า 0.05 อย่างท่วมท้น จึง<strong>ปฏิเสธ H₀</strong>: โมเดลนี้ fit ข้อมูลได้แย่มาก. ทำไมถึงแย่ขนาดนี้? ลองเทียบ residual deviance กับ df โดยตรง: \(716.85 / 24 \approx 29.9\) — ถ้าโมเดล Poisson ถูกต้องจริง อัตราส่วนนี้ควรใกล้เคียง <strong>1</strong> (เพราะ deviance ~ χ²(df) โดยประมาณ ซึ่งมี mean = df) แต่ที่นี่ได้ 29.9 ซึ่งมากกว่า 1 เกือบ 30 เท่า — สัญญาณชัดเจนของ <em class="term">overdispersion</em>: variance ของข้อมูลจริงมากกว่าที่ Poisson (ที่ตั้ง variance=mean) คาดไว้มาก สไลด์สรุปเหตุผลตรงไปตรงมา: <strong>"This might due to the strong assumption of Poisson distribution which assumes that the mean equals variance"</strong>.</p>
+<p>H₀ ของการทดสอบนี้คือ "โมเดลฟิตข้อมูลได้ดี (residual deviance ควรใกล้เคียงกับ df ถ้าโมเดลถูก)"</p>
+<ul>
+<li>p-value ที่ได้คือ <strong>7.073157×10⁻¹³⁶</strong> น้อยกว่า 0.05 อย่างท่วมท้น จึง<strong>ปฏิเสธ H₀</strong>: โมเดลนี้ fit ข้อมูลได้แย่มาก</li>
+<li>ทำไมถึงแย่ขนาดนี้? ลองเทียบ residual deviance กับ df โดยตรง: \(716.85 / 24 \approx 29.9\) — ถ้าโมเดล Poisson ถูกต้องจริง อัตราส่วนนี้ควรใกล้เคียง <strong>1</strong> (เพราะ deviance ~ χ²(df) โดยประมาณ ซึ่งมี mean = df) แต่ที่นี่ได้ 29.9 ซึ่งมากกว่า 1 เกือบ 30 เท่า — สัญญาณชัดเจนของ <em class="term">overdispersion</em>: variance ของข้อมูลจริงมากกว่าที่ Poisson (ที่ตั้ง variance=mean) คาดไว้มาก</li>
+<li>สไลด์สรุปเหตุผลตรงไปตรงมา: <strong>"This might due to the strong assumption of Poisson distribution which assumes that the mean equals variance"</strong></li>
+</ul>
 
 <div class="box win">
 <div class="label">กฎวินิจฉัย Overdispersion</div>
-<p>เช็ค <strong>residual deviance / df</strong> (หรือ Pearson χ²/df) — ถ้าอัตราส่วนนี้<strong>ใกล้ 1</strong> แปลว่า assumption mean=variance ของ Poisson สมเหตุสมผล; ถ้า<strong>มากกว่า 1 อย่างชัดเจน</strong> (โดยเฉพาะ >>1.5–2) แปลว่ามี overdispersion ต้องแก้ด้วย quasi-Poisson หรือ Negative Binomial (หัวข้อ 6–8) ไม่ใช่เชื่อ SE จาก Poisson ตรง ๆ</p>
+<p>เช็ค <strong>residual deviance / df</strong> (หรือ Pearson χ²/df):</p>
+<ul>
+<li>ถ้าอัตราส่วนนี้<strong>ใกล้ 1</strong> แปลว่า assumption mean=variance ของ Poisson สมเหตุสมผล</li>
+<li>ถ้า<strong>มากกว่า 1 อย่างชัดเจน</strong> (โดยเฉพาะ >>1.5–2) แปลว่ามี overdispersion ต้องแก้ด้วย quasi-Poisson หรือ Negative Binomial (หัวข้อ 6–8) ไม่ใช่เชื่อ SE จาก Poisson ตรง ๆ</li>
+</ul>
 </div>
 
 <div class="quiz">
@@ -180,7 +239,12 @@ Number of Fisher Scoring iterations: 5</code></pre>
 <img src="../assets/slides/as11-p15-logplot-collapsed-functional-form.png" alt="Five collapsed logplot outputs showing log(mu) against binned mean values of Area, Elevation, Nearest, Scruz, and Adjacent, most showing a curved rather than linear trend">
 <figcaption>Slide: Explore the Functional Form of log[μ(xᵢ)] — collapsed logplot (Lecture 11, p.15)</figcaption>
 </figure>
-<p>อ่านกราฟ Elevation (บนกลาง): log(mu) ไต่จากประมาณ 2.0 ที่ Elevation≈0 ขึ้นไปถึงเกือบ 5.7 ที่ Elevation≈800 แล้ว<strong>แบนราบ</strong>ช่วง 800–1300 — ไม่ใช่เส้นตรงตลอดช่วง แต่โค้งแบบอิ่มตัว (saturating) ที่ค่า Elevation สูง ๆ ส่วนกราฟ Area (บนซ้าย) ยิ่งชัดกว่า: log(mu) พุ่งขึ้นเร็วมากช่วง Area น้อย ๆ แล้วเกือบราบเรียบหลังจากนั้น — รูปแบบโค้งแบบนี้คือเหตุผลที่สไลด์เสนอให้<strong>เพิ่มพจน์กำลังสอง (quadratic term)</strong> ของแต่ละตัวแปรเข้าไปในโมเดล แทนที่จะใช้แค่พจน์เชิงเส้นอย่างเดียว.</p>
+<p>อ่านกราฟทั้งสองแบบละเอียด:</p>
+<ul>
+<li><strong>Elevation</strong> (บนกลาง): log(mu) ไต่จากประมาณ 2.0 ที่ Elevation≈0 ขึ้นไปถึงเกือบ 5.7 ที่ Elevation≈800 แล้ว<strong>แบนราบ</strong>ช่วง 800–1300 — ไม่ใช่เส้นตรงตลอดช่วง แต่โค้งแบบอิ่มตัว (saturating) ที่ค่า Elevation สูง ๆ</li>
+<li><strong>Area</strong> (บนซ้าย): ยิ่งชัดกว่า — log(mu) พุ่งขึ้นเร็วมากช่วง Area น้อย ๆ แล้วเกือบราบเรียบหลังจากนั้น</li>
+</ul>
+<p>รูปแบบโค้งแบบนี้คือเหตุผลที่สไลด์เสนอให้<strong>เพิ่มพจน์กำลังสอง (quadratic term)</strong> ของแต่ละตัวแปรเข้าไปในโมเดล แทนที่จะใช้แค่พจน์เชิงเส้นอย่างเดียว.</p>
 
 <h2>5. ฟิตใหม่ด้วยพจน์กำลังสอง และเช็ค Fit อีกครั้ง</h2>
 <pre><code>> model<-glm(Species~Area+Elevation+Nearest+Scruz+Adjacent+I(Area^2)
@@ -212,7 +276,12 @@ AIC: 537.46</code></pre>
 [1] 1.128763e-63
 > sum(residuals(model, type="pearson")^2)/model$df.residual
 [1] 16.80629</code></pre>
-<p>ค่า <strong>16.80629</strong> นี้คือค่าประมาณของ dispersion parameter φ จาก Pearson residuals — เทียบกับที่ Poisson ตั้งไว้ว่า \(\phi=1\) ตายตัว ข้อมูลจริงมี variance มากกว่าที่ Poisson คาดไว้ถึง<strong>ประมาณ 16.8 เท่า</strong> นี่คือ overdispersion ที่ชัดเจนมาก แม้จะเพิ่มพจน์กำลังสองแก้ปัญหา functional form ไปแล้วก็ตาม — สรุปได้ว่าปัญหาไม่ได้อยู่ที่รูปแบบฟังก์ชัน (functional form) แต่อยู่ที่ตัว distribution assumption ของ Poisson เอง สไลด์จึงเสนอ <strong>quasipoisson</strong> เป็นทางแก้ต่อไป.</p>
+<p>ค่า <strong>16.80629</strong> นี้คือค่าประมาณของ dispersion parameter φ จาก Pearson residuals:</p>
+<ul>
+<li>เทียบกับที่ Poisson ตั้งไว้ว่า \(\phi=1\) ตายตัว ข้อมูลจริงมี variance มากกว่าที่ Poisson คาดไว้ถึง<strong>ประมาณ 16.8 เท่า</strong></li>
+<li>นี่คือ overdispersion ที่ชัดเจนมาก แม้จะเพิ่มพจน์กำลังสองแก้ปัญหา functional form ไปแล้วก็ตาม</li>
+<li>สรุปได้ว่าปัญหาไม่ได้อยู่ที่รูปแบบฟังก์ชัน (functional form) แต่อยู่ที่ตัว distribution assumption ของ Poisson เอง สไลด์จึงเสนอ <strong>quasipoisson</strong> เป็นทางแก้ต่อไป</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 4</span><span>Dispersion Parameter</span></div>
@@ -252,7 +321,12 @@ I(Adjacent^2)  2.534e-07  1.976e-07   1.283 0.215033
     Null deviance: 3510.73  on 29  degrees of freedom
 Residual deviance:  354.63  on 19  degrees of freedom
 AIC: NA</code></pre>
-<p>เทียบ <code>Area</code> ระหว่างสองโมเดล: Poisson ให้ SE=1.948e-04 (p=1.49e-13, ***), quasipoisson ให้ SE=7.985e-04 (p=0.087, ไม่ถึง 0.05) — <strong>Estimate เท่ากันเป๊ะ (1.439e-03) แต่ SE ของ quasipoisson ใหญ่กว่าประมาณ 4.1 เท่า</strong> ตรวจสอบได้: \(\sqrt{16.80629} \approx 4.0995\) ตรงกับอัตราส่วน SE พอดี (0.0007985/0.0001948 ≈ 4.10) — นี่คือกลไกของ quasi-likelihood: <strong>SE(quasi) = SE(Poisson) × √dispersion</strong> ผลลัพธ์คือหลายตัวแปรที่ "significant" ภายใต้ Poisson (Area, Nearest, Scruz, I(Area²), I(Nearest²), I(Scruz²), I(Adjacent²)) กลับ<strong>ไม่ significant</strong>ภายใต้ quasipoisson ที่คำนึงถึง overdispersion แล้ว — สะท้อนว่า Poisson ธรรมดาให้ความมั่นใจสูงเกินจริงกับสัมประสิทธิ์เมื่อมี overdispersion.</p>
+<p>เทียบ <code>Area</code> ระหว่างสองโมเดล: Poisson ให้ SE=1.948e-04 (p=1.49e-13, ***), quasipoisson ให้ SE=7.985e-04 (p=0.087, ไม่ถึง 0.05) — <strong>Estimate เท่ากันเป๊ะ (1.439e-03) แต่ SE ของ quasipoisson ใหญ่กว่าประมาณ 4.1 เท่า</strong></p>
+<ul>
+<li>ตรวจสอบได้: \(\sqrt{16.80629} \approx 4.0995\) ตรงกับอัตราส่วน SE พอดี (0.0007985/0.0001948 ≈ 4.10) — นี่คือกลไกของ quasi-likelihood: <strong>SE(quasi) = SE(Poisson) × √dispersion</strong></li>
+<li>ผลลัพธ์คือหลายตัวแปรที่ "significant" ภายใต้ Poisson (Area, Nearest, Scruz, I(Area²), I(Nearest²), I(Scruz²), I(Adjacent²)) กลับ<strong>ไม่ significant</strong>ภายใต้ quasipoisson ที่คำนึงถึง overdispersion แล้ว</li>
+<li>สะท้อนว่า Poisson ธรรมดาให้ความมั่นใจสูงเกินจริงกับสัมประสิทธิ์เมื่อมี overdispersion</li>
+</ul>
 <p>เมื่อเปรียบเทียบโมเดล Poisson ที่มี overdispersion ควรใช้ <strong>F-test แทน χ² test</strong> เพราะต้องประมาณ dispersion parameter เพิ่ม (เสีย 1 df ให้กับมัน) — <code>drop1(model2, test="F")</code> ทดสอบตัดแต่ละตัวแปรออกทีละตัว:</p>
 <pre><code>> drop1(model2, test="F")
 Single term deletions
@@ -291,7 +365,14 @@ I(Adjacent^2)   1   384.29  1.5894 0.2226675</code></pre>
 <p>จุดสำคัญที่สุดของสมการนี้: พจน์ <code>log N</code> ที่เติมเข้ามาไม่มีสัมประสิทธิ์ (ไม่ใช่ \(\beta \cdot \log N\) แต่เป็น \(1 \cdot \log N\) ตายตัว) — พจน์แบบนี้เรียกว่า <em class="term">offset</em>: เป็นตัวแปรที่ใส่เข้าไปในสมการเพื่อ "หักลบ" ผลของขนาดฐานออกไปก่อน โดยไม่ให้ข้อมูลมาประมาณสัมประสิทธิ์ของมันเอง (บังคับสัมประสิทธิ์ = 1 เสมอ) ผลคือโมเดลกำลังทำนาย<strong>อัตรา</strong> (\(\mu/N\)) จาก x จริง ๆ แม้จะยังฟิตด้วย <code>glm(family=poisson)</code> กับ y ที่เป็นจำนวนนับดิบก็ตาม</p>
 
 <h3>ตัวอย่าง: ผลของรังสีต่อความผิดปกติของโครโมโซม</h3>
-<p>Purott &amp; Reeder (1976) ทำการทดลองวัดผลของรังสีแกมมาต่อจำนวนความผิดปกติของโครโมโซม (chromosomal abnormality) ข้อมูล <code>dicentric</code> มี 27 แถว 4 ตัวแปร: <code>cells</code> (จำนวนเซลล์ที่นับ หน่วยร้อย), <code>ca</code> (จำนวนความผิดปกติที่พบ), <code>doseamt</code> (ปริมาณรังสี หน่วย Grays), <code>doserate</code> (อัตราการให้รังสี Grays/ชั่วโมง) — สไลด์ระบุชัดว่าสนใจ<strong>อัตรา</strong> <code>ca/cells</code> มากกว่าจำนวนดิบ เพราะคาดว่าจำนวนความผิดปกติแปรผันตรงกับจำนวนเซลล์ที่นับ (นับเซลล์เยอะก็ย่อมเจอความผิดปกติเยอะตามสัดส่วน ไม่ใช่เพราะรังสีแรงขึ้น):</p>
+<p>Purott &amp; Reeder (1976) ทำการทดลองวัดผลของรังสีแกมมาต่อจำนวนความผิดปกติของโครโมโซม (chromosomal abnormality) ข้อมูล <code>dicentric</code> มี 27 แถว 4 ตัวแปร:</p>
+<ul>
+<li><code>cells</code> — จำนวนเซลล์ที่นับ หน่วยร้อย</li>
+<li><code>ca</code> — จำนวนความผิดปกติที่พบ</li>
+<li><code>doseamt</code> — ปริมาณรังสี หน่วย Grays</li>
+<li><code>doserate</code> — อัตราการให้รังสี Grays/ชั่วโมง</li>
+</ul>
+<p>สไลด์ระบุชัดว่าสนใจ<strong>อัตรา</strong> <code>ca/cells</code> มากกว่าจำนวนดิบ เพราะคาดว่าจำนวนความผิดปกติแปรผันตรงกับจำนวนเซลล์ที่นับ (นับเซลล์เยอะก็ย่อมเจอความผิดปกติเยอะตามสัดส่วน ไม่ใช่เพราะรังสีแรงขึ้น):</p>
 <pre><code>> library(faraway)
 > data(dicentric)
 > dicentric
@@ -308,12 +389,22 @@ doseamt 0.1 0.25 0.5    1  1.5    2  2.5    3    4
     1   0.05 0.05 0.07 0.07 0.06 0.07 0.07 0.07 0.07
     2.5 0.16 0.28 0.29 0.32 0.38 0.41 0.41 0.37 0.44
     5   0.48 0.82 0.90 0.88 1.23 1.32 1.34 1.24 1.43</code></pre>
-<p>อ่านตาราง <code>xtabs</code>: ที่ <code>doseamt=1</code> อัตรา <code>ca/cells</code> แทบไม่ขยับเลยตลอดทุกค่า <code>doserate</code> (0.05–0.07) แต่ที่ <code>doseamt=5</code> อัตราไต่จาก 0.48 ขึ้นไปถึง 1.43 เมื่อ <code>doserate</code> เพิ่มจาก 0.1 เป็น 4 — ชัดเจนว่าอัตราความผิดปกติเพิ่มขึ้นตามทั้ง <code>doseamt</code> และ <code>doserate</code> และผลของ <code>doserate</code> ดูจะ "แรงกว่า" เมื่อ <code>doseamt</code> สูง (สัญญาณของ interaction) ดูภาพประกอบ interaction plot ยืนยันแนวโน้มนี้:</p>
+<p>อ่านตาราง <code>xtabs</code>:</p>
+<ul>
+<li>ที่ <code>doseamt=1</code> อัตรา <code>ca/cells</code> แทบไม่ขยับเลยตลอดทุกค่า <code>doserate</code> (0.05–0.07)</li>
+<li>แต่ที่ <code>doseamt=5</code> อัตราไต่จาก 0.48 ขึ้นไปถึง 1.43 เมื่อ <code>doserate</code> เพิ่มจาก 0.1 เป็น 4</li>
+</ul>
+<p>ชัดเจนว่าอัตราความผิดปกติเพิ่มขึ้นตามทั้ง <code>doseamt</code> และ <code>doserate</code> และผลของ <code>doserate</code> ดูจะ "แรงกว่า" เมื่อ <code>doseamt</code> สูง (สัญญาณของ interaction) ดูภาพประกอบ interaction plot ยืนยันแนวโน้มนี้:</p>
 <figure>
 <img src="../assets/slides/as11-p25-radiation-interaction-plot.png" alt="Interaction plot of mean ca/cells against doserate, with three lines for doseamt=1 (nearly flat near 0.05-0.07), doseamt=2.5 (rising moderately to about 0.44), and doseamt=5 (rising steeply from 0.48 to 1.43)">
 <figcaption>Slide: Example — Radiation Dose Effects, interaction plot (Lecture 11, p.25)</figcaption>
 </figure>
-<p>เส้น <code>doseamt=1</code> (เส้นล่างสุด) เกือบราบตลอดช่วง <code>doserate</code> ขณะที่เส้น <code>doseamt=5</code> (เส้นบนสุด) ชันขึ้นชัดเจนจาก 0.48 ไปจนเกือบ 1.43 — เส้นทั้งสามไม่ขนานกัน (เส้นบนชันกว่าเส้นล่างมาก) นี่คือนิยามของ <em class="term">interaction</em> ในทางกราฟ: ผลของ <code>doserate</code> ต่ออัตรา<strong>ขึ้นอยู่กับ</strong>ระดับของ <code>doseamt</code> ไม่ใช่คงที่ ดังนั้นสไลด์จึงลองใส่ interaction term <code>doserate:doseamt</code> เป็น factor เข้าไปในโมเดลก่อน:</p>
+<ul>
+<li>เส้น <code>doseamt=1</code> (เส้นล่างสุด) เกือบราบตลอดช่วง <code>doserate</code></li>
+<li>เส้น <code>doseamt=5</code> (เส้นบนสุด) ชันขึ้นชัดเจนจาก 0.48 ไปจนเกือบ 1.43</li>
+<li>เส้นทั้งสามไม่ขนานกัน (เส้นบนชันกว่าเส้นล่างมาก) — นี่คือนิยามของ <em class="term">interaction</em> ในทางกราฟ: ผลของ <code>doserate</code> ต่ออัตรา<strong>ขึ้นอยู่กับ</strong>ระดับของ <code>doseamt</code> ไม่ใช่คงที่</li>
+</ul>
+<p>ดังนั้นสไลด์จึงลองใส่ interaction term <code>doserate:doseamt</code> เป็น factor เข้าไปในโมเดลก่อน:</p>
 <pre><code>> intglm<-glm(ca~log(cells)+as.factor(doserate)*as.factor(doseamt),
 + family=poisson,data=dicentric)
 > summary(intglm)
@@ -356,7 +447,13 @@ log(doserate):dosef5    0.19350    0.04243   4.561 5.1e-06 ***
     Null deviance: 4753.00  on 26  degrees of freedom
 Residual deviance:   21.75  on 21  degrees of freedom
 AIC: 209.16</code></pre>
-<p>เทียบสองโมเดล: <code>log(doserate)</code>, <code>dosef2.5</code>, <code>dosef5</code> และพจน์ interaction ได้ค่าประมาณ (estimate) ใกล้เคียงเดิมแทบทุกตัว แต่ <strong>SE เล็กลงมาก</strong> ทุกตัว (เช่น <code>dosef2.5</code>: SE จาก 0.10273 เหลือ 0.04946 — เล็กลงกว่าครึ่ง) และ AIC ดีขึ้นเล็กน้อย (211.15 → 209.16) — เพราะโมเดล offset ไม่ต้อง "เสีย 1 df" ไปกับการประมาณสัมประสิทธิ์ของ <code>log(cells)</code> อีกต่อไป (รู้ค่าแน่นอนแล้วว่า=1) ความไม่แน่นอนที่เหลือทั้งหมดจึงไปตกอยู่กับพารามิเตอร์ที่เหลือได้แม่นยำขึ้น — <strong>กฎการใช้ offset: ถ้ามีเหตุผลทางทฤษฎีที่บอกว่าสัมประสิทธิ์ของตัวแปรหนึ่งต้องเท่ากับ 1 พอดี (เช่น "ฐาน" ของอัตรา) ให้ใช้ offset() แทนการปล่อยให้โมเดลประมาณเอง</strong></p>
+<p>เทียบสองโมเดล:</p>
+<ul>
+<li><code>log(doserate)</code>, <code>dosef2.5</code>, <code>dosef5</code> และพจน์ interaction ได้ค่าประมาณ (estimate) ใกล้เคียงเดิมแทบทุกตัว</li>
+<li><strong>SE เล็กลงมาก</strong>ทุกตัว (เช่น <code>dosef2.5</code>: SE จาก 0.10273 เหลือ 0.04946 — เล็กลงกว่าครึ่ง)</li>
+<li>AIC ดีขึ้นเล็กน้อย (211.15 → 209.16)</li>
+</ul>
+<p>เพราะโมเดล offset ไม่ต้อง "เสีย 1 df" ไปกับการประมาณสัมประสิทธิ์ของ <code>log(cells)</code> อีกต่อไป (รู้ค่าแน่นอนแล้วว่า=1) ความไม่แน่นอนที่เหลือทั้งหมดจึงไปตกอยู่กับพารามิเตอร์ที่เหลือได้แม่นยำขึ้น — <strong>กฎการใช้ offset: ถ้ามีเหตุผลทางทฤษฎีที่บอกว่าสัมประสิทธิ์ของตัวแปรหนึ่งต้องเท่ากับ 1 พอดี (เช่น "ฐาน" ของอัตรา) ให้ใช้ offset() แทนการปล่อยให้โมเดลประมาณเอง</strong></p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 6 (Free response)</span><span>Offset</span></div>
@@ -379,12 +476,21 @@ AIC: 209.16</code></pre>
 </div>
 
 <h2>8. Negative Binomial Regression — ทางแก้ Overdispersion อีกทาง</h2>
-<p>Quasi-Poisson (หัวข้อ 6) แก้ปัญหา overdispersion โดย<strong>ไม่เปลี่ยนสมมติฐานการแจกแจง</strong> แค่ปรับ SE ทีหลัง — Negative Binomial (NB) เป็นทางแก้อีกแบบที่<strong>เปลี่ยนตัวแบบการแจกแจง</strong>ของ y ไปเลย โดยมองว่า NB คือ "gamma mixture ของ Poisson": สมมติว่าแต่ละหน่วยสังเกต <code>i</code> มี unobserved heterogeneity term \(\tau_i\) ที่ทำให้ \((y_i|x_i,\tau_i) \sim \text{Poisson}(\mu_i \tau_i)\) — ค่าเฉลี่ยแท้จริงของแต่ละหน่วยไม่เท่ากันเป๊ะแม้จะมี \(x_i\) เหมือนกัน (มีปัจจัยแฝงที่วัดไม่ได้เข้ามาแทรก) เมื่อกำหนดให้ \(\tau_i \sim \text{Gamma}(\theta,\theta)\) (mean=1, variance=1/θ) แล้วอินทิเกรต \(\tau_i\) ออกไป จะได้การแจกแจงของ \(y_i\) ที่ไม่มีเงื่อนไขบน \(\tau_i\) อีกต่อไป ซึ่งก็คือ Negative Binomial distribution พอดี:</p>
+<p>Quasi-Poisson (หัวข้อ 6) แก้ปัญหา overdispersion โดย<strong>ไม่เปลี่ยนสมมติฐานการแจกแจง</strong> แค่ปรับ SE ทีหลัง — Negative Binomial (NB) เป็นทางแก้อีกแบบที่<strong>เปลี่ยนตัวแบบการแจกแจง</strong>ของ y ไปเลย โดยมองว่า NB คือ "gamma mixture ของ Poisson" ซึ่งไล่เป็นขั้นตอนได้ดังนี้:</p>
+<ol>
+<li>สมมติว่าแต่ละหน่วยสังเกต <code>i</code> มี unobserved heterogeneity term \(\tau_i\) ที่ทำให้ \((y_i|x_i,\tau_i) \sim \text{Poisson}(\mu_i \tau_i)\) — ค่าเฉลี่ยแท้จริงของแต่ละหน่วยไม่เท่ากันเป๊ะแม้จะมี \(x_i\) เหมือนกัน (มีปัจจัยแฝงที่วัดไม่ได้เข้ามาแทรก)</li>
+<li>กำหนดให้ \(\tau_i \sim \text{Gamma}(\theta,\theta)\) (mean=1, variance=1/θ)</li>
+<li>อินทิเกรต \(\tau_i\) ออกไป จะได้การแจกแจงของ \(y_i\) ที่ไม่มีเงื่อนไขบน \(\tau_i\) อีกต่อไป ซึ่งก็คือ Negative Binomial distribution พอดี:</li>
+</ol>
 <div class="box">
 \(f(y_i|x_i) = \dfrac{\Gamma(y_i+\theta)}{y_i!\,\Gamma(\theta)} \left(\dfrac{\theta}{\theta+\mu_i}\right)^{\theta} \left(\dfrac{\mu_i}{\theta+\mu_i}\right)^{y_i}\)<br>
 \(E[y_i|x_i] = \mu_i\), &nbsp;\(\text{Var}[y_i|x_i] = \mu_i\left(1+\dfrac{\mu_i}{\theta}\right) > E[y_i|x_i]\)
 </div>
-<p>สังเกตสูตร variance: \(\mu_i(1+\mu_i/\theta)\) จะ<strong>มากกว่า</strong> \(\mu_i\) เสมอ (เพราะพจน์ \(\mu_i/\theta\) เป็นบวกเสมอเมื่อ θ>0) — นี่คือกลไกที่ NB "รองรับ overdispersion ได้โดยธรรมชาติ" ในตัวมันเอง ต่างจาก Poisson ที่ตรึง variance=mean ตายตัว และเมื่อ \(\theta\to\infty\) พจน์ \(\mu_i/\theta\to0\) ทำให้ variance ลู่เข้าหา \(\mu_i\) พอดี — <strong>Poisson คือกรณีพิเศษของ Negative Binomial เมื่อ θ มีค่าอนันต์</strong> (ไม่มี unobserved heterogeneity เหลืออยู่เลย)</p>
+<p>สังเกตสูตร variance:</p>
+<ul>
+<li>\(\mu_i(1+\mu_i/\theta)\) จะ<strong>มากกว่า</strong> \(\mu_i\) เสมอ (เพราะพจน์ \(\mu_i/\theta\) เป็นบวกเสมอเมื่อ θ>0) — นี่คือกลไกที่ NB "รองรับ overdispersion ได้โดยธรรมชาติ" ในตัวมันเอง ต่างจาก Poisson ที่ตรึง variance=mean ตายตัว</li>
+<li>เมื่อ \(\theta\to\infty\) พจน์ \(\mu_i/\theta\to0\) ทำให้ variance ลู่เข้าหา \(\mu_i\) พอดี — <strong>Poisson คือกรณีพิเศษของ Negative Binomial เมื่อ θ มีค่าอนันต์</strong> (ไม่มี unobserved heterogeneity เหลืออยู่เลย)</li>
+</ul>
 
 <h3>Fitting Negative Binomial ใน R</h3>
 <p>Canonical link ของ NB คือ log link เหมือน Poisson — สมการโมเดลจึงเขียนเหมือนกันทุกประการ: \(\log \mu = \beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\) แต่ R <strong>ไม่ใช้ <code>glm()</code> ธรรมดา</strong> เพราะต้องประมาณพารามิเตอร์เพิ่มอีกตัว (θ) — ต้องใช้ <code>glm.nb()</code> จาก package <code>MASS</code> แทน:</p>
@@ -410,7 +516,12 @@ Adjacent    -0.0007605 0.0002278  -3.338 0.000842 ***
     Null deviance: 88.431 on 29 degrees of freedom
 Residual deviance: 33.196 on 24 degrees of freedom
 AIC: 304.22</code></pre>
-<p>อ่านผลต่างจาก Poisson model เดิม (หัวข้อ 2, ตัวแปรชุดเดียวกันแบบเชิงเส้น): θ̂ ที่ประมาณได้คือ <strong>1.6746</strong> (ตัวเลขนี้ปรากฏในบรรทัด <code>init.theta</code> และ <code>Dispersion parameter for Negative Binomial(1.6746)</code>) — ค่า θ ยิ่งเล็กยิ่งมี overdispersion มาก (ยิ่งไกลจาก ∞) เทียบ AIC: Poisson model ธรรมดาได้ 889.68 ในขณะที่ NB model ได้เพียง <strong>304.22</strong> — ต่างกันมหาศาล ยืนยันว่า NB ฟิตข้อมูลนี้ดีกว่า Poisson มาก และที่สำคัญ: สังเกตว่า <code>Nearest</code> และ <code>Scruz</code> ที่เคย significant มาก (p&lt;2e-16) ใน Poisson ธรรมดา กลับ<strong>ไม่ significant เลย</strong> (p=0.836, p=0.499) ภายใต้ NB — สอดคล้องกับที่เห็นใน quasi-Poisson (หัวข้อ 6): เมื่อคำนึงถึง overdispersion อย่างถูกต้อง หลายตัวแปรที่ดูมีนัยสำคัญกลับไม่มีจริง</p>
+<p>อ่านผลต่างจาก Poisson model เดิม (หัวข้อ 2, ตัวแปรชุดเดียวกันแบบเชิงเส้น):</p>
+<ul>
+<li>θ̂ ที่ประมาณได้คือ <strong>1.6746</strong> (ตัวเลขนี้ปรากฏในบรรทัด <code>init.theta</code> และ <code>Dispersion parameter for Negative Binomial(1.6746)</code>) — ค่า θ ยิ่งเล็กยิ่งมี overdispersion มาก (ยิ่งไกลจาก ∞)</li>
+<li>เทียบ AIC: Poisson model ธรรมดาได้ 889.68 ในขณะที่ NB model ได้เพียง <strong>304.22</strong> — ต่างกันมหาศาล ยืนยันว่า NB ฟิตข้อมูลนี้ดีกว่า Poisson มาก</li>
+<li>ที่สำคัญ: สังเกตว่า <code>Nearest</code> และ <code>Scruz</code> ที่เคย significant มาก (p&lt;2e-16) ใน Poisson ธรรมดา กลับ<strong>ไม่ significant เลย</strong> (p=0.836, p=0.499) ภายใต้ NB — สอดคล้องกับที่เห็นใน quasi-Poisson (หัวข้อ 6): เมื่อคำนึงถึง overdispersion อย่างถูกต้อง หลายตัวแปรที่ดูมีนัยสำคัญกลับไม่มีจริง</li>
+</ul>
 <p>Rate ratio interpretation ของ NB ใช้<strong>template เดียวกันเป๊ะ</strong>กับ Poisson (หัวข้อ 2.1) เพราะ link function เป็น log เหมือนกัน: <code>Elevation=0.0038551</code> ให้ \(\exp(0.0038551)\approx1.00386\) — "เมื่อ Elevation เพิ่มขึ้น 1 เมตร จำนวนชนิดพืชที่คาดหวังเพิ่มเป็น 1.00386 เท่าของเดิม โดยตัวแปรอื่นคงที่ (อย่างมีนัยสำคัญ p=2.49e-08)" — สิ่งที่<strong>ต่าง</strong>จาก Poisson ไม่ใช่วิธีตีความสัมประสิทธิ์ แต่คือ SE ที่สมจริงกว่าเพราะโมเดลรับรู้ overdispersion ตั้งแต่ต้น</p>
 
 <p>Goodness-of-fit และการเลือกตัวแปรทำได้แบบเดียวกับ GLM อื่น ๆ:</p>
@@ -425,7 +536,10 @@ Elevation  1   65.866 332.89 32.670 1.092e-08 ***
 Nearest    1   33.263 300.29  0.067 0.795920
 Scruz      1   33.569 300.60  0.372 0.541732
 Adjacent   1   41.151 308.18  7.955 0.004796 **</code></pre>
-<p>p-value ของ goodness-of-fit test คือ <strong>0.100005</strong> — มากกว่า 0.05 จึง<strong>ไม่ปฏิเสธ H₀</strong> (โมเดลฟิตข้อมูลได้ดีพอ) ต่างจาก Poisson model ที่ p-value เล็กจนแทบเป็นศูนย์ (หัวข้อ 3) — ยืนยันอีกครั้งว่า NB จับโครงสร้างของข้อมูลนี้ได้เหมาะสมกว่า Poisson ธรรมดามาก ส่วน <code>drop1</code> ด้วย likelihood-ratio test (LRT) ชี้ว่ามีแค่ <code>Elevation</code> (p&lt;0.001) และ <code>Adjacent</code> (p&lt;0.01) ที่ significant ชัดเจน — ผลลัพธ์ใกล้เคียงกับที่ quasi-Poisson ให้ (หัวข้อ 6) มากกว่าที่ Poisson ธรรมดาให้</p>
+<ul>
+<li>p-value ของ goodness-of-fit test คือ <strong>0.100005</strong> — มากกว่า 0.05 จึง<strong>ไม่ปฏิเสธ H₀</strong> (โมเดลฟิตข้อมูลได้ดีพอ) ต่างจาก Poisson model ที่ p-value เล็กจนแทบเป็นศูนย์ (หัวข้อ 3) — ยืนยันอีกครั้งว่า NB จับโครงสร้างของข้อมูลนี้ได้เหมาะสมกว่า Poisson ธรรมดามาก</li>
+<li>ส่วน <code>drop1</code> ด้วย likelihood-ratio test (LRT) ชี้ว่ามีแค่ <code>Elevation</code> (p&lt;0.001) และ <code>Adjacent</code> (p&lt;0.01) ที่ significant ชัดเจน — ผลลัพธ์ใกล้เคียงกับที่ quasi-Poisson ให้ (หัวข้อ 6) มากกว่าที่ Poisson ธรรมดาให้</li>
+</ul>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 8 (Free response)</span><span>Negative Binomial Interpretation</span></div>
@@ -441,8 +555,10 @@ Adjacent   1   41.151 308.18  7.955 0.004796 **</code></pre>
 <h2>9. Quasi-Poisson หรือ Negative Binomial — เลือกอันไหน</h2>
 <p>ทั้งสองวิธีแก้ overdispersion ได้ แต่ตั้งสมมติฐานเรื่อง<strong>รูปแบบ</strong>ของ variance ต่างกัน:</p>
 <div class="box">
-Quasi-Poisson: \(\text{Var}(Y) = \phi\mu = \mu + \alpha\mu\) (φ = α+1) — <strong>variance เป็นฟังก์ชันเชิงเส้น (linear) ของ mean</strong><br>
-Negative Binomial: \(\text{Var}(Y) = \mu + \kappa\mu^2\) — <strong>variance เป็นฟังก์ชันกำลังสอง (quadratic) ของ mean</strong>
+<ul>
+<li>Quasi-Poisson: \(\text{Var}(Y) = \phi\mu = \mu + \alpha\mu\) (φ = α+1) — <strong>variance เป็นฟังก์ชันเชิงเส้น (linear) ของ mean</strong></li>
+<li>Negative Binomial: \(\text{Var}(Y) = \mu + \kappa\mu^2\) — <strong>variance เป็นฟังก์ชันกำลังสอง (quadratic) ของ mean</strong></li>
+</ul>
 </div>
 <p>ความต่างนี้มีนัยเชิงปฏิบัติ: ถ้าข้อมูลมี overdispersion ที่โตขึ้น<strong>เร็วกว่า</strong>อัตราเชิงเส้นเมื่อ mean สูงขึ้น (เช่น กลุ่มที่มีค่าคาดหวังสูงมีความแปรปรวนเกินจริงมากเป็นพิเศษ) Negative Binomial จะจับรูปแบบนี้ได้แม่นยำกว่า quasi-Poisson — ในทางปฏิบัติ มักลองทั้งสองแบบแล้วเทียบ AIC (NB มี likelihood เต็มรูปแบบให้เทียบ AIC ได้ตรง ๆ ส่วน quasi-Poisson ไม่มี AIC เพราะไม่ใช่ full likelihood — สังเกตว่า output ของ quasipoisson ในหัวข้อ 6 แสดง <code>AIC: NA</code> พอดี)</p>
 

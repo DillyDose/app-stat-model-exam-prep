@@ -21,21 +21,37 @@
 
 <p><a href="../lessons/0006-single-factor-anova.html">← Lesson 6: Single Factor ANOVA</a></p>
 
-<p>บทเรียนนี้เปลี่ยนโจทย์จาก "หา \(\hat{\beta}\) ที่ดีที่สุดแบบไม่เอนเอียง (unbiased)" แบบที่ผ่านมา มาเป็น "ยอมให้ \(\hat{\beta}\) เอนเอียง (biased) โดยตั้งใจ เพื่อแลกกับความแปรปรวนที่ต่ำลงและทำนายแม่นขึ้น" — นี่คือหัวใจของ <em class="term">penalized regression</em> ทั้งตระกูล (Ridge, LASSO, Elastic Net) จุดที่ต้องระวังที่สุดในบทนี้ตามลำดับความสำคัญของข้อสอบ: <strong>(1) เขียนสมการ penalty แต่ละแบบให้ถูก</strong> <strong>(2) เข้าใจว่าทำไม coefficient ที่ได้ตีความแบบเดียวกับ OLS ตรง ๆ ไม่ได้อีกต่อไป</strong> (เพราะมีทั้ง standardization และ shrinkage เข้ามาเกี่ยวข้อง) และ <strong>(3) อ่านโค้ด/ผลลัพธ์จาก <code>glmnet</code> ได้ทุกบรรทัด</strong>.</p>
+<p>บทเรียนนี้เปลี่ยนโจทย์จาก "หา \(\hat{\beta}\) ที่ดีที่สุดแบบไม่เอนเอียง (unbiased)" แบบที่ผ่านมา มาเป็น "ยอมให้ \(\hat{\beta}\) เอนเอียง (biased) โดยตั้งใจ เพื่อแลกกับความแปรปรวนที่ต่ำลงและทำนายแม่นขึ้น" — นี่คือหัวใจของ <em class="term">penalized regression</em> ทั้งตระกูล (Ridge, LASSO, Elastic Net) จุดที่ต้องระวังที่สุดในบทนี้ตามลำดับความสำคัญของข้อสอบ:</p>
+<ul>
+<li><strong>(1) เขียนสมการ penalty แต่ละแบบให้ถูก</strong></li>
+<li><strong>(2) เข้าใจว่าทำไม coefficient ที่ได้ตีความแบบเดียวกับ OLS ตรง ๆ ไม่ได้อีกต่อไป</strong> (เพราะมีทั้ง standardization และ shrinkage เข้ามาเกี่ยวข้อง)</li>
+<li><strong>(3) อ่านโค้ด/ผลลัพธ์จาก <code>glmnet</code> ได้ทุกบรรทัด</strong></li>
+</ul>
 
 <h2>1. ปัญหาของ OLS ที่ทำให้ต้องมี Penalized Regression</h2>
 <p>สไลด์เริ่มด้วยการเขียน OLS estimate ใหม่ในรูปแบบ optimization โดย<strong>ตั้งสมมติฐานว่า X ถูก standardize (mean 0, variance 1 ทุกตัวแปร) และ Y ถูก center (mean 0) มาก่อนแล้ว</strong> — สังเกตว่าสมการนี้ไม่มีพจน์ intercept \(\beta_{0}\) แยกต่างหากอีกต่อไป เพราะ Y ที่ center แล้วมีค่าเฉลี่ยเป็น 0 พอดี:</p>
 <div class="box">
 \[\hat{\beta} = \underset{\beta}{\arg\min} \sum_{i=1}^{n} (Y_i - X_i\beta)^2\]
 </div>
-<p>สไลด์ระบุปัญหาของ OLS ไว้ 4 ข้อ: <strong>(1) Prediction accuracy</strong> — OLS estimate มักมี bias ต่ำแต่ variance สูงมาก ซึ่งทำให้ทำนายไม่แม่น <strong>(2) Interpretability</strong> — เมื่อ p (จำนวนตัวแปรอิสระ) เยอะ โมเดลที่ใส่ทุกตัวแปรตีความยาก <strong>(3) Multicollinearity</strong> — ตัวแปรอิสระสัมพันธ์กันเองสูง ทำให้ \(\hat{\beta}\) ไม่เสถียร <strong>(4) Cannot work with high-dimensional data</strong> — เมื่อ p มากกว่า n (จำนวนตัวอย่าง) เมทริกซ์ X'X ไม่ invertible เลย OLS หาคำตอบไม่ได้เลย ไม่ใช่แค่แม่นน้อยลง.</p>
+<p>สไลด์ระบุปัญหาของ OLS ไว้ 4 ข้อ:</p>
+<ul>
+<li><strong>(1) Prediction accuracy</strong> — OLS estimate มักมี bias ต่ำแต่ variance สูงมาก ซึ่งทำให้ทำนายไม่แม่น</li>
+<li><strong>(2) Interpretability</strong> — เมื่อ p (จำนวนตัวแปรอิสระ) เยอะ โมเดลที่ใส่ทุกตัวแปรตีความยาก</li>
+<li><strong>(3) Multicollinearity</strong> — ตัวแปรอิสระสัมพันธ์กันเองสูง ทำให้ \(\hat{\beta}\) ไม่เสถียร</li>
+<li><strong>(4) Cannot work with high-dimensional data</strong> — เมื่อ p มากกว่า n (จำนวนตัวอย่าง) เมทริกซ์ X'X ไม่ invertible เลย OLS หาคำตอบไม่ได้เลย ไม่ใช่แค่แม่นน้อยลง</li>
+</ul>
 <p>ปัญหาข้อ (1) และ (4) นี้คือที่มาของแนวคิด <em class="term">bias-variance tradeoff</em> ที่ใช้ทั้งบทนี้: OLS ไม่เอนเอียงเลย (unbiased) แต่แลกมาด้วย variance สูง — penalized regression ยอมให้ \(\hat{\beta}\) เอนเอียงเล็กน้อยโดยตั้งใจ (ผ่านการ "หด" ค่าเข้าหาศูนย์) เพื่อลด variance ลงมากกว่าที่ bias เพิ่มขึ้น ผลรวม (mean squared error = \(\text{bias}^2 + \text{variance}\)) จึงต่ำลงและทำนายแม่นขึ้น.</p>
 <p>ปัญหาข้อ (4) ชัดเจนที่สุดในข้อมูลชีวการแพทย์ (biomedical data) ที่สไลด์ยกตัวอย่าง:</p>
 <figure>
 <img src="../assets/slides/as7-p03-biomedical-data-high-dimensional.png" alt="GeneChip Human Genome U133 Plus 2.0 microarray chip showing ~20,000 genes measured at once, alongside a DNA double-helix diagram illustrating a SNP (single nucleotide polymorphism) among ~4-5 million nucleotides">
 <figcaption>Slide: Biomedical Data — GeneChip และ SNP บน DNA (Lecture 7, p.3)</figcaption>
 </figure>
-<p>ตัวเลขที่สไลด์ให้ไว้: ชิปตรวจยีนตัวเดียว (GeneChip) วัดได้พร้อมกัน <strong>~20,000 ยีน</strong> และจีโนมมนุษย์มี SNP (จุดที่นิวคลีโอไทด์ต่างกันระหว่างคน) กระจายอยู่ใน <strong>~4-5 ล้านตำแหน่ง</strong> — ถ้าตั้งโจทย์ regression ที่ตัวแปรอิสระ X คือยีนหรือ SNP เหล่านี้ทั้งหมด (p = 20,000 ถึงหลักล้าน) แต่จำนวนคนไข้ที่เก็บตัวอย่างได้จริง (n) มักอยู่แค่หลักร้อยถึงหลักพัน จะได้ <strong>\(p \gg n\)</strong> ทันที — นี่คือสถานการณ์ classic ที่ OLS ใช้ไม่ได้เลยตามปัญหาข้อ (4) และเป็นเหตุผลที่งานวิจัยด้านชีวสถิติ/genomics ผลักดันการพัฒนา penalized regression ขึ้นมาอย่างจริงจัง.</p>
+<p>ตัวเลขที่สไลด์ให้ไว้:</p>
+<ul>
+<li>ชิปตรวจยีนตัวเดียว (GeneChip) วัดได้พร้อมกัน <strong>~20,000 ยีน</strong></li>
+<li>จีโนมมนุษย์มี SNP (จุดที่นิวคลีโอไทด์ต่างกันระหว่างคน) กระจายอยู่ใน <strong>~4-5 ล้านตำแหน่ง</strong></li>
+</ul>
+<p>ถ้าตั้งโจทย์ regression ที่ตัวแปรอิสระ X คือยีนหรือ SNP เหล่านี้ทั้งหมด (p = 20,000 ถึงหลักล้าน) แต่จำนวนคนไข้ที่เก็บตัวอย่างได้จริง (n) มักอยู่แค่หลักร้อยถึงหลักพัน จะได้ <strong>\(p \gg n\)</strong> ทันที — นี่คือสถานการณ์ classic ที่ OLS ใช้ไม่ได้เลยตามปัญหาข้อ (4) และเป็นเหตุผลที่งานวิจัยด้านชีวสถิติ/genomics ผลักดันการพัฒนา penalized regression ขึ้นมาอย่างจริงจัง.</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>ปัญหาของ OLS</span></div>
@@ -63,7 +79,12 @@
 \[\hat{\beta} = \underset{\beta}{\arg\min} \sum_{i=1}^{n} (Y_i - X_i\beta)^2 + P_\lambda(\beta)\]<br>
 โดย \(P_\lambda(\beta)\) คือ <em>penalty term</em> และ \(\lambda\) คือ <em>tuning parameter</em>
 </div>
-<p>สังเกตโครงสร้าง: ยิ่ง \(\beta\) มีขนาดใหญ่ (ตัวแปรมีอิทธิพลมาก) พจน์ \(P_\lambda(\beta)\) ยิ่งลงโทษ (เพิ่มค่าฟังก์ชันที่ต้อง minimize) มากขึ้น ทำให้ optimizer เลือก \(\beta\) ที่มีขนาดเล็กลง ("หด" เข้าหาศูนย์) เพื่อแลกกับการลด residual sum of squares ลงได้มากกว่าเดิม — ส่วน \(\lambda\) ควบคุม "ความแรง" ของการหดนี้: \(\lambda = 0\) จะได้ \(\hat{\beta}\) เดียวกับ OLS ทุกประการ (ไม่มีการลงโทษเลย) ส่วน \(\lambda \to \infty\) จะบีบทุกสัมประสิทธิ์เข้าใกล้ศูนย์จนแทบไม่เหลือผลของตัวแปรอิสระใด ๆ — การเลือก \(\lambda\) ที่เหมาะสม (ไม่มาก ไม่น้อยเกินไป) คือหัวใจของการใช้งานจริง ซึ่งทำผ่าน cross-validation (หัวข้อ 6).</p>
+<p>สังเกตโครงสร้าง: ยิ่ง \(\beta\) มีขนาดใหญ่ (ตัวแปรมีอิทธิพลมาก) พจน์ \(P_\lambda(\beta)\) ยิ่งลงโทษ (เพิ่มค่าฟังก์ชันที่ต้อง minimize) มากขึ้น ทำให้ optimizer เลือก \(\beta\) ที่มีขนาดเล็กลง ("หด" เข้าหาศูนย์) เพื่อแลกกับการลด residual sum of squares ลงได้มากกว่าเดิม ส่วน \(\lambda\) ควบคุม "ความแรง" ของการหดนี้:</p>
+<ul>
+<li>\(\lambda = 0\) จะได้ \(\hat{\beta}\) เดียวกับ OLS ทุกประการ (ไม่มีการลงโทษเลย)</li>
+<li>\(\lambda \to \infty\) จะบีบทุกสัมประสิทธิ์เข้าใกล้ศูนย์จนแทบไม่เหลือผลของตัวแปรอิสระใด ๆ</li>
+</ul>
+<p>การเลือก \(\lambda\) ที่เหมาะสม (ไม่มาก ไม่น้อยเกินไป) คือหัวใจของการใช้งานจริง ซึ่งทำผ่าน cross-validation (หัวข้อ 6).</p>
 
 <h2>3. Ridge Regression (\(\ell_2\)-norm)</h2>
 <p>Ridge ใช้ผลรวมกำลังสองของสัมประสิทธิ์เป็น penalty (เรียกว่า \(\ell_2\)-norm):</p>
@@ -71,7 +92,12 @@
 เขียนแบบ constrained: \(\hat{\beta} = \underset{\beta}{\arg\min} \sum_{i=1}^{n}(Y_i-X_i\beta)^2\) subject to \(\sum_{j=1}^{p} \beta_j^2 \leq t\)<br>
 เขียนแบบ penalized (เทียบเท่ากัน): \(\hat{\beta} = \underset{\beta}{\arg\min} \sum_{i=1}^{n}(Y_i-X_i\beta)^2 + \lambda\sum_{j=1}^{p} \beta_j^2\)
 </div>
-<p>สองรูปแบบนี้เทียบเท่ากัน (มี \(\lambda\) คู่กับ t เสมอคู่หนึ่ง) — รูป constrained บอกตรง ๆ ว่า "ห้ามให้ผลรวมกำลังสองของสัมประสิทธิ์เกิน t" ส่วนรูป penalized คือการแปลง constraint นั้นเป็นพจน์ลงโทษที่บวกเข้าไปใน objective function โดยตรง ทั้งสองแบบให้คำตอบ \(\hat{\beta}\) เดียวกันเมื่อ \(\lambda\) กับ t สัมพันธ์กันถูกต้อง.</p>
+<p>สองรูปแบบนี้เทียบเท่ากัน (มี \(\lambda\) คู่กับ t เสมอคู่หนึ่ง):</p>
+<ul>
+<li><strong>รูป constrained</strong> บอกตรง ๆ ว่า "ห้ามให้ผลรวมกำลังสองของสัมประสิทธิ์เกิน t"</li>
+<li><strong>รูป penalized</strong> คือการแปลง constraint นั้นเป็นพจน์ลงโทษที่บวกเข้าไปใน objective function โดยตรง</li>
+</ul>
+<p>ทั้งสองแบบให้คำตอบ \(\hat{\beta}\) เดียวกันเมื่อ \(\lambda\) กับ t สัมพันธ์กันถูกต้อง.</p>
 
 <h2>4. Least Absolute Shrinkage and Selection Operator (LASSO)</h2>
 <p>LASSO คิดค้นโดย Tibshirani (1996) ใช้ผลรวมค่าสัมบูรณ์ของสัมประสิทธิ์เป็น penalty (\(\ell_1\)-norm) แทนกำลังสอง:</p>
@@ -95,7 +121,12 @@ Penalized: \(\hat{\beta} = \underset{\beta}{\arg\min} \sum_{i=1}^{n}(Y_i-X_i\bet
 <img src="../assets/slides/as7-p08-geometry-l1-vs-l2-constraint.png" alt="Three diagrams comparing L1-norm (blue diamond, labeled sparsity inducing), L2-norm (orange circle, labeled weight sharing), and L1+L2 norm (purple rounded diamond, labeled compromise), each with elliptical RSS contours centered at theta_opt and a green dot marking the constrained optimum where the ellipse first touches the constraint region boundary">
 <figcaption>Slide: Geometry Representation — L1 vs L2 vs L1+L2 constraint region (Lecture 7, p.8)</figcaption>
 </figure>
-<p>อ่านรูปทรงแต่ละแบบ: L1-norm (ซ้าย) เป็น<strong>สี่เหลี่ยมข้าวหลามตัด (diamond)</strong> ที่มี<strong>มุมแหลม</strong>วางอยู่บนแกน \(\theta_{1}\) และ \(\theta_{2}\) พอดี — เพราะ contour วงรีของ RSS ส่วนใหญ่ "สัมผัส" กับขอบ diamond ได้ง่ายที่สุดตรงมุมแหลมเหล่านั้น (ไม่ใช่ตรงกลางขอบเรียบ) จุดสัมผัสจึงมักตกที่มุม ซึ่งมุมของ diamond คือจุดที่<strong>อย่างน้อยหนึ่งพิกัดเท่ากับศูนย์เป๊ะ</strong> (เช่น มุมบนแกน \(\theta_{2}\) หมายถึง \(\theta_{1}\)=0 พอดี) — นี่คือกลไกที่ทำให้ LASSO ได้ <em>exact zero</em> และเรียกว่า "sparsity inducing" ตามป้ายกำกับในภาพ. ส่วน L2-norm (กลาง) เป็น<strong>วงกลมเรียบ ไม่มีมุม</strong> จุดสัมผัสจึงกระจายไปตามขอบวงกลมได้ทุกทิศทางอย่างต่อเนื่อง แทบไม่มีทางตกที่แกนพอดี — สัมประสิทธิ์จึงถูก "หด" เข้าใกล้ศูนย์ได้ แต่แทบไม่มีทางเป็นศูนย์เป๊ะ ตรงกับป้ายกำกับ "weight sharing" (ทุกตัวแปรยังมีน้ำหนักเหลืออยู่บ้างเสมอ). ส่วน L1+L2 (ขวา) เป็นรูปข้าวหลามตัดมุมมน (compromise ระหว่างสองแบบ) ให้ผลลัพธ์อยู่ระหว่างกลาง คือได้ทั้ง sparsity บางส่วนและ weight sharing บางส่วน.</p>
+<p>อ่านรูปทรงแต่ละแบบ:</p>
+<ul>
+<li><strong>L1-norm (ซ้าย)</strong> เป็น<strong>สี่เหลี่ยมข้าวหลามตัด (diamond)</strong> ที่มี<strong>มุมแหลม</strong>วางอยู่บนแกน \(\theta_{1}\) และ \(\theta_{2}\) พอดี — เพราะ contour วงรีของ RSS ส่วนใหญ่ "สัมผัส" กับขอบ diamond ได้ง่ายที่สุดตรงมุมแหลมเหล่านั้น (ไม่ใช่ตรงกลางขอบเรียบ) จุดสัมผัสจึงมักตกที่มุม ซึ่งมุมของ diamond คือจุดที่<strong>อย่างน้อยหนึ่งพิกัดเท่ากับศูนย์เป๊ะ</strong> (เช่น มุมบนแกน \(\theta_{2}\) หมายถึง \(\theta_{1}\)=0 พอดี) — นี่คือกลไกที่ทำให้ LASSO ได้ <em>exact zero</em> และเรียกว่า "sparsity inducing" ตามป้ายกำกับในภาพ</li>
+<li><strong>L2-norm (กลาง)</strong> เป็น<strong>วงกลมเรียบ ไม่มีมุม</strong> จุดสัมผัสจึงกระจายไปตามขอบวงกลมได้ทุกทิศทางอย่างต่อเนื่อง แทบไม่มีทางตกที่แกนพอดี — สัมประสิทธิ์จึงถูก "หด" เข้าใกล้ศูนย์ได้ แต่แทบไม่มีทางเป็นศูนย์เป๊ะ ตรงกับป้ายกำกับ "weight sharing" (ทุกตัวแปรยังมีน้ำหนักเหลืออยู่บ้างเสมอ)</li>
+<li><strong>L1+L2 (ขวา)</strong> เป็นรูปข้าวหลามตัดมุมมน (compromise ระหว่างสองแบบ) ให้ผลลัพธ์อยู่ระหว่างกลาง คือได้ทั้ง sparsity บางส่วนและ weight sharing บางส่วน</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 3</span><span>Ridge vs LASSO</span></div>
@@ -145,8 +176,20 @@ cvridge
 ridgemodel<-glmnet(x=X, y=Y, alpha=0, lambda=cvridge$lambda.min)
 # Get regression coefficients
 ridgecoef<-coef(ridgemodel)</code></pre>
-<p>อ่านตัวเลขในโค้ด: <code>n=100</code> ตัวอย่าง แต่ <code>p=1000</code> ตัวแปรอิสระ — <strong>p มากกว่า n ถึง 10 เท่า</strong> ตรงกับสถานการณ์ high-dimensional ที่ OLS ใช้ไม่ได้ (หัวข้อ 1) พอดี. ค่า \(\beta\) จริงที่กำหนดไว้คือ <code>beta = c(rep(2,10), rep(0.5,10), rep(0,980))</code> แปลว่า: <strong>ตัวแปรที่ 1-10 มีผลจริง \(\beta=2\)</strong> (ผลแรงสุด), <strong>ตัวแปรที่ 11-20 มีผลจริง \(\beta=0.5\)</strong> (ผลเบากว่า), และ<strong>ตัวแปรที่ 21-1000 (รวม 980 ตัว) ไม่มีผลจริงเลย (\(\beta=0\))</strong> — มีแค่ 20 ตัวแปรจาก 1000 ตัวที่ "จริง" ส่วนที่เหลือเป็น noise ล้วน ๆ ที่โมเดลควรตัดทิ้งให้ได้.</p>
-<p><code>cv.glmnet(x=X, y=Y, alpha=0, nfolds=10)</code> คือการทำ <em class="term">10-fold cross-validation</em>: แบ่งข้อมูล 100 ตัวอย่างเป็น 10 ส่วน ลองค่า \(\lambda\) หลายค่า สำหรับแต่ละ \(\lambda\) ใช้ 9 ส่วนเทรน 1 ส่วนทดสอบ วนครบ 10 รอบแล้วเฉลี่ย MSE (<code>type.measure="mse"</code>) — \(\lambda\) ที่ให้ MSE เฉลี่ยต่ำสุดจะถูกเก็บไว้ที่ <code>cvridge$lambda.min</code> แล้วนำไป fit โมเดลจริงอีกครั้งด้วย <code>glmnet(..., lambda=cvridge$lambda.min)</code> เพื่อดึงสัมประสิทธิ์สุดท้ายด้วย <code>coef()</code>.</p>
+<p>อ่านตัวเลขในโค้ด: <code>n=100</code> ตัวอย่าง แต่ <code>p=1000</code> ตัวแปรอิสระ — <strong>p มากกว่า n ถึง 10 เท่า</strong> ตรงกับสถานการณ์ high-dimensional ที่ OLS ใช้ไม่ได้ (หัวข้อ 1) พอดี ค่า \(\beta\) จริงที่กำหนดไว้คือ <code>beta = c(rep(2,10), rep(0.5,10), rep(0,980))</code> แปลว่า:</p>
+<ul>
+<li><strong>ตัวแปรที่ 1-10 มีผลจริง \(\beta=2\)</strong> (ผลแรงสุด)</li>
+<li><strong>ตัวแปรที่ 11-20 มีผลจริง \(\beta=0.5\)</strong> (ผลเบากว่า)</li>
+<li><strong>ตัวแปรที่ 21-1000 (รวม 980 ตัว) ไม่มีผลจริงเลย (\(\beta=0\))</strong></li>
+</ul>
+<p>มีแค่ 20 ตัวแปรจาก 1000 ตัวที่ "จริง" ส่วนที่เหลือเป็น noise ล้วน ๆ ที่โมเดลควรตัดทิ้งให้ได้.</p>
+<p><code>cv.glmnet(x=X, y=Y, alpha=0, nfolds=10)</code> คือการทำ <em class="term">10-fold cross-validation</em>:</p>
+<ol>
+<li>แบ่งข้อมูล 100 ตัวอย่างเป็น 10 ส่วน ลองค่า \(\lambda\) หลายค่า</li>
+<li>สำหรับแต่ละ \(\lambda\) ใช้ 9 ส่วนเทรน 1 ส่วนทดสอบ วนครบ 10 รอบแล้วเฉลี่ย MSE (<code>type.measure="mse"</code>)</li>
+<li>\(\lambda\) ที่ให้ MSE เฉลี่ยต่ำสุดจะถูกเก็บไว้ที่ <code>cvridge$lambda.min</code></li>
+<li>นำไป fit โมเดลจริงอีกครั้งด้วย <code>glmnet(..., lambda=cvridge$lambda.min)</code> เพื่อดึงสัมประสิทธิ์สุดท้ายด้วย <code>coef()</code></li>
+</ol>
 <p>ทำซ้ำแบบเดียวกันสำหรับ LASSO (เปลี่ยนแค่ <code>alpha=1</code>) และ Elastic Net (วนลูปหา <code>alpha</code> ที่ให้ MSE ต่ำสุดในช่วง 0.01 ถึง 0.99):</p>
 <pre><code># LASSO
 cvlasso<-cv.glmnet(x=X, y=Y, alpha=1, type.measure="mse", nfolds=10)
@@ -170,7 +213,13 @@ ENcv[which.min(ENcv$mse), ]
 ENmodel<-glmnet(x=X, y=Y, alpha=ENcv$alpha[which.min(ENcv$mse)],
 lambda=ENcv$lambda[which.min(ENcv$mse)])
 ENcoef<-coef(ENmodel)</code></pre>
-<p>สังเกตลูปของ EN: ไล่ทดสอบ <code>alpha</code> ทีละ 0.01 ตั้งแต่ 0.01 ถึง 0.99 (99 ค่า) แต่ละค่าทำ cross-validation หา <code>lambda.min</code> ของตัวเองก่อน แล้วบันทึก MSE ที่ต่ำสุดของ alpha ค่านั้นไว้ สุดท้ายเลือกทั้งคู่ <code>(alpha, lambda)</code> ที่ให้ MSE ต่ำสุดในภาพรวม — นี่คือการทำ <em>grid search สองมิติ</em> (\(\alpha\) และ \(\lambda\) พร้อมกัน) ซึ่งเป็นเหตุผลว่าทำไม Elastic Net ใช้เวลาคำนวณนานกว่า Ridge/LASSO เดี่ยว ๆ มาก (ต้องรัน cross-validation ซ้ำ 99 รอบ).</p>
+<p>สังเกตลูปของ EN:</p>
+<ol>
+<li>ไล่ทดสอบ <code>alpha</code> ทีละ 0.01 ตั้งแต่ 0.01 ถึง 0.99 (99 ค่า)</li>
+<li>แต่ละค่าทำ cross-validation หา <code>lambda.min</code> ของตัวเองก่อน แล้วบันทึก MSE ที่ต่ำสุดของ alpha ค่านั้นไว้</li>
+<li>สุดท้ายเลือกทั้งคู่ <code>(alpha, lambda)</code> ที่ให้ MSE ต่ำสุดในภาพรวม</li>
+</ol>
+<p>นี่คือการทำ <em>grid search สองมิติ</em> (\(\alpha\) และ \(\lambda\) พร้อมกัน) ซึ่งเป็นเหตุผลว่าทำไม Elastic Net ใช้เวลาคำนวณนานกว่า Ridge/LASSO เดี่ยว ๆ มาก (ต้องรัน cross-validation ซ้ำ 99 รอบ).</p>
 
 <h3>ผลลัพธ์: เปรียบเทียบ \(\hat{\beta}\) ทั้งสามวิธีกับ \(\beta\) จริง</h3>
 <p>ขั้นสุดท้ายพล็อตค่า \(\beta\) จริง (จุดดำ) เทียบกับ \(\hat{\beta}\) ที่แต่ละวิธีประมาณได้ (สีต่างกัน) บนแกน X คือลำดับตัวแปรที่ 1 ถึง 1000:</p>
@@ -182,14 +231,22 @@ points(ENcoef, col="blue", cex=0.5)</code></pre>
 <img src="../assets/slides/as7-p12-glmnet-coefficient-comparison-plot.png" alt="R scatterplot with beta index 1-1000 on x-axis and beta value 0 to 2 on y-axis, showing true beta as black points at 2 (index 1-10), 0.5 (index 11-20), and 0 (index 21-1000), overlaid with ridge (red), lasso (green), and elastic net (blue) estimated coefficients, where red ridge points scatter visibly around zero for the null variables while green and blue points sit almost exactly at zero">
 <figcaption>Slide: glmnet Package — ผลจริงจาก R เปรียบเทียบ Ridge/LASSO/EN (Lecture 7, p.12)</figcaption>
 </figure>
-<p>อ่านตัวเลขในภาพ: ที่ตำแหน่ง 1-10 (\(\beta\) จริง = 2) จุดสีทุกสีตกอยู่ที่ประมาณ <strong>1.3-2.0</strong> คือต่ำกว่า 2 เสมอ — นี่คือ <em>shrinkage</em> ที่ทุกวิธีเหมือนกัน: \(\hat{\beta}\) ถูกหดลงจากค่าจริงเสมอเพราะมี penalty term ถ่วงอยู่ ไม่ใช่แค่ noise สุ่ม ๆ. ที่ตำแหน่ง 11-20 (\(\beta\) จริง = 0.5) จุดตกประมาณ <strong>0.2-0.45</strong> ก็ถูกหดลงเช่นกันแต่สัดส่วนน้อยกว่า. จุดที่สำคัญที่สุดคือช่วง<strong>ตำแหน่ง 21-1000 (\(\beta\) จริง = 0 ทั้งหมด 980 ตัว)</strong>: <strong>จุดสีแดง (Ridge) กระจายเกาะแถบแคบ ๆ รอบศูนย์อย่างเห็นได้ชัด ไม่เคยนิ่งที่ 0 เป๊ะเลยสักตัว</strong> ตรงกับที่หัวข้อ 5 อธิบายไว้ว่า L2-norm ไม่มีมุม จึงไม่มีทางบีบให้เป็นศูนย์เป๊ะ ส่วน<strong>จุดสีเขียว (LASSO) และสีน้ำเงิน (EN) ส่วนใหญ่ทับอยู่ที่เส้น 0 พอดี</strong> เพราะมีพจน์ \(\ell_1\) อยู่ในทั้งคู่ — ภาพนี้จึงยืนยันด้วยตัวเลขจริงว่า LASSO/EN "คัดตัวแปร" ได้จริงในขณะที่ Ridge เก็บทุกตัวแปรไว้เสมอ (แค่บีบให้เล็กลง).</p>
+<p>อ่านตัวเลขในภาพ:</p>
+<ul>
+<li><strong>ตำแหน่ง 1-10 (\(\beta\) จริง = 2):</strong> จุดสีทุกสีตกอยู่ที่ประมาณ <strong>1.3-2.0</strong> คือต่ำกว่า 2 เสมอ — นี่คือ <em>shrinkage</em> ที่ทุกวิธีเหมือนกัน: \(\hat{\beta}\) ถูกหดลงจากค่าจริงเสมอเพราะมี penalty term ถ่วงอยู่ ไม่ใช่แค่ noise สุ่ม ๆ</li>
+<li><strong>ตำแหน่ง 11-20 (\(\beta\) จริง = 0.5):</strong> จุดตกประมาณ <strong>0.2-0.45</strong> ก็ถูกหดลงเช่นกันแต่สัดส่วนน้อยกว่า</li>
+<li><strong>ตำแหน่ง 21-1000 (\(\beta\) จริง = 0 ทั้งหมด 980 ตัว) — จุดที่สำคัญที่สุด:</strong> <strong>จุดสีแดง (Ridge) กระจายเกาะแถบแคบ ๆ รอบศูนย์อย่างเห็นได้ชัด ไม่เคยนิ่งที่ 0 เป๊ะเลยสักตัว</strong> ตรงกับที่หัวข้อ 5 อธิบายไว้ว่า L2-norm ไม่มีมุม จึงไม่มีทางบีบให้เป็นศูนย์เป๊ะ ส่วน<strong>จุดสีเขียว (LASSO) และสีน้ำเงิน (EN) ส่วนใหญ่ทับอยู่ที่เส้น 0 พอดี</strong> เพราะมีพจน์ \(\ell_1\) อยู่ในทั้งคู่</li>
+</ul>
+<p>ภาพนี้จึงยืนยันด้วยตัวเลขจริงว่า LASSO/EN "คัดตัวแปร" ได้จริงในขณะที่ Ridge เก็บทุกตัวแปรไว้เสมอ (แค่บีบให้เล็กลง).</p>
 
 <div class="box win">
 <div class="label">ทักษะที่ออกสอบหนัก: ทำไมตีความ \(\hat{\beta}\) จาก glmnet แบบเดียวกับ OLS ตรง ๆ ไม่ได้</div>
 <p>ใน Lesson 1 การแปลผล \(\hat{\beta}_{1}\) จาก <code>lm()</code> ทำได้ตรงไปตรงมา: "เมื่อ X เพิ่มขึ้น 1 หน่วย Y คาดว่าจะเปลี่ยนไปเฉลี่ย \(\hat{\beta}_{1}\) หน่วย" เพราะ OLS เป็น unbiased estimator บนหน่วยดั้งเดิมของ X และ Y แต่กับ Ridge/LASSO/EN มี 2 เหตุผลที่ทำให้ทำแบบเดิมตรง ๆ ไม่ได้:</p>
-<p><strong>(1) Standardization:</strong> สูตร OLS estimate ที่เปิดบทเรียนนี้ (หัวข้อ 1) ระบุไว้ตรง ๆ ว่า <em>"assume standardization in X's and centering in Y"</em> — สัมประสิทธิ์ที่ได้จึงอยู่ในหน่วย "ต่อ 1 ส่วนเบี่ยงเบนมาตรฐาน (1 SD) ของ X ที่ standardize แล้ว" ไม่ใช่ "ต่อ 1 หน่วยดั้งเดิมของ X" อีกต่อไป จะเทียบกับหน่วยจริงต้องแปลงกลับก่อน (หารด้วย SD ของ X ตัวนั้น)</p>
-<p><strong>(2) Shrinkage คือ bias ที่ตั้งใจใส่เข้าไป:</strong> จากภาพในหัวข้อนี้เห็นชัดว่า \(\hat{\beta}\) ทุกตัวถูกหดต่ำกว่าค่าจริงเสมอ (2 → ~1.3-2.0, 0.5 → ~0.2-0.45) นี่ไม่ใช่ "ค่าประมาณที่ดีที่สุดแบบไม่เอนเอียง" เหมือน OLS แต่เป็นค่าที่ถูกดึงเข้าหาศูนย์โดยเจตนาเพื่อลด variance — จะพูดว่า "\(\hat{\beta}=1.8\) แปลว่าผลจริงของตัวแปรนี้คือ 1.8" จึงไม่ถูกต้อง เพราะรู้อยู่แล้วว่ามันต่ำกว่าค่าจริงอย่างเป็นระบบ (systematic underestimate)</p>
-<p><strong>(3) สัมประสิทธิ์ = 0 จาก LASSO ไม่ได้แปลว่า "พิสูจน์แล้วว่าไม่มีผลจริง":</strong> เป็นแค่ผลของการตัดสินใจที่ \(\lambda\) ค่าหนึ่ง (ขึ้นกับ cross-validation) — เปลี่ยน \(\lambda\) หรือเปลี่ยนชุดข้อมูล ตัวแปรตัวเดียวกันอาจไม่เป็นศูนย์ก็ได้ ต่างจาก hypothesis test แบบ Lesson 1 ที่ให้ p-value ยืนยันนัยสำคัญทางสถิติอย่างเป็นทางการ — <code>coef(glmnet_model)</code> ไม่มีคอลัมน์ p-value ให้เหมือน <code>summary(lm(...))</code> เลย</p>
+<ul>
+<li><strong>(1) Standardization:</strong> สูตร OLS estimate ที่เปิดบทเรียนนี้ (หัวข้อ 1) ระบุไว้ตรง ๆ ว่า <em>"assume standardization in X's and centering in Y"</em> — สัมประสิทธิ์ที่ได้จึงอยู่ในหน่วย "ต่อ 1 ส่วนเบี่ยงเบนมาตรฐาน (1 SD) ของ X ที่ standardize แล้ว" ไม่ใช่ "ต่อ 1 หน่วยดั้งเดิมของ X" อีกต่อไป จะเทียบกับหน่วยจริงต้องแปลงกลับก่อน (หารด้วย SD ของ X ตัวนั้น)</li>
+<li><strong>(2) Shrinkage คือ bias ที่ตั้งใจใส่เข้าไป:</strong> จากภาพในหัวข้อนี้เห็นชัดว่า \(\hat{\beta}\) ทุกตัวถูกหดต่ำกว่าค่าจริงเสมอ (2 → ~1.3-2.0, 0.5 → ~0.2-0.45) นี่ไม่ใช่ "ค่าประมาณที่ดีที่สุดแบบไม่เอนเอียง" เหมือน OLS แต่เป็นค่าที่ถูกดึงเข้าหาศูนย์โดยเจตนาเพื่อลด variance — จะพูดว่า "\(\hat{\beta}=1.8\) แปลว่าผลจริงของตัวแปรนี้คือ 1.8" จึงไม่ถูกต้อง เพราะรู้อยู่แล้วว่ามันต่ำกว่าค่าจริงอย่างเป็นระบบ (systematic underestimate)</li>
+<li><strong>(3) สัมประสิทธิ์ = 0 จาก LASSO ไม่ได้แปลว่า "พิสูจน์แล้วว่าไม่มีผลจริง":</strong> เป็นแค่ผลของการตัดสินใจที่ \(\lambda\) ค่าหนึ่ง (ขึ้นกับ cross-validation) — เปลี่ยน \(\lambda\) หรือเปลี่ยนชุดข้อมูล ตัวแปรตัวเดียวกันอาจไม่เป็นศูนย์ก็ได้ ต่างจาก hypothesis test แบบ Lesson 1 ที่ให้ p-value ยืนยันนัยสำคัญทางสถิติอย่างเป็นทางการ — <code>coef(glmnet_model)</code> ไม่มีคอลัมน์ p-value ให้เหมือน <code>summary(lm(...))</code> เลย</li>
+</ul>
 </div>
 
 <div class="quiz">
@@ -233,7 +290,12 @@ points(ENcoef, col="blue", cex=0.5)</code></pre>
 </div>
 
 <h2>7. เมื่อไรควรเลือกอะไร: Ridge vs LASSO vs Elastic Net</h2>
-<p>สรุปจากสมการและพฤติกรรมที่แสดงในหัวข้อ 3-6: <strong>Ridge</strong> เหมาะเมื่อเชื่อว่าตัวแปรอิสระ<strong>ทุกตัว</strong>มีผลจริงอยู่บ้าง (แค่มากน้อยต่างกัน) และปัญหาหลักคือ multicollinearity — Ridge เก็บทุกตัวแปรไว้ (ไม่มีการคัดออก) แค่หดขนาดลง. <strong>LASSO</strong> เหมาะเมื่อเชื่อว่ามีแค่บางตัวแปรที่มีผลจริง (sparse) ต้องการคัดตัวแปรออกไปด้วยในตัว. <strong>Elastic Net</strong> เป็นทางเลือกเมื่อมีตัวแปรที่สัมพันธ์กันเองสูงเป็นกลุ่ม (correlated groups) เพราะ LASSO เดี่ยว ๆ มักเลือกมาแค่ตัวเดียวจากกลุ่มที่สัมพันธ์กันแบบสุ่ม ๆ (ไม่เสถียร) ในขณะที่ Elastic Net (ผสม \(\ell_2\) เข้ามาด้วย) มีแนวโน้มเลือกทั้งกลุ่มพร้อมกัน ("grouping effect") ทำให้เสถียรกว่า.</p>
+<p>สรุปจากสมการและพฤติกรรมที่แสดงในหัวข้อ 3-6:</p>
+<ul>
+<li><strong>Ridge</strong> เหมาะเมื่อเชื่อว่าตัวแปรอิสระ<strong>ทุกตัว</strong>มีผลจริงอยู่บ้าง (แค่มากน้อยต่างกัน) และปัญหาหลักคือ multicollinearity — Ridge เก็บทุกตัวแปรไว้ (ไม่มีการคัดออก) แค่หดขนาดลง</li>
+<li><strong>LASSO</strong> เหมาะเมื่อเชื่อว่ามีแค่บางตัวแปรที่มีผลจริง (sparse) ต้องการคัดตัวแปรออกไปด้วยในตัว</li>
+<li><strong>Elastic Net</strong> เป็นทางเลือกเมื่อมีตัวแปรที่สัมพันธ์กันเองสูงเป็นกลุ่ม (correlated groups) เพราะ LASSO เดี่ยว ๆ มักเลือกมาแค่ตัวเดียวจากกลุ่มที่สัมพันธ์กันแบบสุ่ม ๆ (ไม่เสถียร) ในขณะที่ Elastic Net (ผสม \(\ell_2\) เข้ามาด้วย) มีแนวโน้มเลือกทั้งกลุ่มพร้อมกัน ("grouping effect") ทำให้เสถียรกว่า</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 9</span><span>เลือกวิธีให้เหมาะกับโจทย์</span></div>

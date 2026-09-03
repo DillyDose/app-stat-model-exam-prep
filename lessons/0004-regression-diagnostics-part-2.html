@@ -37,8 +37,18 @@
 <img src="../assets/slides/as4-p03-outlying-cases-diagram.png" alt="Scatter diagram with four labeled points: point 1 outlying in Y only near the trend's X range, point 2 outlying in X only but close to the trend line's extrapolated direction, points 3 and 4 boxed together as influential points because they are outlying in both X and Y">
 <figcaption>Slide: Outlying Cases in Simple Linear Regression (Lecture 4, p.3)</figcaption>
 </figure>
-<p>อ่านจุดทั้ง 4 ในภาพทีละจุด: <strong>จุด 1</strong> อยู่กลาง ๆ ช่วง X (ไม่ outlying ในแกน X เลย) แต่ค่า Y สูงกว่าจุดอื่นที่ X ใกล้เคียงกันมาก — นี่คือ <em>outlying in Y only</em> ไม่มีป้ายกำกับว่า "influential". <strong>จุด 2</strong> อยู่ไกลจากกลุ่มข้อมูลในแกน X (X มีค่าสูงผิดปกติ) — นี่คือ leverage point แท้ ๆ (outlying in X) แต่สังเกตว่า<strong>สไลด์ไม่ได้ใส่กรอบแดง "influential" ให้จุดนี้</strong> เพราะค่า Y ของมันยังพอจะสอดคล้องกับแนวโน้มที่เส้นถดถอยทำนายไว้ (ไม่ใช่ตัวที่ดึงเส้นออกจากแนวเดิมมากนัก) — <strong>นี่คือหลักฐานตรง ๆ จากสไลด์ว่า "high leverage" ไม่ได้แปลว่า "high influence" เสมอไป</strong>. ส่วน<strong>จุด 3 และ 4</strong> ถูกครอบด้วยกรอบสีแดง "Influential points" เพราะทั้งคู่ outlying ทั้งแกน X <strong>และ</strong> แกน Y พร้อมกัน — จุดแบบนี้มีอำนาจดึงเส้นถดถอยให้เอียงเข้าหาตัวเองได้มาก เพราะอยู่ไกลจากศูนย์กลางข้อมูล (leverage สูง) และยังไม่ตรงกับแนวโน้มที่เหลือ (residual สูง) พร้อมกัน.</p>
-<p>สรุปเป็นกฎ 3 ข้อที่ต้องจำ: (1) <strong>Outlier</strong> วัดจาก Y ที่ผิดปกติ (ทางแนวตั้ง) — ใช้ residual/studentized residual วัด (2) <strong>Leverage point</strong> วัดจาก X ที่ผิดปกติ (ทางแนวนอน) — ใช้ hat value วัด (3) <strong>Influential point</strong> ไม่ใช่การวัดแบบใหม่ แต่เป็น<em>ผลลัพธ์ร่วม</em>ของทั้งสองอย่าง — วัดด้วย DFFITS/Cook's D/DFBETAS ซึ่งรวม leverage กับ residual เข้าด้วยกันในสูตรเดียว (จะเห็นชัดในหัวข้อ 5).</p>
+<p>อ่านจุดทั้ง 4 ในภาพทีละจุด:</p>
+<ul>
+<li><strong>จุด 1</strong> อยู่กลาง ๆ ช่วง X (ไม่ outlying ในแกน X เลย) แต่ค่า Y สูงกว่าจุดอื่นที่ X ใกล้เคียงกันมาก — นี่คือ <em>outlying in Y only</em> ไม่มีป้ายกำกับว่า "influential"</li>
+<li><strong>จุด 2</strong> อยู่ไกลจากกลุ่มข้อมูลในแกน X (X มีค่าสูงผิดปกติ) — นี่คือ leverage point แท้ ๆ (outlying in X) แต่สังเกตว่า<strong>สไลด์ไม่ได้ใส่กรอบแดง "influential" ให้จุดนี้</strong> เพราะค่า Y ของมันยังพอจะสอดคล้องกับแนวโน้มที่เส้นถดถอยทำนายไว้ (ไม่ใช่ตัวที่ดึงเส้นออกจากแนวเดิมมากนัก) — <strong>นี่คือหลักฐานตรง ๆ จากสไลด์ว่า "high leverage" ไม่ได้แปลว่า "high influence" เสมอไป</strong></li>
+<li>ส่วน<strong>จุด 3 และ 4</strong> ถูกครอบด้วยกรอบสีแดง "Influential points" เพราะทั้งคู่ outlying ทั้งแกน X <strong>และ</strong> แกน Y พร้อมกัน — จุดแบบนี้มีอำนาจดึงเส้นถดถอยให้เอียงเข้าหาตัวเองได้มาก เพราะอยู่ไกลจากศูนย์กลางข้อมูล (leverage สูง) และยังไม่ตรงกับแนวโน้มที่เหลือ (residual สูง) พร้อมกัน</li>
+</ul>
+<p>สรุปเป็นกฎ 3 ข้อที่ต้องจำ:</p>
+<ol>
+<li><strong>Outlier</strong> วัดจาก Y ที่ผิดปกติ (ทางแนวตั้ง) — ใช้ residual/studentized residual วัด</li>
+<li><strong>Leverage point</strong> วัดจาก X ที่ผิดปกติ (ทางแนวนอน) — ใช้ hat value วัด</li>
+<li><strong>Influential point</strong> ไม่ใช่การวัดแบบใหม่ แต่เป็น<em>ผลลัพธ์ร่วม</em>ของทั้งสองอย่าง — วัดด้วย DFFITS/Cook's D/DFBETAS ซึ่งรวม leverage กับ residual เข้าด้วยกันในสูตรเดียว (จะเห็นชัดในหัวข้อ 5)</li>
+</ol>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>Outlier vs Leverage vs Influence</span></div>
@@ -130,7 +140,11 @@ Studentized deleted residual: \( t_i = d_i / s\{d_i\} = e_i / \sqrt{MSE_{(i)}(1 
 <img src="../assets/slides/as4-p26-studentized-deleted-residuals-plot.png" alt="olsrr studentized deleted residuals plot for mtcars model, values as vertical bars against observation index, with red horizontal threshold lines at plus and minus 3; three bars near observations 17, 18, 20 approach a value around 2, none crossing the threshold of 3">
 <figcaption>Slide: Studentized Deleted Residuals Plot — <code>ols_plot_resid_stud(model)</code> (Lecture 4, p.26)</figcaption>
 </figure>
-<p>อ่านกราฟ: ไม่มีแท่งใดแตะเส้น threshold ±3 เลย — แปลว่าตาม rule \( t_i > 3 \) ไม่มีเคสไหนถูกจัดเป็น outlying Y observation ใน mtcars ชุดนี้ (แม้จะมี 3 เคสแถว index 17, 18, 20 ที่สูงเด่นถึงประมาณ 2 ก็ยังไม่ถึง 3) — นี่คือความต่างสำคัญจาก internally studentized residual ในหัวข้อ 3 ที่ใช้ cutoff เพียง 2 (เข้มงวดกว่ามาก และไม่ปรับ multiple comparison) เห็นได้ชัดว่าการเลือก rule of thumb มีผลต่อข้อสรุปโดยตรง.</p>
+<p>อ่านกราฟ:</p>
+<ul>
+<li>ไม่มีแท่งใดแตะเส้น threshold ±3 เลย — แปลว่าตาม rule \( t_i > 3 \) ไม่มีเคสไหนถูกจัดเป็น outlying Y observation ใน mtcars ชุดนี้ (แม้จะมี 3 เคสแถว index 17, 18, 20 ที่สูงเด่นถึงประมาณ 2 ก็ยังไม่ถึง 3)</li>
+<li>นี่คือความต่างสำคัญจาก internally studentized residual ในหัวข้อ 3 ที่ใช้ cutoff เพียง 2 (เข้มงวดกว่ามาก และไม่ปรับ multiple comparison) — เห็นได้ชัดว่าการเลือก rule of thumb มีผลต่อข้อสรุปโดยตรง</li>
+</ul>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 4 (Free response)</span><span>Masking Effect</span></div>
@@ -193,7 +207,11 @@ Threshold ที่นิยมใช้กันทั่วไป (รวม�
 <div class="box win">
 \[ |COV\ RATIO_i - 1| \geq \dfrac{3(p+1)}{n} \]
 </div>
-<p>ตีความ: COV RATIO &lt; 1 แปลว่าตัดเคสนี้ออกแล้ว<strong>ช่วงความเชื่อมั่นของสัมประสิทธิ์แคบลง</strong> (เคสนี้เคยทำให้ความไม่แน่นอนสูงขึ้น) ส่วน COV RATIO &gt; 1 แปลว่าตัดออกแล้วช่วงความเชื่อมั่น<strong>กว้างขึ้น</strong> (เคสนี้เคยช่วยให้ประมาณค่าแม่นยำขึ้น มักเกิดกับ leverage point ที่ไม่ใช่ outlier).</p>
+<p>ตีความ:</p>
+<ul>
+<li><strong>COV RATIO &lt; 1</strong> แปลว่าตัดเคสนี้ออกแล้ว<strong>ช่วงความเชื่อมั่นของสัมประสิทธิ์แคบลง</strong> (เคสนี้เคยทำให้ความไม่แน่นอนสูงขึ้น)</li>
+<li><strong>COV RATIO &gt; 1</strong> แปลว่าตัดออกแล้วช่วงความเชื่อมั่น<strong>กว้างขึ้น</strong> (เคสนี้เคยช่วยให้ประมาณค่าแม่นยำขึ้น มักเกิดกับ leverage point ที่ไม่ใช่ outlier)</li>
+</ul>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 6 (Free response)</span><span>DFBETAS vs DFFITS</span></div>
@@ -209,13 +227,24 @@ Threshold ที่นิยมใช้กันทั่วไป (รวม�
 <img src="../assets/slides/as4-p22-influence-measures-r-output.png" alt="R console output from influence.measures(model) on mtcars showing DFBETAS columns, dffit, cov.r, cook.d, and hat columns for the first ten cars, with Merc 230 flagged by an asterisk showing hat=0.742 and cook.d=3.79e-02, and Merc 280 also flagged with hat=0.429">
 <figcaption>Slide: Influential Measurements in R — <code>influence.measures(model)</code> (Lecture 4, p.22)</figcaption>
 </figure>
-<p>อ่านแถว <strong>Merc 230</strong> (เคสที่ 9 ใน mtcars — ตัวเดียวกับที่แตะเส้น cutoff ในหัวข้อ 2!): <code>hat = 0.742</code> ซึ่งเกิน cutoff 0.6875 ที่คำนวณไว้แล้ว → เป็น leverage point ยืนยันชัดเจน และ <code>cook.d = 3.79e-01 = 0.379</code>, <code>dffit = -2.06569</code> — ทั้งสองค่านี้เกิน threshold ของ mtcars (Cook's D cutoff 4/32=0.125 และ DFFITS cutoff 2√(11/32)≈1.17 ตามสูตรหัวข้อ 5) มาก จึงมี <code>*</code> กำกับ Merc 230 ในตาราง — <strong>สรุปว่า Merc 230 ไม่ใช่แค่ leverage point แต่ influential point ด้วย</strong> แม้ว่า residual ของมันจะไม่ได้จัดว่า outlying Y (ยืนยันในหัวข้อ 8) ก็ตาม — ตรงกับกลไกที่อธิบายไว้ท้ายหัวข้อ 5 พอดี ที่ว่า h<sub>ii</sub> ใกล้ 1 เพียงอย่างเดียวก็ดัน Cook's D ให้สูงได้ผ่านพจน์ (1−h<sub>ii</sub>)² ที่ตัวส่วน.</p>
+<p>อ่านแถว <strong>Merc 230</strong> (เคสที่ 9 ใน mtcars — ตัวเดียวกับที่แตะเส้น cutoff ในหัวข้อ 2!):</p>
+<ul>
+<li><code>hat = 0.742</code> ซึ่งเกิน cutoff 0.6875 ที่คำนวณไว้แล้ว → เป็น leverage point ยืนยันชัดเจน</li>
+<li><code>cook.d = 3.79e-01 = 0.379</code> และ <code>dffit = -2.06569</code> — ทั้งสองค่านี้เกิน threshold ของ mtcars (Cook's D cutoff 4/32=0.125 และ DFFITS cutoff 2√(11/32)≈1.17 ตามสูตรหัวข้อ 5) มาก จึงมี <code>*</code> กำกับ Merc 230 ในตาราง</li>
+<li><strong>สรุปว่า Merc 230 ไม่ใช่แค่ leverage point แต่ influential point ด้วย</strong> แม้ว่า residual ของมันจะไม่ได้จัดว่า outlying Y (ยืนยันในหัวข้อ 8) ก็ตาม — ตรงกับกลไกที่อธิบายไว้ท้ายหัวข้อ 5 พอดี ที่ว่า h<sub>ii</sub> ใกล้ 1 เพียงอย่างเดียวก็ดัน Cook's D ให้สูงได้ผ่านพจน์ (1−h<sub>ii</sub>)² ที่ตัวส่วน</li>
+</ul>
 <p>ยืนยันด้วยกราฟ Cook's distance มาตรฐานของ R (<code>plot(model,4)</code>):</p>
 <figure>
 <img src="../assets/slides/as4-p23-cooks-distance-plot-mtcars.png" alt="Base R Cook's distance plot for the mtcars model, showing three labeled peaks: Merc 230 around 0.38, Chrysler Imperial around 0.13, and Ford Pantera L the tallest at around 0.7, all other observations near zero">
 <figcaption>Slide: Influential Measurements in R — <code>plot(model, 4)</code> (Lecture 4, p.23)</figcaption>
 </figure>
-<p>สามเคสที่โดดออกมาชัดเจน: <strong>Merc 230</strong> (~0.38, ตรงกับตัวเลขในตารางด้านบน), <strong>Chrysler Imperial</strong> (~0.13, พอเกิน 0.125 เล็กน้อย), และ <strong>Ford Pantera L</strong> (~0.7, สูงที่สุดในชุดข้อมูล) — สามเคสนี้คือเป้าหมายที่ต้องตรวจสอบต่อในหัวข้อ 8 ว่าแต่ละเคสเป็น "leverage point ที่บังเอิญ influential" หรือ "outlier ที่บังเอิญ influential" หรือทั้งสองอย่าง.</p>
+<p>สามเคสที่โดดออกมาชัดเจน:</p>
+<ul>
+<li><strong>Merc 230</strong> — ~0.38 (ตรงกับตัวเลขในตารางด้านบน)</li>
+<li><strong>Chrysler Imperial</strong> — ~0.13 (พอเกิน 0.125 เล็กน้อย)</li>
+<li><strong>Ford Pantera L</strong> — ~0.7 (สูงที่สุดในชุดข้อมูล)</li>
+</ul>
+<p>สามเคสนี้คือเป้าหมายที่ต้องตรวจสอบต่อในหัวข้อ 8 ว่าแต่ละเคสเป็น "leverage point ที่บังเอิญ influential" หรือ "outlier ที่บังเอิญ influential" หรือทั้งสองอย่าง</p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 7 (Free response — รูปแบบข้อสอบจริง)</span><span>อ่านค่า Cook's D จริงแล้วตัดสินใจ</span></div>
@@ -240,13 +269,23 @@ Threshold ที่นิยมใช้กันทั่วไป (รวม�
 <img src="../assets/slides/as4-p28-studentized-deleted-resid-vs-leverage.png" alt="olsrr outlier and leverage diagnostics scatterplot for mtcars: x-axis is leverage with a vertical threshold line at 0.688, y-axis is RStudent with horizontal threshold lines at plus/minus 2; observations 17, 18, 20 are colored green as outliers with low leverage near 0.2-0.3; observation 9 is colored red as a leverage point near 0.74 with RStudent close to zero; observation 29 is colored green as an outlier positioned just past the leverage threshold"/>
 <figcaption>Slide: Studentized Deleted Residuals vs Leverage Plot — <code>ols_plot_resid_lev(model)</code> (Lecture 4, p.28)</figcaption>
 </figure>
-<p>นี่คือหลักฐานเชิงตัวเลขที่ชัดที่สุดของบทนี้สำหรับความต่างระหว่าง outlier/leverage/influence — อ่านทีละกลุ่ม: <strong>เคส 17, 18, 20</strong> (สีเขียว, ป้าย "outlier") อยู่เหนือเส้น RStudent=2 แต่ leverage ของทั้งสามอยู่แค่ราว 0.2-0.3 (ต่ำกว่า cutoff 0.688 มาก) — เป็น <em>outlier ล้วน ๆ ไม่มี leverage</em>. <strong>เคส 9</strong> (สีแดง, ป้าย "leverage") อยู่ที่ leverage≈0.74 (เกิน threshold 0.688) แต่ RStudent ใกล้ 0 มาก — เป็น <em>leverage point ล้วน ๆ ไม่ outlying ใน Y เลย</em> (แต่ตามหัวข้อ 7 มันยัง influential เพราะ Cook's D สูง ผ่านกลไก (1−h<sub>ii</sub>)² ไม่ใช่ผ่าน residual) <strong>เคส 29</strong> (สีเขียว, ป้าย "outlier") อยู่ต่ำกว่า RStudent=−2 และ leverage ก็ขยับเข้าใกล้เส้น threshold — นี่คือเคสที่ทั้งสองมิติเริ่มรุนแรงพร้อมกัน ซึ่งตรงกับที่หัวข้อ 7 พบว่า Ford Pantera L (=เคส 29) มี Cook's D สูงสุดในชุดข้อมูล (~0.7).</p>
+<p>นี่คือหลักฐานเชิงตัวเลขที่ชัดที่สุดของบทนี้สำหรับความต่างระหว่าง outlier/leverage/influence — อ่านทีละกลุ่ม:</p>
+<ul>
+<li><strong>เคส 17, 18, 20</strong> (สีเขียว, ป้าย "outlier") อยู่เหนือเส้น RStudent=2 แต่ leverage ของทั้งสามอยู่แค่ราว 0.2-0.3 (ต่ำกว่า cutoff 0.688 มาก) — เป็น <em>outlier ล้วน ๆ ไม่มี leverage</em></li>
+<li><strong>เคส 9</strong> (สีแดง, ป้าย "leverage") อยู่ที่ leverage≈0.74 (เกิน threshold 0.688) แต่ RStudent ใกล้ 0 มาก — เป็น <em>leverage point ล้วน ๆ ไม่ outlying ใน Y เลย</em> (แต่ตามหัวข้อ 7 มันยัง influential เพราะ Cook's D สูง ผ่านกลไก (1−h<sub>ii</sub>)² ไม่ใช่ผ่าน residual)</li>
+<li><strong>เคส 29</strong> (สีเขียว, ป้าย "outlier") อยู่ต่ำกว่า RStudent=−2 และ leverage ก็ขยับเข้าใกล้เส้น threshold — นี่คือเคสที่ทั้งสองมิติเริ่มรุนแรงพร้อมกัน ซึ่งตรงกับที่หัวข้อ 7 พบว่า Ford Pantera L (=เคส 29) มี Cook's D สูงสุดในชุดข้อมูล (~0.7)</li>
+</ul>
 <p>เชื่อมกับ Cook's D bar/chart (หัวข้อ 5 threshold 4/32=0.125):</p>
 <figure>
 <img src="../assets/slides/as4-p30-cooksd-charts-mtcars.png" alt="olsrr Cook's D bar plot and chart for mtcars side by side, threshold line at 0.125; observation 9 (Merc 230) is the second-highest bar around 0.38 flagged red/labeled, observation 29 (Ford Pantera L) is the tallest bar around 0.7 flagged red/labeled, observation 17 (Chrysler Imperial) is a small labeled bar just above the threshold; observations 18 and 20 are not labeled and stay near zero"/>
 <figcaption>Slide: Cook's Distance Charts — <code>ols_plot_cooksd_bar/chart(model)</code> (Lecture 4, p.30)</figcaption>
 </figure>
-<p>ผลลัพธ์ยืนยันตรงกันทั้ง 3 ภาพ: <strong>เคส 9 (Merc 230)</strong> — leverage point ล้วน (RStudent≈0) แต่ Cook's D=0.38 สูงกว่า threshold ถึง 3 เท่า → <strong>influential แม้ไม่ใช่ outlier</strong> (สอดคล้องกับกลไกทางคณิตศาสตร์ในหัวข้อ 5). <strong>เคส 18, 20 (Fiat 128, Toyota Corolla)</strong> — outlier ชัดเจน (RStudent&gt;2) แต่ leverage ต่ำ และ<strong>ไม่มีป้ายกำกับใน Cook's D chart เลย</strong> (Cook's D ต่ำกว่า threshold มาก) → <strong>outlier ที่ไม่ influential</strong> เพราะรถประหยัดน้ำมันขนาดเล็กแบบนี้มีอยู่หลายคันในชุดข้อมูล (Honda Civic ก็อยู่ในกลุ่มเดียวกัน) ทำให้ X ของมันไม่ผิดปกติ แม้ residual จะสูง. <strong>เคส 29 (Ford Pantera L)</strong> — ทั้ง outlier และ leverage เริ่มรุนแรงพร้อมกัน ผลคือ Cook's D สูงสุดในชุดข้อมูลทั้งหมด (~0.7) → <strong>influential point ที่ชัดเจนที่สุด</strong>, ตรงกับนิยาม "จุด 3, 4" ในภาพหัวข้อ 1 เป๊ะ (outlying ทั้ง X และ Y พร้อมกัน).</p>
+<p>ผลลัพธ์ยืนยันตรงกันทั้ง 3 ภาพ:</p>
+<ul>
+<li><strong>เคส 9 (Merc 230)</strong> — leverage point ล้วน (RStudent≈0) แต่ Cook's D=0.38 สูงกว่า threshold ถึง 3 เท่า → <strong>influential แม้ไม่ใช่ outlier</strong> (สอดคล้องกับกลไกทางคณิตศาสตร์ในหัวข้อ 5)</li>
+<li><strong>เคส 18, 20 (Fiat 128, Toyota Corolla)</strong> — outlier ชัดเจน (RStudent&gt;2) แต่ leverage ต่ำ และ<strong>ไม่มีป้ายกำกับใน Cook's D chart เลย</strong> (Cook's D ต่ำกว่า threshold มาก) → <strong>outlier ที่ไม่ influential</strong> เพราะรถประหยัดน้ำมันขนาดเล็กแบบนี้มีอยู่หลายคันในชุดข้อมูล (Honda Civic ก็อยู่ในกลุ่มเดียวกัน) ทำให้ X ของมันไม่ผิดปกติ แม้ residual จะสูง</li>
+<li><strong>เคส 29 (Ford Pantera L)</strong> — ทั้ง outlier และ leverage เริ่มรุนแรงพร้อมกัน ผลคือ Cook's D สูงสุดในชุดข้อมูลทั้งหมด (~0.7) → <strong>influential point ที่ชัดเจนที่สุด</strong>, ตรงกับนิยาม "จุด 3, 4" ในภาพหัวข้อ 1 เป๊ะ (outlying ทั้ง X และ Y พร้อมกัน)</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 8 (สำคัญ — ข้อสอบชอบออก)</span><span>Leverage vs Influence จากข้อมูลจริง</span></div>
@@ -283,12 +322,25 @@ Threshold ที่นิยมใช้กันทั่วไป (รวม�
 > co2_model<-lm(log(CO2)~log(Area)+log(Population)+log(GDP)+
 + +log(Agri)+log(Industry)+log(Energy)+log(Forest), data=co2)
 > summary(co2_model)</code></pre>
-<p>โมเดลนี้มี n=177, ตัวแปรอิสระ 7 ตัว (Area, Population, GDP, Agri, Industry, Energy, Forest) → p+1=8 พารามิเตอร์ — ใช้ค่านี้เช็ค threshold ทุกตัวด้านล่างได้เลย: leverage cutoff = 2×8/177=0.090, Cook's D cutoff (4/n) = 4/177=0.023, DFFITS cutoff (large-sample) = 2√(8/177)=0.43, DFBETAS cutoff (large-sample) = 2/√177=0.15 — <strong>ตัวเลขเหล่านี้ตรงกับ "Threshold" ที่ olsrr พิมพ์ไว้ในทุกกราฟด้านล่างเป๊ะ</strong> ลองเช็คได้จากภาพจริง:</p>
+<p>โมเดลนี้มี n=177, ตัวแปรอิสระ 7 ตัว (Area, Population, GDP, Agri, Industry, Energy, Forest) → p+1=8 พารามิเตอร์ — ใช้ค่านี้เช็ค threshold ทุกตัวด้านล่างได้เลย:</p>
+<ul>
+<li>leverage cutoff = 2×8/177 = <strong>0.090</strong></li>
+<li>Cook's D cutoff (4/n) = 4/177 = <strong>0.023</strong></li>
+<li>DFFITS cutoff (large-sample) = 2√(8/177) = <strong>0.43</strong></li>
+<li>DFBETAS cutoff (large-sample) = 2/√177 = <strong>0.15</strong></li>
+</ul>
+<p><strong>ตัวเลขเหล่านี้ตรงกับ "Threshold" ที่ olsrr พิมพ์ไว้ในทุกกราฟด้านล่างเป๊ะ</strong> ลองเช็คได้จากภาพจริง:</p>
 <figure>
 <img src="../assets/slides/as4-p34-outlier-leverage-co2.png" alt="olsrr outlier and leverage diagnostics for the CO2 log-log model, x-axis leverage with threshold line at 0.09, y-axis RStudent with threshold lines at plus/minus 2; several countries labeled 38, 158, 19, 146 appear as outlier-and-leverage or leverage points beyond 0.09, while countries 85, 92, 114, 119 appear as pure outliers with low leverage"/>
 <figcaption>Slide: Outlier and Leverage Diagnostics for log(CO2) — <code>ols_plot_resid_lev(co2_model)</code> (Lecture 4, p.34)</figcaption>
 </figure>
-<p>โครงสร้างเดียวกับ mtcars แต่ซับซ้อนกว่าเพราะ n ใหญ่: threshold ที่มุมขวาบนระบุ <strong>0.09</strong> ตรงกับที่คำนวณไว้ (2×8/177≈0.090) ยืนยันสูตรถูกต้อง — ประเทศหมายเลข 38 อยู่มุมขวาบนสุด (RStudent≈3.8, leverage≈0.13) ถูกจัดเป็น "outlier & leverage" (สีชมพู) พร้อมกัน ส่วนประเทศ 158, 19, 146 อยู่ในโซน "leverage" (สีแดง, RStudent ปกติแต่ leverage เกิน 0.09) และประเทศ 85, 92, 114, 119 อยู่ในโซน "outlier" (สีเขียว, RStudent เกิน 2 ในทางลบ แต่ leverage ต่ำ) — โครงสร้าง 3 กลุ่มเดียวกับ mtcars ในหัวข้อ 8 ปรากฏซ้ำที่นี่พอดี เป็นหลักฐานว่าการแบ่งประเภทนี้ใช้ได้ทั่วไป ไม่ใช่เฉพาะ dataset เดียว.</p>
+<p>โครงสร้างเดียวกับ mtcars แต่ซับซ้อนกว่าเพราะ n ใหญ่ — threshold ที่มุมขวาบนระบุ <strong>0.09</strong> ตรงกับที่คำนวณไว้ (2×8/177≈0.090) ยืนยันสูตรถูกต้อง:</p>
+<ul>
+<li>ประเทศหมายเลข 38 อยู่มุมขวาบนสุด (RStudent≈3.8, leverage≈0.13) ถูกจัดเป็น "outlier & leverage" (สีชมพู) พร้อมกัน</li>
+<li>ประเทศ 158, 19, 146 อยู่ในโซน "leverage" (สีแดง, RStudent ปกติแต่ leverage เกิน 0.09)</li>
+<li>ประเทศ 85, 92, 114, 119 อยู่ในโซน "outlier" (สีเขียว, RStudent เกิน 2 ในทางลบ แต่ leverage ต่ำ)</li>
+</ul>
+<p>โครงสร้าง 3 กลุ่มเดียวกับ mtcars ในหัวข้อ 8 ปรากฏซ้ำที่นี่พอดี เป็นหลักฐานว่าการแบ่งประเภทนี้ใช้ได้ทั่วไป ไม่ใช่เฉพาะ dataset เดียว</p>
 <figure>
 <img src="../assets/slides/as4-p35-cooksd-chart-co2.png" alt="olsrr Cook's D chart for the CO2 model, threshold line at 0.023; country 38 has the tallest spike around 0.21, countries 146 and 158 have the next tallest spikes around 0.17 and 0.12, several smaller labeled spikes for countries 19, 46, 67, 114 sit just above the threshold"/>
 <figcaption>Slide: Cook's Distance — <code>ols_plot_cooksd_chart(co2_model)</code> (Lecture 4, p.35)</figcaption>
@@ -334,7 +386,12 @@ Threshold ที่นิยมใช้กันทั่วไป (รวม�
 <div class="label">Bisquare weight</div>
 \( w_i = [1 - (e_i/4.685)^2]^2 \) ถ้า \( |e_i| \leq 4.685 \)&nbsp;&nbsp;&nbsp; \( w_i = 0 \) ถ้า \( |e_i| > 4.685 \)
 </div>
-<p>ความต่างสำคัญ: Huber ลดน้ำหนักลง<strong>แบบค่อยเป็นค่อยไป</strong> (w<sub>i</sub> ไม่มีวันเป็น 0 เป๊ะ) ในขณะที่ Bisquare<strong>ตัดน้ำหนักเป็น 0 เต็ม ๆ</strong> เมื่อ residual เกิน 4.685 — Bisquare จึงดุกว่า Huber ในการ "ไม่สนใจ" outlier ที่รุนแรงมากไปเลย ในขณะที่ Huber ยังให้น้ำหนักเล็กน้อยอยู่เสมอ ผลลัพธ์จริงจาก R (สังเกตว่า Residuals ใน output ยังมีค่าติดลบ/บวกมากอยู่ที่ Min/Max เพราะเป็น residual ก่อนถ่วงน้ำหนัก ไม่ใช่หลัง):</p>
+<p>ความต่างสำคัญ:</p>
+<ul>
+<li><strong>Huber</strong> ลดน้ำหนักลง<strong>แบบค่อยเป็นค่อยไป</strong> (w<sub>i</sub> ไม่มีวันเป็น 0 เป๊ะ)</li>
+<li><strong>Bisquare</strong> <strong>ตัดน้ำหนักเป็น 0 เต็ม ๆ</strong> เมื่อ residual เกิน 4.685 — Bisquare จึงดุกว่า Huber ในการ "ไม่สนใจ" outlier ที่รุนแรงมากไปเลย ในขณะที่ Huber ยังให้น้ำหนักเล็กน้อยอยู่เสมอ</li>
+</ul>
+<p>ผลลัพธ์จริงจาก R (สังเกตว่า Residuals ใน output ยังมีค่าติดลบ/บวกมากอยู่ที่ Min/Max เพราะเป็น residual ก่อนถ่วงน้ำหนัก ไม่ใช่หลัง):</p>
 <pre><code>> co2_huber<-rlm(log(CO2)~log(Area)+log(Population)+log(GDP)+log(Agri)
 +                +log(Industry)+log(Energy)+log(Forest), data= co2,
 +                method="M", psi=psi.huber)
@@ -393,7 +450,13 @@ alternative hypothesis: true log(Area) is not equal to 0</code></pre>
 <img src="../assets/slides/as4-p44-remedy-comparison-table.png" alt="Table comparing OLS, LMS, Huber, and Bisquare coefficient estimates and p-values across 8 predictors for the CO2 model; log(GDP) coefficient is -0.10 with p-value 0.457 under OLS (not significant) but -0.20 with p=0.083 under Huber and -0.24 with p=0.034 under Bisquare (significant); LMS column has N/A for every p-value; log(Agri) is never significant under any method"/>
 <figcaption>Slide: Example: CO2 Dataset — ตารางเปรียบเทียบ H₀:β=0 (Lecture 4, p.44)</figcaption>
 </figure>
-<p>อ่านแถวที่น่าสนใจที่สุด — <strong>log(GDP)</strong>: ภายใต้ OLS สัมประสิทธิ์ = −0.10, p-value = 0.457 (<strong>ไม่มีนัยสำคัญ</strong>เลยที่ α=0.05) แต่ภายใต้ Huber สัมประสิทธิ์เปลี่ยนเป็น −0.20 (p=0.083, ยังไม่นัยสำคัญที่ α=0.05 แต่ใกล้กว่า) และภายใต้ Bisquare สัมประสิทธิ์ = −0.24, p=0.034 (<strong>มีนัยสำคัญ</strong>ที่ α=0.05!) — ข้อสรุปเรื่อง log(GDP) เปลี่ยนไปตามวิธี fit ที่ใช้ ซึ่งบ่งชี้ว่า<strong>ผล OLS สำหรับตัวแปรนี้ถูกดึงโดย influential point</strong> (เช่นประเทศ 146 ที่พบใน DFBETAS หัวข้อ 10) — เมื่อลดอิทธิพลของเคสเหล่านั้นด้วย robust regression สัมประสิทธิ์ log(GDP) แสดงตัวตนที่แท้จริงชัดขึ้น. เทียบกับ <strong>log(Agri)</strong> ที่ไม่มีนัยสำคัญในทุกวิธี (p อยู่ระหว่าง 0.95-0.997 ตลอด) — แปลว่าผลของ log(Agri) ไม่ได้ถูกดึงโดย influential point แต่เป็นเพราะตัวแปรนี้ไม่มีความสัมพันธ์เชิงเส้นกับ log(CO2) จริง ๆ ในข้อมูลชุดนี้ (สอดคล้องกันทุกวิธี).</p>
+<p>อ่านแถวที่น่าสนใจที่สุด — <strong>log(GDP)</strong>:</p>
+<ul>
+<li>ภายใต้ OLS สัมประสิทธิ์ = −0.10, p-value = 0.457 (<strong>ไม่มีนัยสำคัญ</strong>เลยที่ α=0.05)</li>
+<li>ภายใต้ Huber สัมประสิทธิ์เปลี่ยนเป็น −0.20 (p=0.083, ยังไม่นัยสำคัญที่ α=0.05 แต่ใกล้กว่า)</li>
+<li>ภายใต้ Bisquare สัมประสิทธิ์ = −0.24, p=0.034 (<strong>มีนัยสำคัญ</strong>ที่ α=0.05!)</li>
+</ul>
+<p>ข้อสรุปเรื่อง log(GDP) เปลี่ยนไปตามวิธี fit ที่ใช้ ซึ่งบ่งชี้ว่า<strong>ผล OLS สำหรับตัวแปรนี้ถูกดึงโดย influential point</strong> (เช่นประเทศ 146 ที่พบใน DFBETAS หัวข้อ 10) — เมื่อลดอิทธิพลของเคสเหล่านั้นด้วย robust regression สัมประสิทธิ์ log(GDP) แสดงตัวตนที่แท้จริงชัดขึ้น เทียบกับ <strong>log(Agri)</strong> ที่ไม่มีนัยสำคัญในทุกวิธี (p อยู่ระหว่าง 0.95-0.997 ตลอด) — แปลว่าผลของ log(Agri) ไม่ได้ถูกดึงโดย influential point แต่เป็นเพราะตัวแปรนี้ไม่มีความสัมพันธ์เชิงเส้นกับ log(CO2) จริง ๆ ในข้อมูลชุดนี้ (สอดคล้องกันทุกวิธี)</p>
 <p>สังเกตคอลัมน์ LMS: p-value ทุกช่องเป็น <strong>N/A</strong> ตรงกับที่อธิบายไว้ในหัวข้อ 11 ว่า <code>lmsreg()</code> ไม่ให้ Std. Error/p-value มาให้ในตัว — นี่คือข้อจำกัดจริงของวิธีนี้ ทำให้ในทางปฏิบัติ Huber/Bisquare (ที่ต้องเรียก <code>f.robftest()</code> เพิ่ม) มักถูกใช้มากกว่าเมื่อยังต้องการทำ hypothesis test ประกอบ.</p>
 
 <div class="quiz free">

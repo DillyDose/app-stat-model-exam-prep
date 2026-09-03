@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Applied Stat Workflow — แผนที่การตัดสินใจทั้งวิชา</title>
+<title>Applied Stat Workflow: เส้นเวลาการสอนทั้งวิชา</title>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -21,9 +21,10 @@
   .legend i.loopdash { border-radius: 0; height: 2px; width: 1.4em; background: repeating-linear-gradient(90deg, var(--bad) 0 5px, transparent 5px 9px); }
   .legend i.passline { border-radius: 0; height: 2px; width: 1.4em; background: var(--good); }
   .legend i.termdot { border-radius: 0; height: 1.4em; width: 1.4em; background: none; border-bottom: 2px dotted var(--accent); }
+  .legend i.storyline { border-radius: 0; height: 2px; width: 1.4em; background: #6b5fa8; }
 
   .frame {
-    position: relative; width: 100%; height: 75vh; min-height: 420px; max-height: 900px;
+    position: relative; width: 100%; height: 80vh; min-height: 460px; max-height: 960px;
     overflow: hidden; background: #faf9f5; border-top: 1px solid var(--rule);
     touch-action: none; cursor: grab;
   }
@@ -31,32 +32,48 @@
   .viewport { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
   .canvas-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
   .canvas-svg .conn { fill: none; stroke: var(--ink-soft); stroke-width: 2; }
+  .canvas-svg .conn-thin { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; opacity: 0.8; }
   .canvas-svg .conn-pass { fill: none; stroke: var(--good); stroke-width: 2.5; }
-  .canvas-svg .conn-loop { fill: none; stroke: var(--bad); stroke-width: 2; stroke-dasharray: 6 5; }
+  .canvas-svg .conn-loop { fill: none; stroke: var(--bad); stroke-width: 1.8; stroke-dasharray: 6 5; }
+  .canvas-svg .conn-story { fill: none; stroke: #6b5fa8; stroke-width: 2.5; }
   .canvas-svg .diamond { fill: #fff; stroke: var(--ink); stroke-width: 2; }
-  .canvas-svg text.dtitle { font-family: -apple-system, sans-serif; font-size: 15px; font-weight: 700; fill: var(--ink); }
-  .canvas-svg text.dsub { font-family: -apple-system, sans-serif; font-size: 11.5px; fill: var(--ink-soft); }
+  .canvas-svg text.dtitle { font-family: -apple-system, sans-serif; font-size: 13px; font-weight: 700; fill: var(--ink); }
+  .canvas-svg text.dsub { font-family: -apple-system, sans-serif; font-size: 10.5px; fill: var(--ink-soft); }
   .canvas-svg text.elbl { font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 700; }
+  .canvas-svg text.story { font-family: "Noto Serif Thai", serif; font-size: 13px; font-style: italic; fill: #6b5fa8; }
+  .canvas-svg rect.station-bg { fill: rgba(165,80,44,0.025); stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .canvas-svg text.station-num {
+    font-family: -apple-system, sans-serif; font-weight: 800; fill: var(--accent-soft); opacity: 0.9;
+  }
 
   .card {
     position: absolute; box-sizing: border-box; background: #fff; border: 1.5px solid var(--rule);
-    border-radius: 10px; padding: 1.15em 1.35em; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    font-size: 0.86rem; line-height: 1.5;
+    border-radius: 10px; padding: 1.05em 1.25em; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    font-size: 0.83rem; line-height: 1.48;
   }
   .card.hero { border-color: var(--accent); border-width: 2px; box-shadow: 0 2px 8px rgba(165,80,44,0.15); }
+  .card.header { border-color: var(--ink); border-width: 2px; background: #fffdf9; }
+  .card.hyp { border-left: 4px solid #2f6d3e; }
+  .card.pred { border-left: 4px solid var(--accent); }
+  .card.interp { border-left: 4px solid #6b5fa8; }
   .card .tag {
-    display: inline-block; font-family: -apple-system, sans-serif; font-size: 0.66rem; text-transform: uppercase;
-    letter-spacing: 0.05em; color: #fff; background: var(--ink-soft); border-radius: 4px; padding: 0.18em 0.55em; margin-bottom: 0.5em;
+    display: inline-block; font-family: -apple-system, sans-serif; font-size: 0.64rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #fff; background: var(--ink-soft); border-radius: 4px; padding: 0.16em 0.5em; margin-bottom: 0.4em;
   }
   .card .tag.accent { background: var(--accent); }
-  .card h4 { margin: 0 0 0.5em; font-size: 0.98rem; color: var(--ink); font-family: -apple-system, sans-serif; }
-  .card p { margin: 0.5em 0; }
-  .card ul { margin: 0.4em 0; padding-left: 1.15em; }
-  .card li { margin: 0.4em 0; }
-  .card code { font-size: 0.87em; }
+  .card .tag.hyp { background: #2f6d3e; }
+  .card .tag.pred { background: var(--accent); }
+  .card .tag.interp { background: #6b5fa8; }
+  .card h4 { margin: 0 0 0.45em; font-size: 0.95rem; color: var(--ink); font-family: -apple-system, sans-serif; }
+  .card.header h3 { margin: 0 0 0.3em; font-size: 1.35rem; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .card.header .story-in { font-family: "Noto Serif Thai", serif; font-style: italic; color: #6b5fa8; font-size: 0.9rem; margin: 0.3em 0 0; }
+  .card p { margin: 0.45em 0; }
+  .card ul { margin: 0.35em 0; padding-left: 1.1em; }
+  .card li { margin: 0.3em 0; }
+  .card code { font-size: 0.86em; }
   .card a { font-weight: 600; }
-  .card .katex { font-size: 0.94em; }
-  .card table { font-size: 0.82rem; margin: 0.5em 0; }
+  .card .katex { font-size: 0.93em; }
+  .card table { font-size: 0.8rem; margin: 0.4em 0; }
 
   .term {
     border-bottom: 2px dotted var(--accent); color: var(--accent); cursor: pointer; font-weight: 600;
@@ -69,15 +86,19 @@
   }
   .modal-back[hidden] { display: none; }
   .modal-box {
-    background: #fff; border-radius: 12px; max-width: 480px; width: 100%; max-height: 82vh; overflow-y: auto;
-    padding: 1.4em 1.6em; box-shadow: 0 8px 30px rgba(0,0,0,0.25); font-size: 0.95rem; line-height: 1.55;
+    background: #fff; border-radius: 12px; max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto;
+    padding: 1.5em 1.7em; box-shadow: 0 8px 30px rgba(0,0,0,0.25); font-size: 0.95rem; line-height: 1.55;
   }
-  .modal-box h3 { margin: 0 0 0.7em; font-size: 1.15rem; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .modal-box h3 { margin: 0 0 0.3em; font-size: 1.2rem; color: var(--accent); font-family: -apple-system, sans-serif; }
+  .modal-box .mdef { font-style: italic; color: var(--ink-soft); margin: 0 0 0.9em; font-size: 0.92rem; }
   .modal-box .mrow { margin: 0.9em 0; }
   .modal-box .mrow .label {
     font-family: -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem;
     color: var(--ink-soft); font-weight: 700; margin-bottom: 0.25em;
   }
+  .modal-box .mfig { margin: 0.5em 0 0.9em; }
+  .modal-box .mfig img { width: 100%; height: auto; display: block; border-radius: 6px; border: 1px solid var(--rule); }
+  .modal-box .mfig figcaption { font-size: 0.82rem; color: var(--ink-soft); margin-top: 0.4em; line-height: 1.4; }
   .modal-close {
     float: right; border: none; background: none; font-size: 1.3rem; cursor: pointer; color: var(--ink-soft); line-height: 1;
   }
@@ -102,15 +123,17 @@
   <span><a href="index.html">← กลับหน้าแรก</a></span>
   <span>Applied Stat Workflow</span>
 </nav>
-<p class="kicker" style="margin-bottom:0.2em">2603645 APP STAT MODEL · แผนที่รวมทั้งวิชา</p>
-<h1 style="margin:0 0 0.3em">Applied Stat Modeling — แผนที่การตัดสินใจ</h1>
-<p>14 บทที่เรียนแยกกัน จริง ๆ คือขั้นตอนเดียวกัน 6 ขั้นที่ทำซ้ำทุกครั้ง — ลากเพื่อ pan, scroll/pinch เพื่อ zoom แต่ละกล่องมีสรุปวิธีใช้จริงในตัว คำที่ขีดเส้นประกดดูรายละเอียดได้</p>
+<p class="kicker" style="margin-bottom:0.2em">2603645 APP STAT MODEL · เส้นเวลาการสอนทั้งวิชา</p>
+<h1 style="margin:0 0 0.3em">Applied Stat Modeling: จาก Lecture 1 ถึง 14</h1>
+<p>เรียงตามลำดับที่อาจารย์สอนจริง แต่ละสถานี (บท) มี mini-flowchart ของตัวเอง + วิธีทดสอบสมมติฐาน/ทำนาย/ตีความเฉพาะของโมเดลนั้น. เส้นสีม่วงบอกว่า "ทำไมบทถัดไปถึงต้องมี" ลาก/scroll เพื่อสำรวจ คำขีดเส้นประกดดูรายละเอียดได้</p>
 <div class="legend">
-<span><i style="background:#fff;border:2px solid var(--ink);transform:rotate(45deg)"></i> จุดตัดสินใจ</span>
-<span><i style="background:var(--accent)"></i> ขั้นตอน/เครื่องมือ</span>
-<span><i class="passline"></i> ผ่าน assumption</span>
-<span><i class="loopdash"></i> ไม่ผ่าน → วนกลับไปแก้</span>
-<span><i class="termdot"></i> กดดูรายละเอียดคำศัพท์</span>
+<span><i style="background:#fff;border:2px solid var(--ink);transform:rotate(45deg)"></i> จุดตัดสินใจในบท</span>
+<span><i class="storyline"></i> เหตุผลที่บทถัดไปมีอยู่</span>
+<span><i class="passline"></i> ผ่าน / <i class="loopdash"></i> ไม่ผ่าน→วนแก้</span>
+<span><i class="termdot"></i> กดดูศัพท์</span>
+<span style="border-left:3px solid #2f6d3e;padding-left:0.3em">ทดสอบ</span>
+<span style="border-left:3px solid var(--accent);padding-left:0.3em">ทำนาย</span>
+<span style="border-left:3px solid #6b5fa8;padding-left:0.3em">ตีความ</span>
 </div>
 </div>
 
@@ -124,7 +147,7 @@
     <button id="zoomOut" title="ซูมออก">−</button>
     <button id="resetView" title="กลับจุดเริ่ม">⤾</button>
   </div>
-  <div class="hint">ลาก = pan · scroll/pinch = zoom · คำขีดประ = กดดูรายละเอียด</div>
+  <div class="hint">ลาก = pan · scroll/pinch = zoom</div>
 </div>
 
 <div class="modal-back" id="modalBack" hidden>
@@ -132,237 +155,357 @@
 </div>
 
 <script>
-// ================= Glossary =================
+// ================= Glossary (46 terms, 6-field depth) =================
 const GLOSSARY = {
-  cooksd: {title:"Cook's Distance", purpose:"วัดว่าถ้าตัดจุดข้อมูล i ทิ้ง สัมประสิทธิ์ β̂ ทั้งชุดจะเปลี่ยนไปมากแค่ไหน — คือ influence รวม (ทั้ง leverage และ residual)", read:"ค่ายิ่งสูง จุดนั้นยิ่งมีอิทธิพลต่อผลลัพธ์โมเดล ดูจาก plot(model, which=4) หรือ cooks.distance(model)", criteria:"กติกาทั่วไป: D_i > 4/n ควรตรวจสอบ, D_i > 1 ถือว่ามีอิทธิพลสูงชัดเจน", example:"ข้อมูล lungpressure (L4): จุดที่มี Cook's D สูงผิดปกติต้องเช็คคู่กับ leverage — สูงทั้งคู่ = influential จริง, สูงแค่ตัวเดียวอาจไม่ใช่"},
-  leverage: {title:"Leverage (Hat Value)", purpose:"วัดว่าจุด X_i อยู่ห่างจากค่าเฉลี่ยของ X มากแค่ไหน (ไม่เกี่ยวกับ Y เลย) — บอกศักยภาพที่จะมีอิทธิพล ไม่ใช่อิทธิพลจริง", read:"อ่านจาก hat values h_ii บนแนวทแยงของ hat matrix H=X(X'X)⁻¹X'", criteria:"h_ii > 2p/n (หรือ 3p/n ถ้า n เล็ก) ถือว่า leverage สูง", example:"จุด leverage สูงแต่ residual ต่ำ = high-leverage แต่ไม่ influential (โมเดลทำนายจุดนั้นได้ดีอยู่แล้ว)"},
-  dffits: {title:"DFFITS / DFBETAS", purpose:"DFFITS วัดการเปลี่ยนแปลงของค่าทำนาย Ŷ_i เมื่อตัดจุด i ทิ้ง — DFBETAS วัดการเปลี่ยนแปลงของสัมประสิทธิ์แต่ละตัว β̂_j เมื่อตัดจุด i ทิ้ง (ละเอียดกว่า Cook's D ที่ดูภาพรวม)", read:"ดูค่า absolute value ของแต่ละจุด/แต่ละสัมประสิทธิ์", criteria:"DFFITS: |DFFITS_i| > 2√(p/n) น่าสงสัย — DFBETAS: |DFBETAS_ij| > 2/√n น่าสงสัย", example:"ใช้ influence.measures() ใน R ได้ตารางทั้ง DFFITS/DFBETAS/Cook's D/hat values พร้อมกัน"},
-  studres: {title:"Studentized Deleted Residual", purpose:"residual ที่ปรับสเกลแล้ว โดยคำนวณ MSE จากโมเดลที่ตัดจุด i ออกไปก่อน (ไม่ให้จุด i เองมาบิดเบือนค่า MSE ที่ใช้วัดตัวมันเอง)", read:"เทียบกับ t-distribution", criteria:"ใช้ Bonferroni-adjusted cutoff: |t_i| > t_(1-α/2n, n-p-2) ถือว่าเป็น outlier ทางสถิติ (ปรับ α ด้วย n เพราะทดสอบพร้อมกันหลายจุด)", example:"เข้มงวดกว่า residual ธรรมดา เพราะแก้ปัญหา multiple testing ในตัว"},
-  covratio: {title:"COV RATIO", purpose:"วัดว่าความแม่นยำ (precision) ของค่าประมาณสัมประสิทธิ์ทั้งชุดเปลี่ยนไปแค่ไหนถ้าตัดจุด i ทิ้ง — ต่างจาก DFBETAS ที่ดูทิศทาง/ขนาดของ β เปลี่ยน", read:"ค่าใกล้ 1 = จุดนี้ไม่กระทบความแม่นยำของโมเดลมาก", criteria:"COVRATIO นอกช่วง 1 ± 3p/n ถือว่าน่าสงสัย (มากกว่า 1 = จุดนั้นเพิ่มความแม่นยำ, น้อยกว่า 1 = ลดความแม่นยำ)", example:"ดูพร้อมกับ Cook's D/DFFITS ในตาราง influence.measures()"},
-  masking: {title:"Masking Effect", purpose:"ปรากฏการณ์ที่ outlier/influential point 2 จุดขึ้นไป 'บัง' กันเอง ทำให้ diagnostic ทีละจุด (เช่น residual เดี่ยว) ตรวจไม่พบ เพราะจุดหนึ่งดึงเส้นฟิตเข้าหาอีกจุด ทำให้ residual ของทั้งคู่ดูปกติ", read:"สังเกตจาก scatter plot จริง หรือลองตัดจุดทีละคู่/กลุ่มแล้วดูว่า diagnostic เปลี่ยนวูบวาบไหม", criteria:"ไม่มีสูตรตายตัว — เป็นเหตุผลที่ต้องดู scatter plot ประกอบเสมอ ไม่พึ่ง diagnostic ตัวเลขอย่างเดียว", example:"เหตุผลหลักที่วิชานี้ย้ำว่าต้อง plot ข้อมูลดูก่อนเชื่อตัวเลข diagnostic เพียงอย่างเดียว"},
-  vif: {title:"VIF (Variance Inflation Factor)", purpose:"วัดว่าตัวแปรอิสระ X_j สัมพันธ์กับตัวแปรอิสระตัวอื่นมากแค่ไหน (multicollinearity) — VIF สูง = SE ของ β̂_j ถูกพองขึ้นเพราะข้อมูลไม่พอแยกผลของ X_j ออกจากตัวอื่น", read:"VIF_j = 1/(1-R²_j) โดย R²_j มาจากการถดถอย X_j กับตัวแปรอิสระตัวอื่นทั้งหมด", criteria:"VIF > 10 (บางตำราใช้ 5) ถือว่า multicollinearity รุนแรง", example:"VIF สูง → พิจารณา centering, ตัดตัวแปรที่ซ้ำซ้อนออก, หรือใช้ Ridge Regression แทน"},
-  boxcox: {title:"Box-Cox Transformation", purpose:"หาค่า λ ที่เหมาะสมที่สุดสำหรับแปลง Y แบบอัตโนมัติ (family: Y^λ) แทนการเดา log/sqrt เอง แก้ปัญหา non-linearity และ non-constant variance พร้อมกัน", read:"ดูกราฟ log-likelihood vs λ แล้วเลือก λ ที่ให้ likelihood สูงสุด", criteria:"λ=1→ไม่ต้องแปลง, λ=0→log(Y), λ=0.5→√Y, λ=-1→1/Y (ปัดเข้าค่าที่ตีความง่ายที่สุดในช่วง CI ของ λ)", example:"ตัวอย่างจริง: λ≈0 → ใช้ log(Y); λ≈-0.8 → ใกล้ 1/Y มากกว่า (ดู Drill 4 คำถาม Box-Cox)"},
-  wls: {title:"WLS (Weighted Least Squares)", purpose:"แก้ปัญหา non-constant variance (heteroscedasticity) โดยให้น้ำหนักจุดที่มี variance ต่ำมากกว่าจุดที่มี variance สูง แทนที่จะปฏิบัติทุกจุดเท่ากันแบบ OLS", read:"น้ำหนัก w_i มักตั้งเป็น 1/variance ที่ประมาณได้ของแต่ละจุด/กลุ่ม", criteria:"เลือกใช้เมื่อรู้/ประมาณรูปแบบของ variance ได้ชัด (เช่น varianceแปรผันตาม X) มิฉะนั้น transform Y อาจง่ายกว่า", example:"ตัวอย่าง Blood Pressure (L3): SE ของสัมประสิทธิ์แม่นขึ้นหลังใช้ WLS เพราะไม่ถูกจุด variance สูงครอบงำ"},
-  robust: {title:"Robust Regression (LMS / Huber / Bisquare)", purpose:"ลดอิทธิพลของ outlier ต่อค่าประมาณ β̂ โดยไม่ต้องตัดจุดทิ้งจริง — แต่ละวิธีให้น้ำหนักจุดที่ residual สูงต่างกัน", read:"LMS (Least Median of Squares) มินิไมซ์ median ของ residual² แทน sum — ทนทานสุดแต่ไม่มี inference มาตรฐาน; Huber ให้น้ำหนักลดลงเชิงเส้นตาม |residual|; Bisquare (Tukey) ให้น้ำหนักเป็น 0 เลยถ้า residual ใหญ่เกิน threshold", criteria:"Bisquare ทนทานสุดในกลุ่มที่ยังมี inference ได้ (Huber ตัดกลาง ๆ)", example:"rlm() ใน R ให้ Value/Std.Error/t-value แต่ไม่มี p-value ในตารางหลัก ต้องเรียกฟังก์ชันแยก"},
-  linkfn: {title:"Link Function", purpose:"ฟังก์ชันที่เชื่อม linear predictor (Xβ) เข้ากับค่าเฉลี่ยของ response (μ) ในกรอบ GLM — g(μ)=Xβ", read:"เลือกตาม distribution: Binomial→logit (มาตรฐาน), Poisson/Gamma→log, Gaussian→identity", criteria:"นอกจาก logit ยังมี probit (Φ⁻¹(π), สมมติ latent variable normal) และ complementary log-log (log(-log(1-π)), ไม่สมมาตร เหมาะกับเหตุการณ์หายาก/extreme value) — logit ตีความง่ายสุดเป็น odds ratio จึงใช้บ่อยสุด", example:"อ่าน argument family=binomial(link=\"probit\") ในโค้ดเสมอ อย่าเดาจาก distribution อย่างเดียว"},
-  aicbic: {title:"AIC / BIC / Cp / Adjusted R²", purpose:"เกณฑ์เลือกโมเดลที่ลงโทษความซับซ้อน (จำนวนตัวแปร) เพื่อป้องกัน overfitting — ตัวเลขยิ่งต่ำ (adj-R² ยิ่งสูง) ยิ่งดี", read:"BIC ลงโทษตัวแปรแรงกว่า AIC เสมอ (โดยเฉพาะ n มาก) จึงมักเลือกโมเดลเล็กกว่า AIC", criteria:"ไม่มีค่าตัดสิน absolute — ใช้เทียบระหว่างโมเดลชุดเดียวกัน เลือกตัวที่ค่าต่ำสุด(หรือ adj-R²สูงสุด)", example:"mtcars: Base AIC=208.756 → +wt AIC=166.029 → +cyl AIC=156.010 (ดีขึ้นเรื่อย ๆ จนหยุดที่ p<0.05)"},
-  cv: {title:"Cross-Validation (Train/Test, K-fold)", purpose:"ประเมินความสามารถ 'ทำนายข้อมูลใหม่' ของโมเดล แทนที่จะดูแค่ว่าฟิตข้อมูลเดิมดีแค่ไหน (ซึ่งลวงตาได้จาก overfitting)", read:"Train/Test split: แบ่งข้อมูลเป็นสอนกับทดสอบ, K-fold CV: แบ่งเป็น K ส่วน หมุนเวียนแต่ละส่วนเป็น test set แล้วเฉลี่ยผล", criteria:"เลือกโมเดลที่ error บนข้อมูลทดสอบ (ไม่ใช่ข้อมูลฝึก) ต่ำที่สุด", example:"ใช้เลือก λ ของ Ridge/LASSO เสมอ (cv.glmnet) เพราะไม่มีสูตรปิดสำหรับ λ ที่ดีที่สุด"},
-  rmse: {title:"RMSE / MAE / Overfitting", purpose:"วัดขนาด error เฉลี่ยของค่าทำนาย — RMSE=√(mean(e²)) ลงโทษ error ใหญ่แรงกว่า MAE=mean(|e|)", read:"ยิ่งต่ำยิ่งดี แต่ต้องดูว่าวัดบนข้อมูล<strong>เดิม</strong>ที่ใช้ฟิต หรือข้อมูล<strong>ใหม่</strong>ที่ไม่เคยเห็น", criteria:"Overfitting = โมเดลซับซ้อนเกินจนจำข้อมูลฝึกได้แม่น (RMSE ฝึกต่ำ) แต่ทำนายข้อมูลใหม่แย่ (RMSE ทดสอบสูง)", example:"คำเตือนจากอาจารย์: 'RMSE คำนวณจากชุดข้อมูลเดียวกับที่ใช้ฟิตโมเดล โมเดลอาจ overfit แต่ทำนายข้อมูลใหม่ได้ไม่ดี' — RMSE ต่ำของโมเดลเต็มไม่ได้แปลว่าดีกว่าเสมอ"},
-  ridge2: {title:"Ridge / LASSO / Elastic Net", purpose:"บีบ (shrink) สัมประสิทธิ์เข้าหาศูนย์โดยตั้งใจ (ยอม bias) เพื่อลด variance และแก้ multicollinearity/p>n — Ridge ใช้ L2 penalty (บีบเข้าหา 0 แต่ไม่ถึง 0), LASSO ใช้ L1 (ตัดบางตัวเหลือ 0 พอดี = คัดตัวแปรในตัว)", read:"coef(glmnet(...)) ให้ค่าหลัง shrinkage ไม่มี p-value/SE", criteria:"เลือก λ ด้วย cross-validation (cv.glmnet) เสมอ", example:"Elastic Net ผสมทั้งคู่ด้วย α (0=Ridge, 1=LASSO, 0<α<1=ผสม)"},
-  overdisp: {title:"Overdispersion", purpose:"เมื่อ variance ของข้อมูลจริงมากกว่าที่ Poisson สมมติไว้ (Var=μ พอดี) — สาเหตุมักมาจากตัวแปรแฝงที่ไม่ได้ใส่ในโมเดล", read:"เปรียบเทียบ residual deviance กับ df — ถ้า deviance/df ≫ 1 บ่งชี้ overdispersion", criteria:"dispersion parameter φ̂ = deviance/df ≫ 1 (φ̂≈1 ถือว่าปกติ)", example:"ตัวอย่างจริง: φ̂=1.336542 → SE ขยายด้วย √1.3365≈1.156 เท่า, t-value เดิม -4.066 กลายเป็น -3.517 (นัยสำคัญยังอยู่แต่ไม่สุดโต่งเท่าตอนไม่ปรับ)"},
-  quasinb: {title:"Quasi-Poisson vs Negative Binomial", purpose:"ทั้งคู่แก้ overdispersion แต่คนละกลไก — Quasi-Poisson แค่ปรับ SE ด้วย √φ̂ โดยไม่เปลี่ยนโครงสร้าง variance, Negative Binomial เพิ่มพารามิเตอร์ dispersion เข้าไปในตัวแบบ variance function เอง (Var=μ+μ²/θ)", read:"NB ให้ likelihood จริงจึงเทียบ AIC ได้ (Quasi-Poisson ไม่มี likelihood ทำ AIC ไม่ได้)", criteria:"ถ้า GOF test ของ NB ผ่านดีกว่า (p-value สูงกว่า) มักเลือก NB", example:"อาจารย์สรุปเลือก NB เพราะ 'goodness-of-fit test บ่งชี้ negative binomial model is preferred' (GOF p=0.2828136)"},
-  hosmerlem: {title:"Hosmer-Lemeshow Test", purpose:"ทดสอบว่าโมเดล logistic fit ข้อมูล binary รายตัว (n_i=1 ทุกตัว) ได้ดีหรือไม่ — ใช้ได้เมื่อ deviance GOF ปกติใช้ไม่ได้ (ข้อมูลไม่ได้ group)", read:"แบ่งข้อมูลเป็น g กลุ่ม (ปกติ g=10) ตาม π̂ ที่เรียงแล้ว เทียบ observed vs expected count ในแต่ละกลุ่ม", criteria:"สถิติ ~ χ²_(g-2) — p-value สูง (ไม่ปฏิเสธ H₀) = โมเดล fit ดี", example:"H₀ ตรงข้ามกับการทดสอบสัมประสิทธิ์: ที่นี่อยากได้ p-value สูง"},
-  devgof: {title:"Deviance GOF Test", purpose:"ทดสอบว่าโมเดล GLM (ที่มีข้อมูล grouped/replicate) fit ข้อมูลดีหรือไม่ — เทียบกับ saturated model", read:"1-pchisq(residual deviance, df)", criteria:"deviance ~ χ²_(n-p-1) ภายใต้ H₀ — p-value สูงคือข่าวดี (ปฏิเสธเมื่อ deviance มากผิดปกติ)", example:"ตัวอย่างจริง: 1-pchisq(deviance,df)≈0.9997 → ไม่มีหลักฐานว่าโมเดล fit ไม่ดี"},
-  brant: {title:"Brant Test", purpose:"ทดสอบ proportional-odds (parallel regression) assumption ของ ordinal logistic model — β ต้องเท่ากันจริงในทุก cumulative logit cutpoint", read:"ดูแถว Omnibus (ภาพรวม) และแถวรายตัวแปร (หาตัวการ)", criteria:"p<0.05 ที่ Omnibus = ละเมิด assumption", example:"ตัวอย่างจริง: Omnibus p=0.03 (ละเมิด, nincome คือตัวการ) → ตัด nincome ออก → p=0.69 (ผ่าน)"},
-  kr: {title:"Kenward-Roger / Satterthwaite", purpose:"วิธีประมาณ degrees of freedom สำหรับ t-test ของ fixed effect ใน linear mixed model (lmer ไม่ให้ df มาตรฐานแบบ OLS)", read:"ให้ p-value ที่แม่นยำกว่า t-as-z หรือ ML-LRT ธรรมดา โดยเฉพาะตัวอย่างเล็ก", criteria:"ควรใช้เป็นค่าเริ่มต้นเสมอเมื่อจำนวน subject/item น้อย เพราะ t-as-z/LRT ปฏิเสธ H₀ เกินจริง (anti-conservative)", example:"งานวิจัย (Luke 2017): ที่ n เล็ก Type I error ของ t-as-z สูงถึง 0.06-0.09 (ควรเป็น 0.05) ส่วน Kenward-Roger ใกล้ 0.05 เสมอ"},
-  blup: {title:"BLUP (Best Linear Unbiased Predictor)", purpose:"ค่าประมาณ random effect เฉพาะกลุ่ม (เช่น b̂₀ᵢ ของ operator คนที่ i) ใช้ทำนายค่าแบบ conditional (เจาะจงกลุ่ม) แทน marginal (ค่าเฉลี่ยรวม)", read:"ดึงด้วย ranef(model) ใน R", criteria:"ใช้เมื่อโจทย์ถามทำนายค่าของหน่วยที่ 'ระบุเจาะจง' ไม่ใช่ค่าเฉลี่ยประชากร", example:"eggprod: marginal prediction=306.5 vs conditional(BLUP)=314.8 — ต่างกันเพราะ ICC=25%"},
-  icc: {title:"ICC (Intraclass Correlation)", purpose:"สัดส่วนความแปรปรวนรวมที่มาจากความแตกต่าง 'ระหว่างกลุ่ม' (เทียบกับความแปรปรวน 'ภายในกลุ่ม') — บอกว่าการจัดกลุ่มสำคัญแค่ไหน", read:"ICC = σ²_group / (σ²_group + σ²_residual)", criteria:"ICC สูง = ข้อสังเกตในกลุ่มเดียวกันคล้ายกันมาก (correlated กันแรง) ยิ่งต้องใช้ LMM ไม่ใช่ OLS ธรรมดา", example:"pulp brightness: ICC = 0.06808/(0.06808+0.10625) ≈ 39% — เกือบ 40% ของความแปรปรวนมาจากความต่างระหว่าง operator"},
-  mlreml: {title:"ML vs REML", purpose:"สองวิธีประมาณพารามิเตอร์ของ LMM — ML (Maximum Likelihood) ประมาณ fixed effect และ variance component พร้อมกัน, REML (Restricted ML) ประมาณ variance component หลังหักผล fixed effect ออกก่อน", read:"REML ให้ variance component ไม่ bias (ค่าเริ่มต้นของ lmer) — ML bias ต่ำกว่าความจริงเป็นระบบ", criteria:"เทียบ nested model ด้วย LRT ต้องใช้ ML เท่านั้น (REML เทียบข้าม fixed-effect structure ไม่ได้)", example:"pulp: variance ของ operator REML=0.06808 vs ML=0.04575 (ML ให้ค่าต่ำกว่าจริงตามที่ทฤษฎีทำนาย)"},
-  margcond: {title:"Marginal vs Conditional R²", purpose:"R² สำหรับ mixed model แยกสัดส่วนความแปรปรวนที่อธิบายได้จาก fixed effects อย่างเดียว (marginal) เทียบกับ fixed+random effects รวมกัน (conditional)", read:"Conditional R² ≥ Marginal R² เสมอ (random effect ช่วยอธิบายเพิ่มเติมเสมอ)", criteria:"ส่วนต่างระหว่างสอง R² บอกว่า grouping structure ช่วยอธิบายได้มากแค่ไหน", example:"ถ้า marginal R² ต่ำแต่ conditional R² สูงมาก แปลว่าตัวแปร fixed effect อธิบายได้น้อย ส่วนใหญ่มาจากความแตกต่างระหว่างกลุ่ม"},
-  tukey: {title:"Tukey HSD", purpose:"เปรียบเทียบค่าเฉลี่ยทุกคู่หลัง ANOVA F-test ปฏิเสธ H₀ โดยควบคุม family-wise error rate ไม่ให้พองจากการทดสอบหลายคู่พร้อมกัน", read:"ใช้ studentized range distribution q แทน t ธรรมดา", criteria:"เหมาะเมื่อต้องการเทียบทุกคู่ (all pairwise) พร้อมกัน", example:"TukeyHSD(aovmodel) ใน R ให้ CI ของผลต่างแต่ละคู่พร้อม p-value ปรับแล้ว"},
-  lsdbonf: {title:"LSD / Bonferroni / Scheffe", purpose:"วิธี post-hoc อื่นนอกจาก Tukey — ความเข้มงวดในการควบคุม error ต่างกัน", read:"LSD (Least Significant Difference) หลวมสุด (ไม่ปรับ multiple-testing เลย, เหมือน t-test ทีละคู่) → Tukey (ปรับสำหรับเทียบทุกคู่) → Bonferroni (ปรับหารด้วยจำนวนคู่ทดสอบ เข้มงวด) → Scheffe (เข้มงวดสุด รองรับการเทียบ contrast ใดก็ได้ไม่จำกัดแค่รายคู่)", criteria:"ยิ่งเข้มงวด ยิ่งลด false positive แต่ยิ่งลด power (ตรวจจับความต่างจริงได้ยากขึ้น)", example:"เลือกตามคำถามวิจัย: อยากเทียบทุกคู่ตรง ๆ → Tukey, อยากเทียบ contrast ซับซ้อน → Scheffe"},
-  cipi: {title:"CI vs PI (Confidence vs Prediction Interval)", purpose:"CI ประมาณค่าเฉลี่ยทฤษฎี (mean response) ที่ X₀ — PI ประมาณค่าสังเกตใหม่ 1 ค่า ที่ X₀", read:"สูตร SE ต่างกันแค่พจน์ '+1': PI's SE = s√(1+1/n+...) เทียบ CI's SE = s√(1/n+...)", criteria:"PI กว้างกว่า CI เสมอ เพราะต้องรวมความแปรปรวนของค่าสังเกตใหม่ (ε) เข้าไปด้วย ไม่ใช่แค่ความไม่แน่นอนของเส้นค่าเฉลี่ย", example:"ตัวอย่างจริง: 95% CI กว้าง 91.8 หน่วย vs 95% PI กว้าง 583.5 หน่วย (ข้อมูลเดียวกัน จุดเดียวกัน)"},
-  extrassf: {title:"Extra-Sum-of-Squares F-test", purpose:"ทดสอบว่าตัวแปรกลุ่มหนึ่ง (q ตัว) มีผลเพิ่มเติมจริงหรือไม่ เทียบโมเดลเล็ก (reduced) กับโมเดลใหญ่ (full) ที่มีตัวแปรกลุ่มนั้นเพิ่ม", read:"F = [(SSE_reduced-SSE_full)/q] / [SSE_full/(n-p-1)]", criteria:"F มากผิดปกติ (p<0.05) → ปฏิเสธ H₀ → ตัวแปรกลุ่มนั้นควรอยู่ในโมเดล", example:"anova(reducedmodel, fullmodel) ใน R — ตัวอย่าง Insul: p<2.2e-16 → เก็บ Insul (main+interaction) ไว้"},
-  waldlrt: {title:"Wald's Test vs Likelihood Ratio Test (LRT)", purpose:"สองวิธีทดสอบสัมประสิทธิ์ GLM — Wald ใช้ z=β̂/SE (คำนวณง่าย อ่านจาก summary() ตรง ๆ), LRT เทียบ deviance ของสองโมเดล (แม่นกว่าโดยเฉพาะตัวอย่างเล็ก)", read:"LRT: -2(ℓ_reduced - ℓ_full) ~ χ²_(k) หรือเทียบเท่ากับ D_reduced - D_full", criteria:"ตัวอย่างเล็กหรือค่าประมาณใกล้ขอบเขตพารามิเตอร์ → LRT แม่นกว่า Wald", example:"ตัวอย่างจริง L12: LRT stat=16.0114, df=1, p=0.0003 → เก็บพจน์ age10³ ไว้"},
-  satmodel: {title:"Saturated Model / Null Deviance", purpose:"Saturated model คือโมเดลที่ยอมให้ μ̂ᵢ=yᵢ พอดีทุกจุด (ฟิตสมบูรณ์แบบ) ใช้เป็นจุดอ้างอิงคำนวณ deviance — Null deviance คือ deviance ของโมเดล intercept-only (ไม่มีตัวแปรอิสระเลย)", read:"Deviance = 2×(log-likelihood ของ saturated - log-likelihood ของโมเดลที่สนใจ)", criteria:"Null deviance - Residual deviance มาก = ตัวแปรอิสระช่วยอธิบายได้เยอะ", example:"โมเดลลดรูป (intercept-only): Null deviance = Residual deviance พอดี (สมเหตุสมผลเพราะไม่มีอะไรให้อธิบายเพิ่ม)"},
-  shapiro: {title:"Shapiro-Wilk Test", purpose:"ทดสอบว่า residual แจกแจงแบบปกติ (normal) หรือไม่ — เสริม QQ-plot ด้วยตัวเลขที่ตัดสินได้ชัดเจน", read:"H₀: residual แจกแจงปกติ", criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = 'ผ่าน' — ทิศทางตรงข้ามกับการทดสอบสัมประสิทธิ์", example:"shapiro.test(resid(model)) ใน R"},
-  bp: {title:"Breusch-Pagan Test", purpose:"ทดสอบว่า residual มี constant variance (homoscedastic) หรือไม่ — เสริม residual-vs-fitted plot ด้วยตัวเลข", read:"H₀: variance คงที่ตลอดช่วง fitted value", criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = 'ผ่าน'", example:"bptest(model) จาก package lmtest"},
-  dw: {title:"Durbin-Watson / Run Test", purpose:"ทดสอบว่า residual เป็นอิสระต่อกันหรือไม่ (independence assumption) — สำคัญมากกับข้อมูลที่มีลำดับ เช่น time series", read:"Durbin-Watson: สถิติ DW อยู่ในช่วง 0-4, DW≈2 = ไม่มี autocorrelation; Run Test: นับจำนวน 'run' ของเครื่องหมาย +/- ของ residual ที่เรียงตามลำดับ", criteria:"DW < 2 อย่างชัดเจน = positive autocorrelation (จุดใกล้กันมีค่าคล้ายกัน), Run test: run น้อยผิดปกติ = ไม่อิสระ", example:"randtests package ใน R ใช้ run test ได้ตรง ๆ"},
-  cochrane: {title:"Cochrane-Orcutt Transformation", purpose:"แก้ปัญหา residual ไม่อิสระต่อกัน (autocorrelation) โดยประมาณค่าสัมประสิทธิ์ autocorrelation ρ แล้วแปลงตัวแปรทั้งหมดเพื่อกำจัด correlation ออกก่อนฟิต OLS ใหม่", read:"เป็นกระบวนการวนซ้ำ (iterative): ประมาณ ρ → แปลงข้อมูล → ฟิตใหม่ → ประมาณ ρ ใหม่ → ทำซ้ำจนลู่เข้า", criteria:"ใช้เมื่อ Durbin-Watson/Run test ชี้ชัดว่ามี autocorrelation (มักเกิดกับข้อมูลอนุกรมเวลา)", example:"ทางเลือกอื่นคือใช้ Generalized Least Squares (GLS) โดยตรง"},
-  levene: {title:"Levene's / Bartlett's Test", purpose:"ทดสอบว่า variance เท่ากันทุกกลุ่มหรือไม่ (homogeneity of variance) — assumption สำคัญของ ANOVA แบบมาตรฐาน", read:"H₀: variance ของทุกกลุ่มเท่ากัน — Bartlett ไวต่อการไม่ normal มากกว่า Levene (Levene ทนทานกว่า)", criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = variance เท่ากัน 'ผ่าน'", example:"เสริม boxplot เทียบ spread ของแต่ละกลุ่มด้วยตา"},
-  welch: {title:"Welch ANOVA", purpose:"เวอร์ชันของ ANOVA F-test ที่ไม่ต้องสมมติว่า variance เท่ากันทุกกลุ่ม (แก้ปัญหาที่ Levene/Bartlett ปฏิเสธ H₀)", read:"ปรับ degrees of freedom ให้เหมาะกับ variance ที่ไม่เท่ากัน แทนการรวม pooled variance แบบ ANOVA มาตรฐาน", criteria:"ใช้แทน ANOVA มาตรฐานทันทีที่ equal-variance assumption ไม่ผ่าน", example:"oneway.test(y~group, var.equal=FALSE) ใน R"},
-  probitcloglog: {title:"Probit / Complementary Log-Log", purpose:"ทางเลือกอื่นของ logit link — Probit สมมติ latent variable แจกแจงปกติ (Φ⁻¹), Complementary log-log ไม่สมมาตร เหมาะกับโมเดลที่ π เปลี่ยนเร็วตอนใกล้ 0 หรือ 1", read:"Probit: g(π)=Φ⁻¹(π); Cloglog: g(π)=log(-log(1-π))", criteria:"Logit นิยมสุดเพราะตีความเป็น odds ratio ได้ตรงไปตรงมา — probit/cloglog ให้ผลใกล้เคียงกันในช่วงกลาง แต่ต่างกันที่หาง", example:"เลือกตาม argument family=binomial(link=...) ที่โจทย์ให้มา"},
-  offset: {title:"Offset Term", purpose:"ใช้เมื่อสนใจ 'อัตรา' (rate) ไม่ใช่ 'จำนวนนับดิบ' (raw count) — เช่นจำนวนอุบัติเหตุต่อระยะทาง ไม่ใช่จำนวนอุบัติเหตุเฉย ๆ", read:"offset(log(exposure)) บังคับสัมประสิทธิ์ของพจน์ exposure ให้ =1 เสมอ (ไม่ต้องประมาณ)", criteria:"สมการยังเขียนเป็น log(μ̂)=X β̂+log(exposure) แต่ถ้าอยากตีความเป็นอัตรา ต้องย้ายข้าง: log(μ̂/exposure)=Xβ̂", example:"L11/L13: dose-response ที่ต้องคุมขนาดกลุ่มตัวอย่างที่ต่างกันในแต่ละแถว"},
-  gammaig: {title:"Gamma vs Inverse Gaussian", purpose:"ทั้งคู่ใช้กับ Y ต่อเนื่องบวกเสมอ เบ้ขวา ต่างกันที่รูปแบบความสัมพันธ์ variance-mean", read:"Gamma: Var(Y)=φμ² (variance โตตามกำลังสองของ mean) — Inverse Gaussian: Var(Y)=φμ³ (โตเร็วกว่ามาก เหมาะกับข้อมูลที่ tail ยาวกว่า Gamma)", criteria:"เทียบ AIC/goodness-of-fit ระหว่างสองแบบ (family เดียวกันเทียบ AIC ตรงได้ ถ้าต่าง link ก็ยังเทียบได้ตราบใดที่ distribution เดียวกัน)", example:"L13: เทียบ Gamma vs log-normal (คนละ distribution เทียบ LRT/AIC ตรงไม่ได้ ต้องดู deviance ลดลงเทียบ null คร่าว ๆ แทน)"},
-  confmat: {title:"Confusion Matrix", purpose:"ตารางเทียบค่าทำนาย (predicted class) กับค่าจริง (actual class) ของโมเดล classification — ฐานของ metric ทุกตัวถัดไป", read:"4 ช่อง: True Positive, False Positive, True Negative, False Negative ที่ cutoff ที่เลือก", criteria:"ไม่มีเกณฑ์ตายตัว — ใช้คำนวณ metric อื่นต่อ", example:"ต้องเลือก cutoff (มักเริ่มที่ π̂=0.5) ก่อนสร้างตารางนี้ได้เสมอ"},
-  rocauc: {title:"ROC Curve / AUC / Youden's Index", purpose:"ROC วัดผล trade-off ระหว่าง Sensitivity (True Positive Rate) กับ 1-Specificity (False Positive Rate) ทุกค่า cutoff พร้อมกัน — AUC สรุปเป็นตัวเลขเดียว", read:"แกน Y = Sensitivity, แกน X = 1-Specificity — เส้นทแยงมุม = โมเดลสุ่มเดา (AUC=0.5)", criteria:"AUC=1 สมบูรณ์แบบ, AUC=0.5 ไม่ต่างจากสุ่ม, ยิ่งใกล้ 1 ยิ่งดี — Youden's Index=max(Sensitivity+Specificity-1) ใช้เลือก cutoff ที่ดีที่สุด", example:"ดู plot ROC จริงได้ (มี asset ex-a7-roc-curve.png จากตัวอย่าง moth data)"},
-  pseudor2: {title:"Pseudo R² (Nagelkerke)", purpose:"GLM ไม่มี R² แบบ OLS ตรง ๆ (residual ไม่ได้แปลว่า 'ระยะห่างจากเส้นตรง' แบบเดิม) — Pseudo R² พยายามให้ตัวเลขที่ตีความคล้าย R² โดยเทียบ likelihood", read:"Nagelkerke ปรับสเกลให้ค่าสูงสุดเป็น 1 ได้จริง (McFadden's pseudo R² ทำไม่ได้)", criteria:"ใช้เปรียบเทียบ 'ความพอดี' คร่าว ๆ เท่านั้น อย่าตีความเป๊ะเหมือน OLS R²", example:"ใช้ประกอบการอธิบาย ไม่ใช่ตัวชี้วัดหลักในการเลือกโมเดล (ใช้ deviance/AIC เป็นหลักดีกว่า)"},
-  prospretro: {title:"Prospective vs Retrospective Study", purpose:"Prospective (ตามไปข้างหน้า): สุ่มตัวอย่างก่อน แล้วดูว่าใครเป็นเคสในอนาคต — Retrospective/case-control (ย้อนกลับ): เลือกเคสกับ non-เคสมาก่อนแล้วดูปัจจัยย้อนหลัง", read:"Case-control กำหนดสัดส่วน เคส:ไม่เคส เองล่วงหน้า (ไม่ใช่สัดส่วนธรรมชาติ)", criteria:"ใน retrospective/case-control, intercept β̂₀ <strong>ตีความเป็น baseline prevalence ไม่ได้</strong> เพราะสัดส่วนกลุ่มถูกกำหนดเอง ไม่ใช่ของธรรมชาติ — แต่ odds ratio ของสัมประสิทธิ์อื่นยังตีความได้ปกติ", example:"ตัวอย่าง bird-keeper lung cancer (L9): เป็น case-control design"},
-  cellfactor: {title:"Cell-Means vs Factor-Effects Model", purpose:"สองวิธีเขียนสมการ ANOVA แบบเดียวกัน — Cell-means: Y=μᵢ+ε (แต่ละกลุ่มมีค่าเฉลี่ยของตัวเอง) — Factor-effects: Y=μ+τᵢ+ε (grand mean บวกผลต่างของแต่ละกลุ่ม, constrained Στᵢ=0)", read:"Factor-effects เทียบเท่ากับ MLR ที่มี r-1 dummy variable", criteria:"ตีความ H₀ ต่างมุมกันแต่เทียบเท่าทางคณิตศาสตร์: H₀:μ₁=...=μᵣ ⟺ H₀:τ₁=...=τᵣ=0", example:"ใช้ contrast แบบไหนใน R (contr.treatment/contr.sum) กำหนดว่าได้ค่าสัมประสิทธิ์แบบไหนออกมา"},
-  contrasts: {title:"contr.treatment vs contr.sum", purpose:"สองวิธีเข้ารหัส dummy variable ของตัวแปร categorical ใน R — ให้ค่าทำนายเหมือนกันเป๊ะ แต่ตีความสัมประสิทธิ์ต่างกัน", read:"contr.treatment (default ของ R): Intercept=ค่าเฉลี่ยกลุ่มอ้างอิงตรง ๆ, dummy อื่น=ผลต่างจาก reference — contr.sum: Intercept=grand mean, dummy=ผลต่างจาก grand mean (ตัวสุดท้ายคำนวณจาก Σ=0)", criteria:"ไม่มีแบบไหนถูก/ผิด — เลือกตามคำถามวิจัย (อยากเทียบกับกลุ่มอ้างอิง หรืออยากเทียบกับค่าเฉลี่ยรวม)", example:"ตัวอย่าง bakesale: contr.treatment ได้ Intercept=55.8 (bottom) — contr.sum ได้ Intercept=61.5 (grand mean)"},
+cooksd:{title:"Cook's Distance",def:"ตัวเลขเดียวที่วัด 'อิทธิพลรวม' ของจุดข้อมูล i ต่อสัมประสิทธิ์ทั้งชุด. ผสมทั้ง leverage (ตำแหน่ง X ผิดปกติแค่ไหน) และ residual (ทำนายพลาดแค่ไหน) เข้าด้วยกัน",when:"ใช้หลังฟิตโมเดลเสร็จ ทุกครั้งที่สงสัยว่ามีจุดข้อมูลบางจุด 'ลากเส้นฟิต' ไปทางใดทางหนึ่งมากผิดปกติ. เป็นขั้นตอนมาตรฐานหลัง residual plot",read:"สูตร \\(D_i=\\dfrac{(\\hat\\beta-\\hat\\beta_{(i)})^T(X^TX)(\\hat\\beta-\\hat\\beta_{(i)})}{p\\,s^2}\\). วัดว่าถ้าตัดจุด i ทิ้งแล้วฟิตใหม่ สัมประสิทธิ์เปลี่ยนไปแค่ไหน. เรียกด้วย <code>cooks.distance(model)</code> หรือ <code>plot(model, which=4)</code>",criteria:"กติกาที่ใช้บ่อยสุด: \\(D_i>4/n\\) ควรตรวจสอบเพิ่ม, \\(D_i>1\\) ถือว่ามีอิทธิพลสูงชัดเจนไม่ว่า n เท่าไหร่",example:"ข้อมูล lungpressure (n=19, p=3): เกณฑ์ 4/19≈0.21. จุดที่ \\(D_i\\) เกิน 0.21 ต้องเช็คคู่กับ leverage และ residual แยกกันก่อนสรุปว่า influential จริง เพราะ Cook's D สูงอาจมาจาก leverage สูงอย่างเดียว (ไม่มีปัญหาจริง) หรือ residual สูงอย่างเดียว (แค่ outlier ธรรมดา) ก็ได้",visual:[{img:"assets/slides/as4-p30-cooksd-charts-mtcars.png",cap:"mtcars: เส้น threshold ที่ 0.125. จุด 9 (D≈0.38), 17 (D≈0.15), 28 (D≈0.15) โผล่เหนือเส้น = ต้องตรวจสอบเพิ่ม"}]},
+leverage:{title:"Leverage (Hat Value)",def:"วัดว่าจุด \\(X_i\\) อยู่ห่างจากค่าเฉลี่ยของตัวแปรอิสระ (จุดศูนย์กลางของข้อมูล X) มากแค่ไหน. ดูแค่ตำแหน่งของ X เท่านั้น ไม่เกี่ยวกับ Y เลย",when:"ใช้ตรวจหา 'จุดที่ผิดปกติในแกน X' ก่อนที่จะรู้ด้วยซ้ำว่ามันทำนายแม่นหรือไม่. บอกแค่ 'ศักยภาพ' ที่จะมีอิทธิพล ไม่ใช่อิทธิพลจริง",read:"อ่านจากแนวทแยงของ hat matrix \\(H=X(X^TX)^{-1}X^T\\) คือ \\(h_{ii}\\). เรียกด้วย <code>hatvalues(model)</code> หรือดูใน <code>plot(model, which=5)</code>",criteria:"\\(h_{ii}>2p/n\\) (หรือ \\(3p/n\\) ถ้า n เล็ก) ถือว่า leverage สูงผิดปกติ โดย p=จำนวนพารามิเตอร์รวม intercept",example:"จุดที่ leverage สูงแต่ residual (ค่าจริง-ค่าทำนาย) ต่ำมาก = high-leverage แต่ไม่ influential เพราะโมเดลทำนายจุดนั้นได้แม่นอยู่แล้ว (เส้นฟิตวิ่งผ่านใกล้จุดนั้นพอดี). ต่างจากจุดที่ leverage สูง+residual สูงพร้อมกันซึ่งอันตรายกว่ามาก",visual:[{img:"assets/slides/as4-p06-leverage-plot-mtcars-r.png",cap:"mtcars: cutoff=2p/n≈0.69 (เส้นประน้ำเงิน). จุด index 9 สูงถึง≈0.75 เกิน cutoff ชัดเจน จุดอื่นทั้งหมดอยู่ใต้เส้น"}]},
+dffits:{title:"DFFITS / DFBETAS",def:"DFFITS วัดว่าค่าทำนาย \\(\\hat{Y}_i\\) เปลี่ยนไปเท่าไหร่ถ้าตัดจุด i ทิ้ง. DFBETAS ละเอียดกว่านั้นอีก คือวัดว่าสัมประสิทธิ์ 'แต่ละตัว' \\(\\hat\\beta_j\\) เปลี่ยนไปเท่าไหร่ ไม่ใช่แค่ภาพรวมแบบ Cook's D",when:"ใช้เมื่อ Cook's D บอกว่ามีจุด influential แล้ว อยากรู้ต่อว่ามันไปกระทบ 'สัมประสิทธิ์ตัวไหน' โดยเฉพาะ",read:"เรียกพร้อมกันได้ด้วย <code>influence.measures(model)</code> ซึ่งให้ทั้ง DFFITS, DFBETAS ทุกตัวแปร, Cook's D, hat values ในตารางเดียว",criteria:"DFFITS: \\(|\\text{DFFITS}_i|>2\\sqrt{p/n}\\) น่าสงสัย. DFBETAS: \\(|\\text{DFBETAS}_{ij}|>2/\\sqrt{n}\\) น่าสงสัย",example:"ถ้าจุด i มี DFBETAS สูงเฉพาะกับสัมประสิทธิ์ของ X2 แต่ไม่สูงกับ X1 แปลว่าจุดนั้นบิดเบือนเฉพาะการประมาณผลของ X2 เท่านั้น. ข้อมูลที่ influence.measures() ให้มาละเอียดกว่าการดู Cook's D อย่างเดียวมาก"},
+studres:{title:"Studentized Deleted Residual",def:"residual ที่ปรับสเกลด้วย MSE ซึ่งคำนวณจากโมเดลที่ 'ตัดจุด i ออกไปก่อน'. กันไม่ให้จุด i เองมาบิดเบือนค่า MSE ที่ใช้วัดตัวมันเอง",when:"ใช้แทน residual ธรรมดาเมื่ออยากทดสอบว่าจุดใดเป็น outlier ทางสถิติจริง ๆ ไม่ใช่แค่ดูด้วยตา",read:"เทียบกับ t-distribution ที่ df=n-p-2 (เสีย 1 df เพิ่มเพราะตัดจุดนั้นออกจากการประมาณ MSE)",criteria:"ใช้ Bonferroni-adjusted cutoff: \\(|t_i|>t_{(1-\\alpha/2n,\\,n-p-2)}\\). หาร α ด้วย n เพราะกำลังทดสอบ n จุดพร้อมกัน (multiple testing)",example:"n=19, p=3, α=0.05 → cutoff ที่ \\(t_{(1-0.05/38,\\,15)}\\)≈3.65 (เข้มกว่า t ปกติที่ 2.13 มาก). จุดที่ residual ปกติดูเหมือนสูงอาจไม่ผ่าน cutoff ที่ปรับแล้วนี้ ทำให้ Bonferroni ช่วยกัน false positive จากการเช็คหลายจุดพร้อมกัน"},
+covratio:{title:"COV RATIO",def:"วัดว่า 'ความแม่นยำ' (precision) ของค่าประมาณสัมประสิทธิ์ทั้งชุดเปลี่ยนไปแค่ไหนถ้าตัดจุด i ทิ้ง. ต่างจาก DFBETAS ที่ดูทิศทาง/ขนาดของ β เปลี่ยน ตัวนี้ดู 'ความกว้างของ CI' เปลี่ยน",when:"ใช้เสริม Cook's D/DFFITS เมื่ออยากรู้ว่าจุดหนึ่งทำให้ SE ของสัมประสิทธิ์กว้างขึ้นหรือแคบลง",read:"\\(\\text{COVRATIO}_i=\\dfrac{\\det(s^2_{(i)}(X_{(i)}^TX_{(i)})^{-1})}{\\det(s^2(X^TX)^{-1})}\\). ดูพร้อมกันในตาราง <code>influence.measures()</code>",criteria:"นอกช่วง \\(1\\pm 3p/n\\) ถือว่าน่าสงสัย. มากกว่า 1 = จุดนั้นเพิ่มความแม่นยำ (ลด SE), น้อยกว่า 1 = ลดความแม่นยำ (เพิ่ม SE)",example:"จุดที่ leverage สูงมากแต่ residual ปกติ มักมี COVRATIO>1 (ช่วยเพิ่มความแม่นยำ เพราะขยายช่วง X ที่มีข้อมูล). ในขณะที่จุด outlier residual สูงมักมี COVRATIO<1 (ทำให้ค่าประมาณไม่แม่น)"},
+masking:{title:"Masking Effect",def:"ปรากฏการณ์ที่ outlier/influential point 2 จุดขึ้นไป 'บังกันเอง'. จุดหนึ่งดึงเส้นฟิตเข้าหาอีกจุด ทำให้ diagnostic แบบทีละจุด (residual เดี่ยว) ตรวจไม่พบว่าทั้งคู่ผิดปกติ",when:"ต้องระวังเสมอเมื่อเจอ scatter plot ที่มีจุดผิดปกติอยู่ใกล้กัน 2-3 จุด แม้ diagnostic ตัวเลขแต่ละจุดจะดูปกติ",read:"ไม่มีสูตรตายตัว. สังเกตจาก scatter plot จริงโดยตรง หรือลองตัดจุดทีละคู่/กลุ่มแล้วดูว่า diagnostic ตัวเลขกระโดดวูบวาบไหม",criteria:"ไม่มีเกณฑ์ตัวเลข. นี่คือเหตุผลหลักที่วิชานี้ย้ำว่าต้อง plot ข้อมูลดูก่อนเชื่อ diagnostic ตัวเลขอย่างเดียวเสมอ",example:"จุด A และ B อยู่ห่างจากกลุ่มไปทางเดียวกัน. ถ้าตัดแค่ A ออก เส้นฟิตขยับไปทาง B (residual ของ B ดูใหญ่ขึ้น) แต่ถ้าตัด A กับ B พร้อมกัน เส้นฟิตขยับกลับเข้ากลุ่มปกติมาก. diagnostic ทีละจุดจะไม่มีวันจับ pattern นี้ได้"},
+vif:{title:"VIF (Variance Inflation Factor)",def:"วัดว่าตัวแปรอิสระ \\(X_j\\) หนึ่งตัวถูกอธิบายได้ดีแค่ไหนจากตัวแปรอิสระตัวอื่นทั้งหมดรวมกัน (multicollinearity). VIF สูงแปลว่าข้อมูลไม่พอที่จะแยกผลของ \\(X_j\\) ออกจากตัวอื่นได้ชัดเจน",when:"เช็คทุกครั้งก่อนเชื่อ p-value ของ MLR ที่มีตัวแปรอิสระหลายตัว โดยเฉพาะถ้าสัมประสิทธิ์บางตัวมีเครื่องหมายที่ขัดสามัญสำนึก",read:"\\(\\text{VIF}_j=1/(1-R_j^2)\\) โดย \\(R_j^2\\) มาจากการถดถอย \\(X_j\\) กับตัวแปรอิสระตัวอื่นทั้งหมด. เรียกด้วย <code>vif(model)</code> จาก package <code>car</code>",criteria:"VIF>10 (บางตำราใช้เกณฑ์ 5) ถือว่า multicollinearity รุนแรง. SE ของสัมประสิทธิ์ตัวนั้นถูกพองขึ้นมาก",example:"lungpressure หลังเพิ่ม interaction X1*X2: VIF ของ X1 และ X2 พุ่งจาก ~6-11 เป็น ~38-58. บ่งชี้ว่า interaction term ทำให้ multicollinearity แย่ลงมาก (พบบ่อยเมื่อไม่ centered ตัวแปรก่อนสร้าง interaction) แก้ด้วย centering, ตัดตัวแปรซ้ำซ้อน, หรือ Ridge Regression"},
+boxcox:{title:"Box-Cox Transformation",def:"วิธีหาค่า λ ที่เหมาะสมที่สุดสำหรับแปลง Y แบบอัตโนมัติในตระกูล \\(Y^{(\\lambda)}\\) แทนการเดา log/sqrt เอง. แก้ปัญหา non-linearity และ non-constant variance พร้อมกันในการแปลงครั้งเดียว",when:"ใช้ทันทีที่ residual plot แสดง pattern โค้งหรือกรวยบาน (funnel) และสงสัยว่าการแปลง Y จะช่วยได้",read:"ดูกราฟ log-likelihood vs λ (เรียกด้วย <code>boxcox(model)</code> จาก package MASS) แล้วเลือก λ ที่ให้ log-likelihood สูงสุด (จุดยอดของกราฟ)",criteria:"ปัดเข้าค่าที่ตีความง่ายที่สุดภายในช่วง 95% CI ของ λ: λ=1→ไม่ต้องแปลง, λ=0→log(Y), λ=0.5→√Y, λ=-1→1/Y",example:"Solution Concentration (Assignment 3): λ≈0 พอดี CI แคบมากรอบ 0 ไม่ครอบคลุม λ=1 เลย → เลือก log(Y) → R² ขยับจาก 0.8116 เป็น 0.9930 residual plot จากรูปตัว V กลายเป็นกระจายสุ่มสมบูรณ์",visual:[{img:"assets/exam-plots/ex-a3-boxcox-loglik.png",cap:"กราฟ log-likelihood พุ่งสูงสุดที่ λ≈0 พอดี เส้นประ 95% CI ทั้งสองข้างบีบแคบมากรอบ 0. จุดยอดคือ λ ที่เลือก"}]},
+wls:{title:"WLS (Weighted Least Squares)",def:"แก้ปัญหา non-constant variance โดยให้ 'น้ำหนัก' จุดที่มี variance ต่ำมากกว่าจุดที่มี variance สูง แทนที่จะปฏิบัติทุกจุดเท่ากันแบบ OLS ธรรมดา",when:"เลือกใช้เมื่อรู้/ประมาณรูปแบบของ variance ได้ชัดเจน (เช่น variance แปรผันตาม X). ถ้าไม่รู้รูปแบบ การแปลง Y (Box-Cox) มักง่ายกว่า",read:"น้ำหนัก \\(w_i\\) มักตั้งเป็น \\(1/\\hat{\\text{variance}}_i\\) ที่ประมาณได้จากกลุ่มข้อมูลซ้ำ. เรียกด้วย <code>lm(y~x, weights=w)</code>",criteria:"เลือกใช้แทน Box-Cox เมื่อต้องการคง scale เดิมของ Y ไว้ (ตีความง่ายกว่า) และรู้โครงสร้าง variance ชัดเจนพอจะประมาณน้ำหนักได้",example:"Machine Speed (Assignment 3): variance ของ residual แปรผันตาม X (megaphone pattern). น้ำหนักที่ X=200 คือ 0.01456 vs X=400 คือ 0.00315 (จุดที่ variance สูงกว่าได้น้ำหนักน้อยกว่า) SE ของสัมประสิทธิ์หลัง WLS แม่นยำขึ้นเพราะไม่ถูกจุด variance สูงครอบงำ"},
+robust:{title:"Robust Regression (LMS / Huber / Bisquare)",def:"กลุ่มวิธีลดอิทธิพลของ outlier ต่อค่าประมาณ β̂ โดยไม่ต้องตัดจุดทิ้งจริง. แต่ละวิธีให้น้ำหนักจุดที่ residual สูงต่างกัน",when:"ใช้แทน OLS เมื่อมี outlier ที่ไม่อยากตัดทิ้ง (อาจเป็นข้อมูลจริง ไม่ใช่ error) แต่ก็ไม่อยากให้มันครอบงำผลลัพธ์",read:"LMS (Least Median of Squares) มินิไมซ์ median ของ residual² แทน sum. ทนทานสุดแต่ไม่มี inference มาตรฐาน; Huber ให้น้ำหนักลดลงเชิงเส้นตาม |residual|; Bisquare (Tukey) ให้น้ำหนักเป็น 0 เลยถ้า residual ใหญ่เกิน threshold. เรียกด้วย <code>rlm(y~x, method=\"...\")</code> จาก package MASS",criteria:"Bisquare ทนทานสุดในกลุ่มที่ยังมี inference ได้ (Huber ตัดกลาง ๆ ระหว่างทนทานกับมี inference)",example:"CO2 data: ทั้ง 4 วิธี (OLS, LMS, Huber, Bisquare) ให้สัมประสิทธิ์ log(GDP) ต่างกัน. OLS ถูกดึงโดย outlier มากที่สุด Bisquare ให้ค่าที่เสถียรสุด rlm() ให้ Value/Std.Error/t-value แต่ไม่มี p-value ในตารางหลัก ต้องเรียกฟังก์ชันแยกทดสอบ"},
+linkfn:{title:"Link Function",def:"ฟังก์ชันที่เชื่อม linear predictor \\(X\\beta\\) (ซึ่งมีค่าเป็นตัวเลขจริงตั้งแต่ -∞ ถึง ∞) เข้ากับค่าเฉลี่ยของ response \\(\\mu\\) (ซึ่งอาจถูกจำกัดช่วง เช่น ความน่าจะเป็นอยู่ใน [0,1]). สมการ \\(g(\\mu)=X\\beta\\)",when:"ต้องเลือกทุกครั้งที่ทำ GLM (ตั้งแต่ L9 เป็นต้นไป) เพราะ Y ไม่ใช่ normal ต่อเนื่องอีกต่อไป",read:"เลือกตาม distribution ของ Y: Binomial→logit (มาตรฐาน, ตีความเป็น odds ratio ได้), Poisson/Gamma→log (ตีความ multiplicative), Gaussian→identity (ตีความ additive แบบ OLS)",criteria:"นอกจาก logit ยังมี probit (\\(\\Phi^{-1}(\\pi)\\), สมมติ latent variable normal) และ complementary log-log (\\(\\log(-\\log(1-\\pi))\\), ไม่สมมาตร เหมาะเหตุการณ์หายาก). logit นิยมสุดเพราะตีความง่ายสุด",example:"อ่าน argument <code>family=binomial(link=\"probit\")</code> ในโค้ดเสมอ อย่าเดาจาก distribution อย่างเดียวว่าต้องเป็น canonical link เพราะบางครั้งโจทย์ตั้งใจใช้ link อื่นเพื่อเทียบกัน"},
+aicbic:{title:"AIC / BIC / Cp / Adjusted R²",def:"เกณฑ์เลือกโมเดลที่ 'ลงโทษ' ความซับซ้อน (จำนวนพารามิเตอร์) เพื่อป้องกัน overfitting. ต่างจาก R² ธรรมดาที่เพิ่มขึ้นเสมอเมื่อใส่ตัวแปรเพิ่ม ไม่ว่าตัวแปรนั้นจะมีประโยชน์จริงหรือไม่",when:"ใช้เปรียบเทียบโมเดลที่มีจำนวนตัวแปรต่างกัน (ชุดเดียวกัน ไม่ใช่ nested-test แบบ F-test)",read:"AIC=\\(-2\\ell+2p\\), BIC=\\(-2\\ell+p\\ln n\\). BIC ลงโทษตัวแปรแรงกว่า AIC เสมอเมื่อ n มาก จึงมักเลือกโมเดลเล็กกว่า",criteria:"ไม่มีค่าตัดสิน absolute. ใช้เทียบระหว่างโมเดลชุดเดียวกันเท่านั้น เลือกตัวที่ AIC/BIC ต่ำสุด หรือ adj-R² สูงสุด",example:"mtcars stepwise: Base(ไม่มีตัวแปร) AIC=208.756 → +wt AIC=166.029 → +cyl AIC=156.010 (หยุดตรงนี้เพราะเพิ่มตัวต่อไปแล้ว AIC ไม่ลดลงอีก). โมเดลสุดท้าย \\(\\widehat{mpg}=39.686-3.191\\,wt-1.508\\,cyl\\)"},
+cv:{title:"Cross-Validation (Train/Test, K-fold)",def:"วิธีประเมิน 'ความสามารถทำนายข้อมูลใหม่' ของโมเดล แทนที่จะดูแค่ว่าฟิตข้อมูลเดิมดีแค่ไหน (ซึ่งลวงตาได้จาก overfitting. โมเดลซับซ้อนเกินย่อมฟิตข้อมูลเดิมได้ดีเสมอ)",when:"ใช้ทุกครั้งที่ต้องเลือก tuning parameter (เช่น λ ของ Ridge/LASSO) หรืออยากรู้ประสิทธิภาพการทำนายจริงก่อนนำไปใช้งาน",read:"Train/Test split: แบ่งข้อมูลเป็นสอนกับทดสอบครั้งเดียว. K-fold CV: แบ่งเป็น K ส่วน หมุนเวียนแต่ละส่วนเป็น test set ที่เหลือเป็น train แล้วเฉลี่ย error ทั้ง K รอบ (แม่นกว่า train/test เดี่ยว เพราะใช้ข้อมูลทุกจุดเป็น test ครั้งหนึ่ง)",criteria:"เลือกโมเดล/λ ที่ error บนข้อมูลทดสอบ (ไม่ใช่ข้อมูลฝึก) ต่ำที่สุดโดยเฉลี่ยข้าม fold",example:"<code>cv.glmnet(x, y, alpha=0)</code> ทำ 10-fold CV หา λ ที่ให้ MSE เฉลี่ยต่ำสุดโดยอัตโนมัติ แล้วเก็บไว้ที่ <code>$lambda.min</code>. ใช้เพราะ Ridge/LASSO ไม่มีสูตรปิดสำหรับ λ ที่ดีที่สุด ต้องลองแล้ววัดผลจริง"},
+rmse:{title:"RMSE / MAE / Overfitting",def:"ตัวชี้วัดขนาด error เฉลี่ยของค่าทำนาย. RMSE=\\(\\sqrt{\\text{mean}(e^2)}\\) ลงโทษ error ก้อนใหญ่แรงกว่า (ยกกำลังสอง), MAE=\\(\\text{mean}(|e|)\\) ลงโทษทุก error เท่ากันตามสัดส่วน",when:"ใช้วัดคุณภาพการทำนาย แต่ต้องแยกให้ออกว่าวัดบนข้อมูล 'เดิม' ที่ใช้ฝึกโมเดล หรือข้อมูล 'ใหม่' ที่ไม่เคยเห็น. สองอย่างนี้ให้ข้อสรุปต่างกันได้มาก",read:"คำนวณตรง ๆ จาก residual ของโมเดล. เทียบ RMSE ของหลายโมเดลบนชุดข้อมูลทดสอบเดียวกัน",criteria:"Overfitting = โมเดลซับซ้อนเกินจนจำข้อมูลฝึกได้แม่น (RMSE ฝึกต่ำมาก) แต่ทำนายข้อมูลใหม่แย่ (RMSE ทดสอบสูง). ช่องว่างระหว่าง RMSE ฝึกกับทดสอบคือสัญญาณ overfitting",example:"คำเตือนต้นฉบับจากอาจารย์ (Assignment 5): 'RMSE คำนวณจากชุดข้อมูลเดียวกับที่ใช้ฟิตโมเดล โมเดลอาจ overfit แต่ทำนายข้อมูลใหม่ได้ไม่ดี'. โมเดลเต็ม (ใส่ทุกตัวแปร) มักได้ RMSE ต่ำสุดบนข้อมูลฝึกเสมอ แต่ไม่ได้แปลว่าเป็นโมเดลที่ดีที่สุดสำหรับทำนายจริง"},
+ridge2:{title:"Ridge / LASSO / Elastic Net",def:"บีบ (shrink) สัมประสิทธิ์เข้าหาศูนย์โดยตั้งใจ (ยอม bias) เพื่อลด variance และแก้ multicollinearity/p>n. Ridge ใช้ L2 penalty (บีบเข้าหา 0 แต่ไม่ถึง 0 พอดี), LASSO ใช้ L1 (ตัดบางตัวเหลือ 0 พอดี = คัดตัวแปรในตัว)",when:"ใช้แทน model selection แบบ L5 เมื่อตัวแปรเยอะมาก, multicollinear รุนแรง (VIF สูง), หรือ p>n (จำนวนตัวแปรมากกว่าจำนวนตัวอย่าง ซึ่ง OLS แก้สมการไม่ได้เลย)",read:"เขียนรวมด้วยพารามิเตอร์ α: \\(P_\\lambda(\\beta)=\\lambda[\\alpha\\sum|\\beta_j|+\\frac{1-\\alpha}{2}\\sum\\beta_j^2]\\). α=0 คือ Ridge, α=1 คือ LASSO, 0<α<1 คือ Elastic Net (ผสม). <code>coef(glmnet(...))</code> ให้ค่าหลัง shrinkage ไม่มี p-value/SE",criteria:"เลือก λ ด้วย cross-validation เสมอ (<code>cv.glmnet</code>). ไม่มีสูตรปิดสำหรับ λ ที่ดีที่สุด",example:"ข้อมูลจำลอง β จริง 20 ตัวจาก 1000 ตัวแปร: LASSO ตัดตัวแปรที่ไม่เกี่ยวออกเป็น 0 ได้ดีกว่า Ridge มาก (LASSO ให้โมเดลง่ายกว่า) แต่ Ridge เสถียรกว่าเมื่อตัวแปรที่เกี่ยวข้องสัมพันธ์กันเองสูง (correlated predictors)"},
+overdisp:{title:"Overdispersion",def:"เมื่อ variance ของข้อมูลจริงมากกว่าที่ Poisson สมมติไว้ (Poisson สมมติ Var=μ พอดี. ค่าเฉลี่ยเท่ากับความแปรปรวนเป๊ะ) สาเหตุมักมาจากตัวแปรแฝงที่ไม่ได้ใส่ในโมเดล หรือความสัมพันธ์กันเองของข้อสังเกต",when:"เช็คทุกครั้งหลังฟิต Poisson regression ก่อนเชื่อ SE/p-value ที่ได้",read:"เปรียบเทียบ residual deviance กับ df. ถ้า deviance/df ≫ 1 บ่งชี้ overdispersion (dispersion parameter \\(\\hat\\phi=\\text{deviance}/df\\))",criteria:"\\(\\hat\\phi\\gg1\\) (เช่น >1.5-2) ถือว่ามีปัญหา. \\(\\hat\\phi\\approx1\\) ถือว่าปกติ ไม่ต้องแก้",example:"Salmonella assay: \\(\\hat\\phi=4.126227\\). SE ขยายด้วย \\(\\sqrt{4.126227}\\approx2.031\\) เท่า ทำให้ t-value ที่เคยดูมั่นใจเกินจริงลดลงตามสัดส่วน. ถ้าไม่เช็คตรงนี้ก่อนจะได้ p-value ที่มั่นใจเกินจริงมาก (false positive สูง)"},
+quasinb:{title:"Quasi-Poisson vs Negative Binomial",def:"ทั้งคู่แก้ overdispersion แต่คนละกลไก. Quasi-Poisson แค่ปรับ SE ด้วย \\(\\sqrt{\\hat\\phi}\\) โดยไม่เปลี่ยนโครงสร้าง variance หรือค่าประมาณ β̂ เลย, Negative Binomial เพิ่มพารามิเตอร์ dispersion θ เข้าไปในตัวแบบ variance function เอง (\\(\\text{Var}=\\mu+\\mu^2/\\theta\\))",when:"เลือกใช้เมื่อ Poisson ธรรมดาแสดง overdispersion. ทั้งสองให้ β̂ point-estimate เท่ากับ Poisson เดิม (แค่ SE ต่างกัน)",read:"NB ให้ likelihood จริง จึงเทียบ AIC ได้ (<code>glm.nb()</code>). Quasi-Poisson ไม่มี likelihood ทำ AIC ไม่ได้ (แสดง NA)",criteria:"ถ้า GOF test ของ NB ผ่านดีกว่า (p-value สูงกว่า Poisson เดิมชัดเจน) มักเลือก NB เป็นโมเดลสุดท้าย",example:"Salmonella: อาจารย์สรุปเลือก NB เพราะ 'goodness-of-fit test บ่งชี้ negative binomial model is preferred' (NB GOF p=0.283 vs Poisson GOF p=1.45e-06). NB ให้ θ̂=14.31, AIC=137.69 ต่ำกว่า Poisson (AIC=154.07)"},
+hosmerlem:{title:"Hosmer-Lemeshow Test",def:"ทดสอบว่าโมเดล logistic บนข้อมูล binary รายตัว (n_i=1 ทุกแถว เช่น แต่ละคนไข้ 1 แถว) fit ข้อมูลได้ดีหรือไม่. สร้างขึ้นมาเพราะ deviance GOF ปกติใช้ไม่ได้ดีเมื่อข้อมูลไม่ได้ group",when:"ใช้เฉพาะกับ binary logistic regression ที่มี continuous/many-level predictor (ข้อมูลไม่ได้ group เป็นสัดส่วน). ถ้าข้อมูล group แล้ว (เช่น cbind(success,failure)) ใช้ deviance GOF แทนได้เลย",read:"แบ่งข้อมูลเป็น g กลุ่ม (ปกติ g=10) ตาม π̂ ที่เรียงจากน้อยไปมาก แล้วเทียบจำนวน observed vs expected successes ในแต่ละกลุ่ม. เรียกด้วยฟังก์ชัน <code>hosmerlem()</code> ที่นิยามเอง หรือ package ResourceSelection",criteria:"สถิติ \\(\\sim\\chi^2_{(g-2)}\\). <strong>p-value สูง (ไม่ปฏิเสธ H₀) คือข่าวดี</strong> = โมเดล fit ข้อมูลได้ดี (ทิศทางตรงข้ามกับการทดสอบสัมประสิทธิ์)",example:"H₀: โมเดล fit ข้อมูล vs H₁: โมเดลไม่ fit. Pima Diabetes example: p-value สูงกว่า 0.05 → ไม่ปฏิเสธ H₀ → ไม่มีหลักฐานว่าโมเดล fit ไม่ดี"},
+devgof:{title:"Deviance GOF Test",def:"ทดสอบว่าโมเดล GLM (ที่มีข้อมูล grouped/replicate เช่น cbind(success,failure)) fit ข้อมูลดีหรือไม่. เทียบ deviance ของโมเดลกับ saturated model (โมเดลที่ฟิตสมบูรณ์แบบทุกจุด)",when:"ใช้กับข้อมูล grouped binomial, Poisson, หรือ GLM ตระกูลอื่นที่มี replicate ต่อค่า X. ไม่เหมาะกับ binary รายตัว (ใช้ Hosmer-Lemeshow แทน)",read:"คำสั่ง <code>1-pchisq(deviance(model), df.residual(model))</code>",criteria:"deviance \\(\\sim\\chi^2_{(n-p-1)}\\) ภายใต้ H₀. <strong>p-value สูงคือข่าวดี</strong> (ปฏิเสธ H₀ เมื่อ deviance มีค่ามากผิดปกติเท่านั้น)",example:"wafer/car-insurance GLM: \\(1-\\text{pchisq}(\\text{deviance},df)\\approx0.9997\\) (สูงมาก) → ไม่ปฏิเสธ H₀ → ไม่มีหลักฐานว่าโมเดลนี้ fit ข้อมูลไม่ดี. นี่คือ 'ข่าวดี' สำหรับ GOF ต่างจากการทดสอบสัมประสิทธิ์ที่ p สูง=ข่าวร้าย ต้องแยกทิศทางให้ออก"},
+brant:{title:"Brant Test",def:"ทดสอบ proportional-odds (parallel regression) assumption ของ ordinal logistic model. สมมติฐานว่าสัมประสิทธิ์ β ต้องเท่ากันจริงในทุก cumulative logit cutpoint ไม่ใช่แค่สมมติเฉย ๆ",when:"ต้องเช็คทุกครั้งหลังฟิต <code>polr()</code> ก่อนเชื่อว่าใช้ β̂ ตัวเดียวแทนทุก threshold ได้จริง",read:"ดูแถว Omnibus (ภาพรวมทั้งโมเดล) ก่อน แล้วดูแถวรายตัวแปร (หาตัวการที่ทำให้ assumption พัง). เรียกด้วย <code>brant(model)</code>",criteria:"p<0.05 ที่ Omnibus = ละเมิด assumption (สัมประสิทธิ์ไม่เท่ากันจริงในแต่ละ cutpoint)",example:"H₀: proportional odds เป็นจริง (β เท่ากันทุก cutpoint) vs H₁: มีอย่างน้อยตัวแปรที่ไม่เท่ากัน. party-ID data: โมเดลเต็ม Omnibus X²=8.94,df=3,p=0.03→ปฏิเสธ H₀ (nincome คือตัวการ) → ตัด nincome ออก → Omnibus p=0.69→ไม่ปฏิเสธ H₀ (age, educ_ordered ผ่าน)"},
+kr:{title:"Kenward-Roger / Satterthwaite",def:"วิธีประมาณ degrees of freedom สำหรับ t-test ของ fixed effect ใน linear mixed model. ปัญหาคือ <code>lmer()</code> ไม่ให้ df มาตรฐานแบบ OLS มาเลยเพราะโครงสร้าง variance ซับซ้อนกว่า",when:"ใช้เป็นค่าเริ่มต้นเสมอเมื่อทดสอบ fixed effect ใน LMM โดยเฉพาะตัวอย่างเล็ก (จำนวน subject/item น้อย)",read:"Kenward-Roger และ Satterthwaite ให้ df โดยประมาณที่แม่นยำกว่า t-as-z (ปฏิบัติเหมือนไม่มี uncertainty จาก random effect เลย) หรือ ML-LRT ธรรมดา. เรียกด้วย package pbkrtest หรือ lmerTest",criteria:"ควรใช้เป็นค่าเริ่มต้นเสมอเมื่อ n เล็ก เพราะ t-as-z/LRT ปฏิเสธ H₀ เกินจริง (anti-conservative)",example:"งานวิจัยของ Luke (2017): ที่ n เล็ก (12 subjects, 12 items) Type I error ของ t-as-z สูงถึง 0.06-0.09 (ควรเป็น 0.05) ส่วน Kenward-Roger ยังคงใกล้ 0.05 แม้ n เล็กมาก. เชื่อถือได้กว่ามากในสถานการณ์ตัวอย่างเล็ก"},
+blup:{title:"BLUP (Best Linear Unbiased Predictor)",def:"ค่าประมาณ random effect เฉพาะกลุ่ม (เช่น \\(\\hat{b}_{0i}\\) ของ operator คนที่ i). ใช้ทำนายค่าแบบ conditional (เจาะจงกลุ่มนั้น) แทน marginal (ค่าเฉลี่ยรวมทั้งประชากร)",when:"ใช้เมื่อโจทย์ถามทำนายค่าของหน่วยที่ 'ระบุเจาะจง' เช่น 'operator คนที่ 3 จะได้ค่าเท่าไหร่' ไม่ใช่ถามค่าเฉลี่ยประชากรทั่วไป",read:"ดึงด้วย <code>ranef(model)</code> ใน R. ค่าทำนาย conditional = fixed part + BLUP ของกลุ่มนั้น",criteria:"แยกให้ออกจาก marginal prediction เสมอ: marginal ใช้แค่ fixed effect, conditional บวก BLUP เข้าไปด้วย",example:"eggprod: marginal prediction (ไม่ระบุ block)=306.5 vs conditional (BLUP, ระบุ block เจาะจง)=314.8. ต่างกันเพราะ ICC=25% (สัดส่วนความแปรปรวนที่มาจาก block มีนัยสำคัญพอที่จะทำให้สองค่าต่างกันชัดเจน)"},
+icc:{title:"ICC (Intraclass Correlation)",def:"สัดส่วนความแปรปรวนรวมทั้งหมดที่มาจากความแตกต่าง 'ระหว่างกลุ่ม' (เทียบกับความแปรปรวน 'ภายในกลุ่มเดียวกัน'). บอกว่าโครงสร้างการจัดกลุ่มสำคัญแค่ไหนต่อข้อมูล",when:"เช็คทุกครั้งหลังฟิต LMM เพื่อตัดสินใจว่า random effect ที่ใส่เข้าไปมีความหมายจริงแค่ไหน ไม่ใช่แค่ใส่เพราะข้อมูลมีกลุ่ม",read:"\\(\\text{ICC}=\\dfrac{\\sigma^2_{\\text{group}}}{\\sigma^2_{\\text{group}}+\\sigma^2_{\\text{residual}}}\\). อ่านค่า variance component ทั้งสองจากตาราง Random effects ของ <code>summary()</code>",criteria:"ICC สูง = ข้อสังเกตในกลุ่มเดียวกันคล้ายกันมาก (correlated กันแรง) ยิ่งจำเป็นต้องใช้ LMM ไม่ใช่ OLS ธรรมดา. ICC ใกล้ 0 แปลว่า grouping แทบไม่มีผล",example:"pulp brightness: ICC = 0.06808/(0.06808+0.10625) ≈ 39%. เกือบ 40% ของความแปรปรวนทั้งหมดมาจากความต่างระหว่าง operator ไม่ใช่ความสุ่มภายใน operator เดียวกัน ยืนยันว่าต้องใส่ random effect ของ operator"},
+mlreml:{title:"ML vs REML",def:"สองวิธีประมาณพารามิเตอร์ของ LMM. ML (Maximum Likelihood) ประมาณ fixed effect และ variance component พร้อมกันในขั้นตอนเดียว, REML (Restricted ML) ประมาณ variance component 'หลังหักผลของ fixed effect ออกก่อน'",when:"REML คือค่าเริ่มต้นของ <code>lmer()</code> เสมอสำหรับการรายงานผลปกติ. เปลี่ยนเป็น ML เฉพาะตอนต้องเทียบ nested model ด้วย LRT เท่านั้น",read:"ทั้งคู่ให้ fixed-effect estimate ใกล้เคียงกัน แต่ variance component ต่างกัน. REML ไม่ bias, ML bias ต่ำกว่าความจริงเป็นระบบ (โดยเฉพาะ n เล็ก)",criteria:"เทียบ nested model (LRT) ต้องใช้ ML เท่านั้น (REML เทียบข้าม fixed-effect structure ที่ต่างกันไม่ได้ทางคณิตศาสตร์)",example:"pulp: variance ของ operator REML=0.06808 vs ML=0.04575. ML ให้ค่าต่ำกว่าจริงตามที่ทฤษฎีทำนายไว้พอดี (underestimate variance component อย่างเป็นระบบ)"},
+margcond:{title:"Marginal vs Conditional R²",def:"R² สำหรับ mixed model ที่แยกสัดส่วนความแปรปรวนอธิบายได้จาก 'fixed effects อย่างเดียว' (marginal) เทียบกับ 'fixed+random effects รวมกัน' (conditional)",when:"ใช้รายงานว่าโมเดล LMM อธิบายข้อมูลได้ดีแค่ไหน โดยแยกให้เห็นว่าส่วนไหนมาจากตัวแปรที่สนใจ (fixed) ส่วนไหนมาจากโครงสร้างกลุ่ม (random)",read:"Conditional R² ≥ Marginal R² เสมอ (random effect ช่วยอธิบายเพิ่มเติมได้เสมอ ไม่มีทางลดลง)",criteria:"ส่วนต่างระหว่างสอง R² บอกว่า grouping structure ช่วยอธิบายได้มากแค่ไหน. ส่วนต่างมาก=grouping สำคัญมาก",example:"ถ้า marginal R² ต่ำ (เช่น 10%) แต่ conditional R² สูงมาก (เช่น 60%) แปลว่าตัวแปร fixed effect ที่สนใจอธิบายได้น้อย ส่วนใหญ่ของความแปรปรวนมาจากความแตกต่างระหว่างกลุ่มแทน (เช่น ระหว่าง operator หรือ block)"},
+tukey:{title:"Tukey HSD",def:"วิธีเปรียบเทียบค่าเฉลี่ยทุกคู่ (all pairwise) หลัง ANOVA F-test ปฏิเสธ H₀ โดยควบคุม family-wise error rate ไม่ให้พองจากการทดสอบหลายคู่พร้อมกัน",when:"ใช้ต่อจาก ANOVA F-test ที่ปฏิเสธ H₀ แล้ว (บอกแค่ 'มีอย่างน้อยหนึ่งคู่ต่างกัน') อยากรู้ต่อว่า 'คู่ไหน' ต่างกันบ้าง",read:"ใช้ studentized range distribution q แทน t ธรรมดา. เรียกด้วย <code>TukeyHSD(aovmodel)</code> ให้ CI ของผลต่างแต่ละคู่พร้อม p-value ที่ปรับแล้ว",criteria:"เหมาะเมื่อต้องการเทียบทุกคู่ (all pairwise) พร้อมกัน. ถ้า CI ของคู่ไหนไม่ครอบคลุม 0 แปลว่าคู่นั้นต่างกันมีนัยสำคัญ",example:"cashoffers data (3 กลุ่มอายุ): TukeyHSD ให้ CI ของแต่ละคู่ (young-middle, young-elderly, middle-elderly). คู่ที่ CI ไม่ครอบคลุม 0 คือคู่ที่ราคาเสนอต่างกันจริงทางสถิติ"},
+lsdbonf:{title:"LSD / Bonferroni / Scheffe",def:"วิธี post-hoc อื่นนอกจาก Tukey สำหรับเปรียบเทียบค่าเฉลี่ยกลุ่ม. ต่างกันที่ความเข้มงวดในการควบคุม error",when:"เลือกตามคำถามวิจัย: LSD เมื่อทดสอบแค่ 1 คู่ที่ตั้งใจไว้ล่วงหน้า, Tukey เมื่อเทียบทุกคู่, Scheffe เมื่อต้องการเทียบ contrast ที่ซับซ้อนกว่าคู่ธรรมดา",read:"ความเข้มงวดเรียงจากหลวมสุดไปเข้มสุด: LSD (Least Significant Difference. ไม่ปรับ multiple-testing เลย เหมือน t-test ทีละคู่) → Tukey (ปรับสำหรับเทียบทุกคู่พร้อมกัน) → Bonferroni (ปรับหารด้วยจำนวนคู่ทดสอบ เข้มงวดตรงไปตรงมา) → Scheffe (เข้มงวดสุด รองรับการเทียบ contrast ใดก็ได้ไม่จำกัดแค่รายคู่)",criteria:"ยิ่งเข้มงวด ยิ่งลด false positive (Type I error) แต่ยิ่งลด power (ตรวจจับความต่างจริงได้ยากขึ้น). ต้องชั่งน้ำหนักตามความสำคัญของแต่ละด้าน",example:"ถ้าตั้งใจเทียบแค่ 'กลุ่มควบคุม vs กลุ่มทดลอง' คู่เดียวที่วางแผนไว้ล่วงหน้า → ใช้ LSD ได้ (ไม่ต้องเสีย power จากการปรับ multiple-testing ที่ไม่จำเป็น). แต่ถ้าอยากเทียบทุกคู่แบบ exploratory → ต้องใช้ Tukey หรือเข้มกว่า"},
+cipi:{title:"CI vs PI (Confidence vs Prediction Interval)",def:"CI ประมาณ 'ค่าเฉลี่ยทฤษฎี' (mean response) ที่ X₀ หนึ่งจุด. PI ประมาณ 'ค่าสังเกตใหม่ 1 ค่า' ที่ X₀ เดียวกัน. สองคำถามที่ต่างกันโดยพื้นฐาน แม้ point estimate จะเท่ากัน",when:"ใช้ CI เมื่อถามว่า 'ค่าเฉลี่ยของกลุ่มที่ X=X₀ คือเท่าไหร่'. ใช้ PI เมื่อถามว่า 'ถ้าสุ่มตัวอย่างใหม่มา 1 ตัวที่ X=X₀ จะได้ค่าเท่าไหร่'",read:"สูตร SE ต่างกันแค่พจน์ '+1': \\(SE_{PI}=s\\sqrt{1+\\frac{1}{n}+\\cdots}\\) เทียบ \\(SE_{CI}=s\\sqrt{\\frac{1}{n}+\\cdots}\\). พจน์ +1 คือความแปรปรวนของค่าสังเกตใหม่ (ε) ที่ CI ไม่ต้องคิดเพราะถามแค่ค่าเฉลี่ย",criteria:"PI กว้างกว่า CI เสมอไม่มีข้อยกเว้น เพราะต้องรวมทั้งความไม่แน่นอนของเส้นค่าเฉลี่ย (เหมือน CI) บวกความแปรปรวนของค่าสังเกตใหม่รอบเส้นนั้นด้วย",example:"ข้อมูลจริง จุด X₀ เดียวกัน: 95% CI กว้าง 91.8 หน่วย vs 95% PI กว้าง 583.5 หน่วย. ต่างกันมากขนาดนี้เพราะ PI ต้องครอบคลุมความแปรปรวนตามธรรมชาติของค่าสังเกตเดี่ยว ไม่ใช่แค่ความไม่แน่นอนของค่าเฉลี่ย"},
+extrassf:{title:"Extra-Sum-of-Squares F-test",def:"ทดสอบว่าตัวแปรกลุ่มหนึ่ง (q ตัว) มีผลเพิ่มเติมจริงหรือไม่ โดยเทียบโมเดลเล็ก (reduced, ไม่มีตัวแปรกลุ่มนั้น) กับโมเดลใหญ่ (full, มีตัวแปรกลุ่มนั้นเพิ่ม)",when:"ใช้เมื่ออยากทดสอบ 'กลุ่มตัวแปร' พร้อมกันหลายตัว (เช่น main effect + interaction ของตัวแปรเดียวกัน) ไม่ใช่ทดสอบทีละตัวแบบ t-test",read:"\\(F=\\dfrac{(SSE_{reduced}-SSE_{full})/q}{SSE_{full}/(n-p-1)}\\sim F_{(q,\\,n-p-1)}\\). เรียกด้วย <code>anova(reducedmodel, fullmodel)</code>",criteria:"F มากผิดปกติ (p<0.05) → ปฏิเสธ H₀ → ตัวแปรกลุ่มนั้นควรอยู่ในโมเดล (มีผลเพิ่มเติมจริงเมื่อเทียบกับโมเดลเล็ก)",example:"H₀: \\(\\beta_{InsulAfter}=\\beta_{InsulAfter:Temp}=0\\) (q=2, ตัด Insul ทั้ง main+interaction ออก) vs H₁: อย่างน้อยหนึ่งตัวไม่เท่ากับ 0. whiteside data: p<2.2e-16 → ปฏิเสธ H₀ → เก็บ Insul ไว้ในโมเดล"},
+waldlrt:{title:"Wald's Test vs Likelihood Ratio Test (LRT)",def:"สองวิธีทดสอบสัมประสิทธิ์ใน GLM. Wald ใช้ \\(z=\\hat\\beta/SE\\) (คำนวณง่าย อ่านตรงจาก summary() ได้เลย), LRT เทียบ deviance ของสองโมเดล (แม่นกว่า Wald โดยเฉพาะตัวอย่างเล็กหรือค่าประมาณใกล้ขอบเขตพารามิเตอร์)",when:"Wald ใช้เป็นค่าเริ่มต้นเพราะสะดวก (อ่านจาก summary() ตรง ๆ). เปลี่ยนไปใช้ LRT เมื่อตัวอย่างเล็กหรือสงสัยผล Wald ไม่แม่น",read:"LRT: \\(-2(\\ell_{reduced}-\\ell_{full})\\sim\\chi^2_{(k)}\\) หรือเทียบเท่ากับ \\(D_{reduced}-D_{full}\\) (ผลต่าง deviance ของสองโมเดล)",criteria:"ตัวอย่างเล็กหรือค่าประมาณใกล้ขอบเขตพารามิเตอร์ → LRT แม่นกว่า Wald เสมอ. ถ้าสองวิธีให้ผลต่างกันมาก ให้เชื่อ LRT",example:"L12 age10³ term: LRT stat=16.0114, df=1, p=0.0003335562 → ปฏิเสธ H₀ → เก็บพจน์ \\(\\text{age10}^3\\) ไว้ในโมเดล (ยืนยันตรงกันกับที่ <code>anova()</code> ให้)"},
+satmodel:{title:"Saturated Model / Null Deviance",def:"Saturated model คือโมเดลสมมติที่ยอมให้ \\(\\hat\\mu_i=y_i\\) พอดีทุกจุด (ฟิตสมบูรณ์แบบ ไม่มี residual เหลือเลย). ใช้เป็นจุดอ้างอิงคำนวณ deviance ของโมเดลจริง. Null deviance คือ deviance ของโมเดล intercept-only (ไม่มีตัวแปรอิสระเลย)",when:"เป็นพื้นฐานที่ต้องเข้าใจก่อนอ่านทุกบรรทัดของ GLM output ที่มีคำว่า 'deviance'",read:"\\(\\text{Deviance}=2\\times(\\log L_{saturated}-\\log L_{model})\\). ยิ่งน้อยยิ่งโมเดลใกล้เคียง saturated (ฟิตดี)",criteria:"Null deviance - Residual deviance มาก = ตัวแปรอิสระที่ใส่เข้าไปช่วยอธิบายได้เยอะ (เทียบกับไม่มีตัวแปรอิสระเลย)",example:"โมเดลลดรูป (intercept-only, ~1): Null deviance = Residual deviance พอดีเป๊ะ (สมเหตุสมผลเพราะไม่มีตัวแปรอิสระให้อธิบายอะไรเพิ่ม deviance ของมันจึงเท่ากับ deviance ตอนไม่มีโมเดลเลย)"},
+shapiro:{title:"Shapiro-Wilk Test",def:"ทดสอบว่า residual แจกแจงแบบปกติ (normal distribution) หรือไม่. เสริม QQ-plot ด้วยตัวเลขที่ตัดสินได้ชัดเจนกว่าการดูด้วยตา",when:"ใช้เช็ค normality assumption ของ OLS หลังฟิตโมเดล มักทำคู่กับ QQ-plot เสมอ",read:"H₀: residual แจกแจงปกติ. เรียกด้วย <code>shapiro.test(resid(model))</code>",criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = 'ผ่าน' assumption. ทิศทางตรงข้ามกับการทดสอบสัมประสิทธิ์ที่อยากได้ p ต่ำ",example:"ใช้คู่กับ QQ-plot เสมอ: ถ้าจุดใน QQ-plot เกาะเส้น 45° และ Shapiro-Wilk p>0.05 ทั้งคู่ยืนยันตรงกันว่า normality assumption ผ่าน. ถ้าขัดแย้งกัน (เช่น QQ-plot ดูโอเคแต่ p<0.05) ให้เชื่อภาพประกอบกับขนาดตัวอย่าง (n ใหญ่มาก test อ่อนไหวเกินจริงได้)",visual:[{img:"assets/slides/as3-p09-normality-check-pass-fail-qq.png",cap:"ซ้าย(✓): จุดเกาะเส้น 45° แน่นตลอดช่วง = ผ่าน. ขวา(✗): จุดโค้งออกจากเส้นชัดเจนโดยเฉพาะหางบน (heavy tail) = ไม่ผ่าน normality"}]},
+bp:{title:"Breusch-Pagan Test",def:"ทดสอบว่า residual มี constant variance (homoscedastic) ตลอดช่วงหรือไม่. เสริม residual-vs-fitted plot ด้วยตัวเลขที่ตัดสินได้ชัดเจน",when:"ใช้เช็ค constant-variance assumption หลังฟิต OLS มักทำคู่กับการดู residual-vs-fitted plot",read:"H₀: variance คงที่ตลอดช่วง fitted value. เรียกด้วย <code>bptest(model)</code> จาก package lmtest",criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = 'ผ่าน' assumption",example:"ถ้า residual-vs-fitted plot มีรูปกรวย (funnel, บานออกทางขวา) และ Breusch-Pagan p<0.05 ยืนยันตรงกันว่า variance ไม่คงที่. ต้องแก้ด้วย WLS หรือ Box-Cox transform",visual:[{img:"assets/slides/as3-p13-constant-variance-pass-fail.png",cap:"ซ้าย(✓): แถบ residual กว้างสม่ำเสมอตลอดแกน X = ผ่าน. ขวา(✗): แถบบานออกเป็นรูปกรวยเมื่อ X/fitted เพิ่มขึ้น = variance ไม่คงที่"}]},
+dw:{title:"Durbin-Watson / Run Test",def:"ทดสอบว่า residual เป็นอิสระต่อกันหรือไม่ (independence assumption). สำคัญมากกับข้อมูลที่มีลำดับตามธรรมชาติ เช่น time series หรือข้อมูลที่เก็บตามลำดับเวลา/พื้นที่",when:"เช็คเสมอเมื่อข้อมูลมีมิติเวลาหรือลำดับ (เช่น residual-vs-year plot มีแนวโน้ม). ไม่จำเป็นสำหรับข้อมูล cross-sectional ทั่วไปที่ไม่มีลำดับธรรมชาติ",read:"Durbin-Watson: สถิติ DW อยู่ในช่วง 0-4. Run Test: นับจำนวน 'run' (ช่วงต่อเนื่อง) ของเครื่องหมาย +/- ของ residual ที่เรียงตามลำดับ",criteria:"DW≈2 = ไม่มี autocorrelation (ค่าปกติ), DW<2 ชัดเจน = positive autocorrelation (จุดใกล้กันมีค่าคล้ายกัน). Run test: จำนวน run น้อยผิดปกติ = ไม่อิสระ",example:"Rainfall/Corn Yield: residual-vs-year plot แสดงแนวโน้มชัดเจน (ไม่ใช่กระจายสุ่ม) → บ่งชี้ independence ถูกละเมิด → แก้ด้วยการเพิ่มตัวแปร YEAR เข้าไปในโมเดลโดยตรง (จับ trend ที่ขาดหายไป)",visual:[{img:"assets/slides/as3-p16-residuals-vs-time-four-patterns.png",cap:"(A) Normal Noise=สุ่มรอบ 0=ผ่าน. (B) Time Trend=ไต่ขึ้นตามเวลา→เพิ่มตัวแปรเวลา. (C)/(D) Serial Correlation=แกว่งเป็นคลื่นช้า/เร็ว→ต้องใช้ time-series technique ทั้งคู่"}]},
+cochrane:{title:"Cochrane-Orcutt Transformation",def:"แก้ปัญหา residual ไม่อิสระต่อกัน (autocorrelation) โดยประมาณค่าสัมประสิทธิ์ autocorrelation ρ ก่อน แล้วแปลงตัวแปรทั้งหมดเพื่อกำจัด correlation ออกไปก่อนฟิต OLS ใหม่บนข้อมูลที่แปลงแล้ว",when:"ใช้เมื่อ Durbin-Watson/Run test ชี้ชัดว่ามี autocorrelation รุนแรง (มักเกิดกับข้อมูลอนุกรมเวลา) และการเพิ่มตัวแปรจับ trend ยังไม่พอ",read:"เป็นกระบวนการวนซ้ำ (iterative): ประมาณ ρ จาก residual → แปลงข้อมูล \\(Y_t^*=Y_t-\\rho Y_{t-1}\\) → ฟิตใหม่ → ประมาณ ρ ใหม่จาก residual ใหม่ → ทำซ้ำจนค่า ρ ลู่เข้า (เปลี่ยนน้อยมากระหว่างรอบ)",criteria:"ใช้เมื่อทางเลือกอื่น (เพิ่มตัวแปรจับ trend) ยังไม่พอที่จะกำจัด autocorrelation",example:"ทางเลือกอื่นที่เทียบเท่ากันคือใช้ Generalized Least Squares (GLS) ตรง ๆ ซึ่งจัดการ correlation structure ในขั้นตอนเดียวโดยไม่ต้องวนซ้ำแบบ Cochrane-Orcutt"},
+levene:{title:"Levene's / Bartlett's Test",def:"ทดสอบว่า variance เท่ากันทุกกลุ่มหรือไม่ (homogeneity of variance). เป็น assumption สำคัญของ ANOVA แบบมาตรฐานที่ใช้ pooled variance ร่วมกันทุกกลุ่ม",when:"เช็คก่อนเชื่อผล ANOVA F-test เสมอ มักทำคู่กับการดู boxplot เทียบ spread ของแต่ละกลุ่มด้วยตา",read:"H₀: variance ของทุกกลุ่มเท่ากัน. Bartlett ไวต่อการไม่ normal มากกว่า (สมมติ normality เข้มงวดกว่า), Levene ทนทานกว่า (ใช้ได้แม้ไม่ normal สนิท)",criteria:"p-value <strong>สูง</strong> (ไม่ปฏิเสธ H₀) = variance เท่ากัน 'ผ่าน' assumption",example:"cashoffers data: boxplot ของ 3 กลุ่มอายุ ถ้าความกว้างกล่อง (IQR) ใกล้เคียงกันและ Levene test p>0.05 ยืนยันว่า equal-variance assumption ผ่าน ใช้ ANOVA มาตรฐานได้เลย ไม่ต้องใช้ Welch"},
+welch:{title:"Welch ANOVA",def:"เวอร์ชันของ ANOVA F-test ที่ไม่ต้องสมมติว่า variance เท่ากันทุกกลุ่ม. ปรับ degrees of freedom ให้เหมาะกับความแตกต่างของ variance แต่ละกลุ่มแทนการรวม pooled variance แบบมาตรฐาน",when:"ใช้แทน ANOVA มาตรฐานทันทีที่ Levene/Bartlett test ปฏิเสธ H₀ (equal-variance assumption ไม่ผ่าน)",read:"หลักการเดียวกับ Welch's t-test (เวอร์ชัน 2 กลุ่ม) แต่ขยายไปหลายกลุ่ม. เรียกด้วย <code>oneway.test(y~group, var.equal=FALSE)</code>",criteria:"ใช้แทน ANOVA มาตรฐานเสมอเมื่อ variance ไม่เท่ากัน แทนที่จะฝืนใช้ ANOVA ปกติซึ่งจะให้ Type I error ที่ไม่ถูกต้อง",example:"ถ้ากลุ่มหนึ่งมี variance สูงกว่ากลุ่มอื่นมาก (เช่น กลุ่มตัวอย่างเล็กมีความแปรปรวนสูงผิดปกติ) ANOVA มาตรฐานจะให้ p-value ที่ไม่น่าเชื่อถือ. Welch ANOVA แก้ปัญหานี้โดยไม่ต้องเปลี่ยนข้อมูลหรือแปลงตัวแปร"},
+probitcloglog:{title:"Probit / Complementary Log-Log",def:"ทางเลือกอื่นของ logit link. Probit สมมติว่ามี latent variable แจกแจงปกติอยู่เบื้องหลัง (ใช้ \\(\\Phi^{-1}\\) inverse ของ normal CDF), Complementary log-log ไม่สมมาตร เหมาะกับสถานการณ์ที่ π เปลี่ยนแปลงเร็วตอนใกล้ 0 หรือ 1",when:"logit นิยมสุดเพราะตีความง่าย (odds ratio). เปลี่ยนไปใช้ probit/cloglog เมื่อโจทย์ระบุ หรือทฤษฎีเบื้องหลังบอกว่า latent-variable-normal (probit) หรือ extreme-value process (cloglog) เหมาะกว่า",read:"Probit: \\(g(\\pi)=\\Phi^{-1}(\\pi)\\). Complementary log-log: \\(g(\\pi)=\\log(-\\log(1-\\pi))\\)",criteria:"logit/probit ให้ผลใกล้เคียงกันมากในช่วงกลาง (π ใกล้ 0.5) แต่ต่างกันชัดที่หาง (π ใกล้ 0 หรือ 1). cloglog ไม่สมมาตรรอบ 0.5 เหมือนอีกสองแบบ",example:"เลือกตาม argument <code>family=binomial(link=...)</code> ที่โจทย์ให้มาตรง ๆ. ถ้าโจทย์ไม่ระบุ ให้ใช้ logit เป็นค่าเริ่มต้นเสมอเพราะตีความเป็น odds ratio ได้ตรงไปตรงมาที่สุด"},
+offset:{title:"Offset Term",def:"ใช้เมื่อสนใจ 'อัตรา' (rate, เช่น จำนวนเหตุการณ์ต่อหน่วยเวลา/พื้นที่) ไม่ใช่ 'จำนวนนับดิบ' (raw count). เช่นจำนวนอุบัติเหตุต่อระยะทางที่ขับ ไม่ใช่จำนวนอุบัติเหตุเฉย ๆ ที่ไม่คำนึงถึงขนาดกลุ่มตัวอย่าง",when:"ใช้ทุกครั้งที่หน่วยสังเกตแต่ละแถวมี 'exposure' (เวลา, พื้นที่, ประชากร) ต่างกัน และอยากเปรียบเทียบอัตราให้ยุติธรรมข้ามแถว",read:"<code>offset(log(exposure))</code> ในสูตร <code>glm()</code> บังคับให้สัมประสิทธิ์ของพจน์ exposure เท่ากับ 1 เสมอ (ไม่ต้องประมาณ เพราะรู้อยู่แล้วว่าความสัมพันธ์เป็นสัดส่วนตรงกับเวลา/พื้นที่)",criteria:"สมการยังเขียนเป็น \\(\\log(\\hat\\mu)=X\\hat\\beta+\\log(\\text{exposure})\\) แต่ถ้าอยากตีความเป็นอัตราต้องย้ายข้าง: \\(\\log(\\hat\\mu/\\text{exposure})=X\\hat\\beta\\)",example:"L11/L13 dose-response ตัวอย่าง dicentric chromosome: ต้องคุมขนาดกลุ่มตัวอย่างเซลล์ที่ต่างกันในแต่ละแถวด้วย offset(log(cells)) ก่อนเปรียบเทียบ dose ระหว่างแถว มิฉะนั้นแถวที่มีเซลล์เยอะกว่าจะดูมีจำนวนนับสูงกว่าเสมอโดยไม่เกี่ยวกับ dose เลย"},
+gammaig:{title:"Gamma vs Inverse Gaussian",def:"ทั้งคู่ใช้กับ Y ต่อเนื่องบวกเสมอและเบ้ขวา. ต่างกันที่รูปแบบความสัมพันธ์ variance-mean ซึ่งกำหนดว่า distribution ไหนเหมาะกับข้อมูลที่มี tail หนักแค่ไหน",when:"ใช้แทน log-transform+OLS เมื่อ Y เป็นบวกเสมอ เบ้ขวาชัดเจน (ค่าใช้จ่าย, เวลารอ, ความต้านทาน) และอยากคงสเกลเดิมไว้ตีความง่ายกว่า",read:"Gamma: \\(\\text{Var}(Y)=\\phi\\mu^2\\) (variance โตตามกำลังสองของ mean). Inverse Gaussian: \\(\\text{Var}(Y)=\\phi\\mu^3\\) (โตเร็วกว่า Gamma มาก เหมาะกับข้อมูลที่ tail ยาวกว่า/เบ้แรงกว่า)",criteria:"เทียบ AIC/goodness-of-fit ระหว่างสองแบบได้ตรง ๆ ถ้าใช้ distribution เดียวกัน (ต่าง link ก็เทียบได้) แต่เทียบข้าม distribution (Gamma vs log-normal) ต้องระวังเพราะ likelihood คำนวณจาก assumption ที่ต่างกัน",example:"rats data: Inverse Gaussian GLM ทั้ง 3 link function (canonical 1/μ², inverse 1/μ, identity μ) ให้ AIC=-84.797 เท่ากันเป๊ะทุก link เพราะเป็น full-factorial design (categorical ล้วน). ค่า fitted μ ออกมาเหมือนกันไม่ว่า parameterize ผ่าน link ไหน เลือก identity link เพราะตีความง่ายสุด"},
+confmat:{title:"Confusion Matrix",def:"ตารางเทียบค่าทำนาย (predicted class) กับค่าจริง (actual class) ของโมเดล classification ที่ cutoff หนึ่ง. เป็นฐานที่ metric การประเมินโมเดล binary ทุกตัวคำนวณต่อจากตรงนี้",when:"ใช้ประเมินโมเดล logistic/binary classification หลังฟิตเสร็จ ก่อนคำนวณ sensitivity/specificity/accuracy ใด ๆ",read:"4 ช่อง: True Positive (ทายถูก=1), False Positive (ทายผิดเป็น 1), True Negative (ทายถูก=0), False Negative (ทายผิดเป็น 0) ที่ cutoff ที่เลือก (มักเริ่มที่ π̂=0.5)",criteria:"ไม่มีเกณฑ์ตายตัวในตัวมันเอง. ใช้คำนวณ Sensitivity=TP/(TP+FN), Specificity=TN/(TN+FP), Accuracy=(TP+TN)/total ต่อ",example:"ต้องเลือก cutoff ก่อนสร้างตารางนี้ได้เสมอ. cutoff ต่างกันให้ confusion matrix ต่างกัน (cutoff ต่ำ=ทาย positive บ่อยขึ้น=Sensitivity สูงขึ้นแต่ Specificity ต่ำลง) นี่คือ trade-off ที่ ROC curve แสดงภาพรวมทุก cutoff พร้อมกัน"},
+rocauc:{title:"ROC Curve / AUC / Youden's Index",def:"ROC วัด trade-off ระหว่าง Sensitivity (True Positive Rate) กับ 1-Specificity (False Positive Rate) ที่ทุกค่า cutoff พร้อมกันในกราฟเดียว. AUC สรุปกราฟทั้งเส้นเป็นตัวเลขเดียว",when:"ใช้เปรียบเทียบโมเดล classification โดยไม่ต้องตรึง cutoff ไว้ค่าเดียว หรือใช้หา cutoff ที่ดีที่สุดสำหรับใช้งานจริง",read:"แกน Y = Sensitivity, แกน X = 1-Specificity. เส้นทแยงมุม 45° = โมเดลสุ่มเดา (AUC=0.5, ไม่มีความสามารถแยกแยะเลย)",criteria:"AUC=1 สมบูรณ์แบบ, AUC=0.5 ไม่ต่างจากสุ่ม, ยิ่งใกล้ 1 ยิ่งดี. Youden's Index = max(Sensitivity+Specificity-1) ใช้หาจุด cutoff ที่ดีที่สุดบนเส้น ROC",example:"moth data (drill-06): ROC curve แสดงว่าโมเดล logistic แยกแยะกลุ่มได้ดีกว่าสุ่มเดาชัดเจน (เส้นโค้งอยู่เหนือเส้นทแยงมุมมาก). ใช้ Youden's Index หาจุดบนเส้นโค้งที่ Sensitivity+Specificity รวมกันสูงสุดเป็น cutoff แนะนำ",visual:[{img:"assets/slides/as9-p57-roc-curve.png",cap:"เส้นโค้งโก่งขึ้นซ้ายบนชัดเจน (ห่างจากเส้นทแยงมุมมาก) = โมเดลแยกแยะได้ดี. ระวัง: แกน X คือ Specificity เรียงจาก 1.0→0.0 (กลับด้าน ไม่ใช่ 0→1 แบบปกติ)"}]},
+pseudor2:{title:"Pseudo R² (Nagelkerke)",def:"GLM ไม่มี R² แบบ OLS ตรง ๆ (residual ไม่ได้แปลว่า 'ระยะห่างจากเส้นตรง' แบบเดิมอีกต่อไป). Pseudo R² พยายามให้ตัวเลขที่ตีความคล้าย R² โดยเทียบ likelihood ของโมเดลกับโมเดล null",when:"ใช้ประกอบการรายงานว่าโมเดล GLM 'อธิบายได้ดีแค่ไหน' ในภาษาที่คุ้นเคยจาก OLS. ไม่ใช่ตัวชี้วัดหลักในการเลือกโมเดล",read:"Nagelkerke ปรับสเกลให้ค่าสูงสุดเป็น 1 ได้จริง (McFadden's pseudo R² ธรรมดาทำไม่ได้ เพดานมักต่ำกว่า 1 มาก)",criteria:"ใช้เปรียบเทียบ 'ความพอดี' คร่าว ๆ เท่านั้น อย่าตีความเป๊ะเหมือน OLS R² (ไม่ได้แปลว่า 'อธิบายความแปรปรวนได้ X%' แบบตรงตัว)",example:"ใช้ประกอบการอธิบายโมเดล breast cancer logistic ได้ แต่ deviance/AIC ยังเป็นตัวชี้วัดหลักที่ควรใช้ตัดสินใจเลือกโมเดล ไม่ใช่ pseudo R²"},
+prospretro:{title:"Prospective vs Retrospective Study",def:"Prospective (ตามไปข้างหน้า): สุ่มตัวอย่างก่อนแล้วดูว่าใครกลายเป็นเคสในอนาคต (สัดส่วนเคสเป็นไปตามธรรมชาติ). Retrospective/case-control (ย้อนกลับ): เลือกเคสกับกลุ่มควบคุมมาก่อนตามจำนวนที่นักวิจัยกำหนดเอง แล้วดูปัจจัยย้อนหลัง",when:"ต้องระบุก่อนตีความ intercept ของ logistic regression เสมอ เพราะ study design กระทบความหมายของ intercept โดยตรง",read:"Case-control กำหนดสัดส่วนเคส:ไม่เคสเองล่วงหน้า (เช่น 1:1 หรือ 1:2) ไม่ใช่สัดส่วนที่เกิดขึ้นตามธรรมชาติในประชากร",criteria:"ใน retrospective/case-control, intercept \\(\\hat\\beta_0\\) <strong>ตีความเป็น baseline prevalence ไม่ได้</strong> เพราะสัดส่วนกลุ่มถูกกำหนดเอง ไม่ใช่ของธรรมชาติ. แต่ odds ratio ของสัมประสิทธิ์อื่นยังตีความได้ปกติเหมือนเดิม",example:"bird-keeper lung cancer study (L9): เป็น case-control design (เลือกผู้ป่วยมะเร็งปอดกับกลุ่มควบคุมมาจำนวนที่กำหนดไว้ล่วงหน้า). odds ratio ของ BKNoBird ยังตีความได้ปกติ แต่ intercept ไม่สามารถบอก 'อัตราการเป็นมะเร็งปอดพื้นฐานในประชากร' ได้"},
+cellfactor:{title:"Cell-Means vs Factor-Effects Model",def:"สองวิธีเขียนสมการ ANOVA แบบเดียวกัน. Cell-means: \\(Y_{ij}=\\mu_i+\\varepsilon_{ij}\\) (แต่ละกลุ่มมีค่าเฉลี่ยของตัวเอง เขียนตรงไปตรงมา). Factor-effects: \\(Y_{ij}=\\mu+\\tau_i+\\varepsilon_{ij}\\) (grand mean บวกผลต่างของแต่ละกลุ่ม จาก grand mean, มี constraint \\(\\sum\\tau_i=0\\))",when:"เข้าใจทั้งสองแบบเพื่ออ่าน R output ของ ANOVA ได้ถูก เพราะ R เลือกใช้ factor-effects form โดยปริยาย (ผ่าน dummy coding)",read:"Factor-effects เทียบเท่ากับ MLR ที่มี r-1 dummy variable พอดี (เก็บ intercept 1 ตัวสำหรับกลุ่มอ้างอิง)",criteria:"ตีความ H₀ ต่างมุมกันแต่เทียบเท่าทางคณิตศาสตร์: \\(H_0:\\mu_1=\\cdots=\\mu_r\\) (cell-means) ⟺ \\(H_0:\\tau_1=\\cdots=\\tau_r=0\\) (factor-effects)",example:"bakesale data: cell-means model บอกตรง ๆ ว่าค่าเฉลี่ยแต่ละตำแหน่งชั้นวางคือเท่าไหร่ (55.8, 77.2, 51.5). factor-effects model (ที่ R ใช้จริง) ให้ intercept+dummy ที่ต้องบวกเองถึงจะได้ค่าเฉลี่ยกลุ่ม แต่ให้ p-value ทดสอบผลของแต่ละกลุ่มได้ตรงกว่า"},
+contrasts:{title:"contr.treatment vs contr.sum",def:"สองวิธีเข้ารหัส dummy variable ของตัวแปร categorical ใน R. ให้ค่าทำนาย \\(\\hat{Y}\\) เหมือนกันเป๊ะทุกจุด แต่ตีความสัมประสิทธิ์แต่ละตัวต่างกันไปตามวิธีเข้ารหัส",when:"ต้องเช็คก่อนตีความ Intercept ของ ANOVA/MLR ที่มีตัวแปร categorical เสมอ เพราะความหมายของ Intercept เปลี่ยนไปตามวิธี contrast ที่ใช้",read:"contr.treatment (ค่าเริ่มต้นของ R): Intercept=ค่าเฉลี่ยกลุ่มอ้างอิงตรง ๆ, สัมประสิทธิ์ dummy อื่น=ผลต่างจาก reference. contr.sum: Intercept=grand mean (ค่าเฉลี่ยรวมทุกกลุ่ม), สัมประสิทธิ์ dummy=ผลต่างจาก grand mean (ตัวสุดท้ายคำนวณจาก \\(\\sum\\tau_i=0\\))",criteria:"ไม่มีแบบไหนถูก/ผิดโดยตัวมันเอง. เลือกตามคำถามวิจัย: อยากเทียบกับกลุ่มอ้างอิงเฉพาะ (contr.treatment) หรืออยากเทียบกับค่าเฉลี่ยรวม (contr.sum)",example:"bakesale: contr.treatment ได้ Intercept=55.8 (=ค่าเฉลี่ยกลุ่ม bottom พอดี). contr.sum (ข้อมูลชุดเดียวกัน) ได้ Intercept=61.5 (=grand mean ของทั้ง 3 กลุ่ม). สัมประสิทธิ์ต่างกันแต่ค่าทำนายสุดท้ายของแต่ละกลุ่มเท่ากันทุกกลุ่ม"},
 };
 
 function T(id, label) { return `<span class="term" data-term="${id}">${label||GLOSSARY[id].title}</span>`; }
+function hcard(tag,title,body){ return {kind:'hpi', hpiType:'hyp', tag, title, body}; }
+function pcard(tag,title,body){ return {kind:'hpi', hpiType:'pred', tag, title, body}; }
+function icard(tag,title,body){ return {kind:'hpi', hpiType:'interp', tag, title, body}; }
 
-// ================= Layout data =================
-const CENTER_Y = 720;
-function stackY(items, gap) {
-  const totalH = items.reduce((s,h)=>s+h,0) + gap*(items.length-1);
-  let y = CENTER_Y - totalH/2;
-  const ys = [];
-  for (const h of items) { ys.push(y); y += h + gap; }
-  return ys;
-}
+// ================= Stations (lecture order 1→14 + closing) =================
+const STATIONS = [
+{id:'l1', num:'L1', title:'Simple Linear Regression', story:'เริ่มจากโมเดลที่ง่ายที่สุด. X ตัวเดียวทำนาย Y ต่อเนื่อง',
+ flow:{type:'pipeline', cards:[
+   {title:'1. จำรูปแบบข้อมูล', body:`<ul>
+     <li>Y ต่อเนื่อง X ตัวเดียว วาด <code>plot(x,y)</code> ก่อนเสมอ</li>
+     <li>ดูสองอย่างจากภาพ. ทิศทาง (บวก/ลบ) และรูปร่าง (เส้นตรงจริงไหม ไม่ใช่โค้ง)</li>
+     <li>ตัวอย่าง Automobile Data (n=10): จุดกระจายเรียงขึ้นเป็นเส้นตรงคร่าวๆ ไม่มีโค้งชัด</li>
+   </ul>`},
+   {title:'2. Fit + อ่านตาราง', body:`<pre><code>&gt; model&lt;-lm(y~x)
+&gt; summary(model)
+            Estimate Std.Error t value Pr(&gt;|t|)
+(Intercept)   23.333     6.873   3.395  0.00943 **
+x              3.394     1.108   3.064  0.01548 *
+Residual SE: 10.06 on 8 df
+R-squared: 0.5399</code></pre>
+     <ul>
+       <li>อ่านทีละคอลัมน์. Estimate คือ β̂ ตรงๆ, Std.Error คือความไม่แน่นอนของ β̂</li>
+       <li>t value = Estimate/Std.Error (3.394/1.108=3.064 ตรงกับที่ตารางให้)</li>
+       <li>สมการที่ได้: \\(\\hat{Y}=23.333+3.394X\\)</li>
+     </ul>`},
+   {title:'3. เช็ค 4 assumption', body:`<ul>
+     <li>วาด residual-vs-fitted และ QQ-plot ทันทีหลัง fit อย่าเชื่อ R² อย่างเดียว</li>
+     <li>4 ข้อที่ต้องผ่าน. mean-zero, independent, constant variance, normal</li>
+     <li>เช็คด้วยตา + ยืนยันด้วยเลข ${T('shapiro','Shapiro-Wilk')} และ ${T('bp','Breusch-Pagan')}</li>
+   </ul>`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ','H₀: β₁=0', `\\(t=\\hat\\beta_1/SE\\sim t_{(n-2)}\\)<br>ตัวอย่างจริง: \\(t=3.394/1.108=3.064\\), df=8, p=0.01548 → ปฏิเสธ H₀ ที่ α=0.05<br>เทียบผลกับ F-test ภาพรวม: F=9.389 บน (1,8) df, p=0.01548 ค่าเดียวกันเป๊ะ (SLR: t²=F เสมอ)`),
+  pcard('ทำนาย', `${T('cipi','CI vs PI')}`, `\\(\\hat{Y}=\\hat\\beta_0+\\hat\\beta_1X_0\\) จุดเดียวกัน แต่ SE ต่าง<br>ตัวอย่างจริง: ที่ X₀ เดียวกัน 95% CI กว้าง 91.8 หน่วย ในขณะที่ 95% PI กว้าง 583.5 หน่วย (ต่างกัน 6 เท่า เพราะ PI ต้องรวมความแปรปรวนของค่าสังเกตใหม่ด้วย)`),
+  icard('ตีความ','Slope template', `"เมื่อ X เพิ่ม 1 หน่วย Y คาดว่าเพิ่มขึ้นเฉลี่ย 3.394 หน่วย (p=0.01548, มีนัยสำคัญที่ α=0.05)"<br>R²=0.5399 แปลว่าโมเดลอธิบายความแปรปรวนของ Y ได้ 54% ไม่ใช่ "ทำนายแม่น 54%"`),
+ ]},
+{id:'l2', num:'L2', title:'Multiple Linear Regression', story:'โลกจริงมี X มากกว่า 1 ตัวเสมอ. ขยายจาก 1 X เป็นหลาย X',
+ flow:{type:'pipeline', cards:[
+   {title:'1. สำรวจก่อน fit', body:`<ul>
+     <li>scatterplot matrix ดูความสัมพันธ์ Y กับทุก X พร้อมกัน</li>
+     <li>เช็ค ${T('vif','VIF')} ระหว่าง X ด้วยกันเอง ก่อนเชื่อ p-value ใดๆ</li>
+     <li>ข้อมูล whiteside: มี 2 กลุ่ม (Insul=Before/After) แยกฟิตทีละกลุ่มก่อนดูว่าเส้นต่างกันจริงไหม</li>
+   </ul>`},
+   {title:'2. Fit แบบไม่มี vs มี Interaction', body:`<pre><code>&gt; modelBefore&lt;-lm(Gas~Temp, subset=Before)
+(Intercept)  6.8538
+Temp        -0.3932
 
-const COLX = [40, 320, 700, 1090, 1370, 1750, 2140, 2420, 2800];
-const DW = 150;
+&gt; modelAfter&lt;-lm(Gas~Temp, subset=After)
+(Intercept)  4.72385
+Temp        -0.27793
 
-const familyCards = [
-  {tag:'L1 · L2', title:'Continuous, ต่อเนื่องปกติ', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> Y ต่อเนื่อง ไม่มีขอบเขตชัด กระจายสมมาตรพอประมาณ (ยอดขาย, ปริมาณแก๊ส, ราคาบ้าน)</li>
-    <li><strong>โมเดล:</strong> \\(\\hat{Y}=\\hat\\beta_0+\\hat\\beta_1X\\) — ฟิตด้วย <code>lm(y~x)</code></li>
-    <li><strong>กรณีพิเศษ:</strong> X เป็น categorical ล้วน = ${T('cellfactor','ANOVA')} — ดูวิธีเข้ารหัสที่ ${T('contrasts','contr.treatment/sum')} — <a href="lessons/0006-single-factor-anova.html">L6</a></li>
-    <li>Post-hoc เทียบรายคู่: ${T('tukey','Tukey HSD')} หรือ ${T('lsdbonf','LSD/Bonferroni/Scheffe')}</li>
-  </ul>`},
-  {tag:'L13', title:'Continuous, บวกเสมอ+เบ้ขวา', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> Y เป็นบวกเสมอ กระจายเบ้ขวา (ค่าใช้จ่าย, ความต้านทานไฟฟ้า)</li>
-    <li><strong>ทาง 1:</strong> log-transform แล้วใช้ OLS ธรรมดา</li>
-    <li><strong>ทาง 2:</strong> ${T('gammaig','Gamma หรือ Inverse-Gaussian GLM')} (มักใช้ log link)</li>
-    <li><a href="lessons/0013-other-glms.html">L13</a> เทียบทั้งสองแบบด้วยข้อมูลจริงชุดเดียวกัน</li>
-  </ul>`},
-  {tag:'L9', title:'Binary (0/1 รายตัว)', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> Y คือสำเร็จ/ไม่สำเร็จรายหน่วย (เป็นมะเร็งหรือไม่)</li>
-    <li><strong>โมเดล:</strong> \\(\\text{logit}(\\hat\\pi)=X\\hat\\beta\\) — <code>glm(y~x, family=binomial)</code></li>
-    <li><strong>ประเมินโมเดล:</strong> ${T('confmat','Confusion Matrix')}, ${T('rocauc','ROC/AUC')}, ${T('pseudor2','Pseudo R²')}</li>
-    <li><strong>ระวัง:</strong> ${T('prospretro','Prospective vs Retrospective design')} กระทบการตีความ intercept</li>
-    <li><a href="lessons/0009-binary-data.html">L9</a></li>
-  </ul>`},
-  {tag:'L10', title:'Grouped Binomial (สำเร็จ/ทั้งหมด)', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> Y เป็นสัดส่วนจากกลุ่ม (เสียหาย 3/6 ครั้ง)</li>
-    <li><code>glm(cbind(success,failure)~x, family=binomial)</code></li>
-    <li><a href="lessons/0010-binomial-counts.html">L10</a></li>
-  </ul>`},
-  {tag:'L11', title:'Count (นับจำนวนครั้ง)', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> Y คือจำนวนนับ ไม่มีขอบเขตบน (จำนวนสปีชีส์, อุบัติเหตุ)</li>
-    <li><strong>โมเดล:</strong> \\(\\log(\\hat\\mu)=X\\hat\\beta\\) — <code>glm(y~x, family=poisson)</code> (เช็ค overdispersion ที่ Step 5)</li>
-    <li><strong>สนใจอัตราไม่ใช่จำนวนดิบ:</strong> ใช้ ${T('offset','offset term')}</li>
-    <li><a href="lessons/0011-count-regression.html">L11</a></li>
-  </ul>`},
-  {tag:'L12', title:'Multi-category (>2 กลุ่ม)', body:`<ul>
-    <li><strong>ไม่มีลำดับ</strong> (พรรคการเมือง) → baseline-category logit <code>multinom()</code></li>
-    <li><strong>มีลำดับ</strong> (พอใจน้อย/กลาง/มาก) → proportional-odds <code>polr()</code></li>
-    <li>ถ้าเลือก ordinal ต้องเช็ค ${T('brant','Brant test')} ที่ Step 5</li>
-    <li><a href="lessons/0012-multinomial-data.html">L12</a></li>
-  </ul>`},
-  {tag:'L14', title:'Clustered / Repeated-measures', body:`<ul>
-    <li><strong>ใช้เมื่อ:</strong> วัดหน่วยเดียวกันซ้ำหลายครั้ง — ข้อสังเกตในกลุ่มเดียวกัน<strong>ไม่อิสระ</strong>ต่อกัน</li>
-    <li><code>lmer(y~x+(1|group))</code> — fixed + random effect</li>
-    <li>เช็คว่าจำเป็นแค่ไหนด้วย ${T('icc','ICC')}</li>
-    <li>ประมาณค่าด้วย ${T('mlreml','ML หรือ REML')}, รายงานผลด้วย ${T('margcond','Marginal/Conditional R²')}</li>
-    <li>ทำนายเฉพาะกลุ่มด้วย ${T('blup','BLUP')} (ranef())</li>
-    <li><a href="lessons/0014-linear-mixed-effects-models.html">L14</a></li>
-  </ul>`},
+&gt; model&lt;-lm(Gas~Temp*Insul)
+(Intercept)      6.85383
+InsulAfter      -2.12998
+Temp            -0.39324
+InsulAfter:Temp  0.11530</code></pre>
+     <ul>
+       <li>สังเกต: สัมประสิทธิ์จากโมเดลรวม (พร้อม interaction) เท่ากับตอนแยกฟิตทีละกลุ่มเป๊ะ (6.85383-2.12998=4.72385, -0.39324+0.11530=-0.27794)</li>
+       <li>พิสูจน์ว่า interaction term คือกลไกที่ทำให้ "เส้น 2 เส้นมี slope ต่างกัน" ในโมเดลเดียว</li>
+     </ul>`},
+   {title:'3. อ่าน partial-t', body:`<ul>
+     <li>ทุกสัมประสิทธิ์คือ partial effect คุมตัวแปรอื่นในสมการให้คงที่เสมอ</li>
+     <li>InsulAfter=-2.12998 หมายถึงผลต่างระหว่างกลุ่ม เมื่อ Temp เท่ากัน ไม่ใช่ผลรวม</li>
+   </ul>`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ','3 แบบ', `H₀:β<sub>j</sub>=0 (t-test รายตัว) · H₀:β₁=...=β<sub>p</sub>=0 (overall F) · ${T('extrassf','Extra-SS-F')} (กลุ่มตัวแปร)<br>whiteside: H₀:β<sub>InsulAfter</sub>=β<sub>InsulAfter:Temp</sub>=0 (q=2) เทียบโมเดลเต็มกับโมเดลที่มีแค่ Temp ได้ p<2.2e-16 → ปฏิเสธ H₀ เก็บ Insul ไว้`),
+  pcard('ทำนาย','ระวัง Hidden Extrapolation', `\\(\\hat{Y}=\\hat\\beta_0+\\sum\\hat\\beta_jX_j\\)<br>จุดที่แต่ละ X อยู่ในช่วงข้อมูลแยกกัน แต่ combination ของทั้งคู่ไม่เคยเกิดขึ้นจริงในข้อมูล ก็ยังถือเป็น extrapolation ได้ ต้องเช็คด้วย scatterplot matrix ไม่ใช่แค่ช่วงของแต่ละตัวแปร`),
+  icard('ตีความ','Dummy/Interaction/Polynomial', `Dummy: "กลุ่ม After มี Gas เฉลี่ยต่ำกว่า Before อยู่ 2.12998 หน่วย เมื่อ Temp เท่ากัน"<br>Interaction: ตีความเดี่ยวๆไม่ได้ ต้องบอกว่าผลของ Temp ขึ้นกับกลุ่ม (Before=-0.39324, After=-0.27794)<br>Polynomial: marginal effect เปลี่ยนตาม X เสมอ (ดูอนุพันธ์)`),
+ ]},
+{id:'l3', num:'L3', title:'Diagnostics & Remedies', story:'MLR วางบนสมมติฐานหลายข้อ. ไม่ผ่านเสมอในข้อมูลจริง ต้องตรวจและแก้',
+ flow:{type:'diagnose', diamond:'ผ่าน assumption ไหม?',
+   branches:[
+    {title:'Non-linear หรือ Variance ไม่คงที่?', body:`<pre><code>&gt; summary(model)
+(Intercept)  2.5753  t=10.354  p=1.20e-07
+X           -0.3240  t=-7.483  p=4.61e-06
+R-squared: 0.8116</code></pre>
+     <ul>
+       <li>R²=0.8116 ดูสูง แต่ residual-vs-fitted เป็นรูปตัว V ชัดเจน คือสัญญาณ non-linearity</li>
+       <li>QQ-plot จุดหลุดจากเส้น 45° ที่หางบน คือสัญญาณ non-normality ร่วมด้วย</li>
+       <li>${T('boxcox','Box-Cox')} ยืนยัน λ≈0 พอดี CI แคบมากไม่ครอบคลุม λ=1 (ไม่แปลงเลย) → เลือก log(Y)</li>
+     </ul>
+     <pre><code>&gt; logmodel&lt;-lm(log(Y)~X)
+X   -0.44993  t=-42.88  p=2.19e-15
+R-squared: 0.993</code></pre>
+     <ul><li>R² กระโดดจาก 0.8116 เป็น 0.993 residual plot หลังแปลงราบเรียบ ไม่มีรูปตัว V แล้ว</li></ul>
+     หรือถ้ารู้ pattern ของ variance ชัดแล้ว (ไม่คงที่อย่างเดียว ไม่โค้ง) ใช้ ${T('wls','WLS')} แทน`},
+    {title:'Non-normal?', body:`${T('shapiro',"Shapiro-Wilk")} p ต่ำ (ปฏิเสธ H₀:normal) → ลอง transform เดียวกับที่แก้ non-linearity มักช่วยเรื่อง normality ไปด้วยพร้อมกัน`},
+    {title:'Non-independent?', body:`residual-vs-time/order มีแนวโน้มชัด (ไม่กระจายสุ่ม) → ${T('dw','Durbin-Watson')} ยืนยัน → แก้ด้วยเพิ่มตัวแปรเวลา หรือ ${T('cochrane','Cochrane-Orcutt')} ถ้ายังไม่พอ`},
+   ], loopLabel:'ไม่ผ่าน → transform แล้ว fit ใหม่'},
+ hpi:[
+  hcard('ทดสอบ','ทิศทางกลับด้าน!', `${T('shapiro','Shapiro-Wilk')} (H₀:normal), ${T('bp','Breusch-Pagan')} (H₀:constant var), ${T('dw','Run test')} (H₀:independent)<br><strong>อยากได้ p สูง</strong> (ตรงข้ามกับการทดสอบ β=0 ที่อยากได้ p ต่ำ) เพราะ H₀ ที่นี่คือ "assumption เป็นจริง"`),
+  pcard('ทำนาย','หลัง transform ต้อง back-transform', `ถ้า fit บน log(Y) ต้อง \\(\\hat{Y}=\\exp(\\widehat{\\log Y})\\)<br>ระวัง Jensen's inequality. back-transform ตรงๆทำให้เกิด bias เล็กน้อยเสมอ (ค่าจริงมักสูงกว่าที่คำนวณตรงๆเล็กน้อย)`),
+  icard('ตีความ','Box-Cox เลือกทางแก้ให้', `Solution Concentration: λ≈0 → log(Y) → R² จาก 0.8116 เป็น 0.9930 การแปลงเดียวแก้ทั้ง linearity และ variance พร้อมกัน`),
+ ]},
+{id:'l4', num:'L4', title:'Diagnostics II. Influence', story:'นอกจาก assumption ยังมีจุดที่ "อิทธิพลเกินสัดส่วน" อีกปัญหาหนึ่ง',
+ flow:{type:'diagnose', diamond:'influential จริงไหม?',
+   branches:[
+    {title:'ขั้น 1. เช็คฝั่ง X ก่อน (Leverage)', body:`<pre><code>&gt; vif(predictors)
+X1   5.43
+X2  11.64
+X1X2 22.47   (VIF&gt;10 = multicollinearity รุนแรง)
+
+leverage cutoff = 2(p+1)/n = 8/19 ≈ 0.4211
+Case 3, 8, 15 เกิน cutoff (outlying ในแกน X)</code></pre>
+     จุดที่ ${T('leverage','Leverage')} สูงคือจุดที่ X ห่างจากค่าเฉลี่ยตัวแปรอิสระมาก ยังไม่รู้ว่าทำนายแม่นหรือไม่`},
+    {title:'ขั้น 2. เช็คฝั่ง Y (Residual)', body:`Case 7 คือจุดที่ outlying ในแกน Y (โมเดลทำนายพลาดมาก) วัดด้วย ${T('studres','studentized deleted residual')} เทียบ Bonferroni cutoff ที่ t≈3.65 (n=19)`},
+    {title:'ขั้น 3. รวมสองมิติเป็น Cook\'s D', body:`<pre><code>&gt; influence.measures(model)
+    dffit  cov.r cook.d   hat
+3  -0.680  2.556  0.121 0.539 *
+7   1.749  0.166  0.459 0.218 *
+8  -4.780  4.790  4.991 0.878 *
+15  0.175  2.510  0.008 0.480 *</code></pre>
+     <ul>
+       <li>Case 8: ผ่านทุกเกณฑ์พร้อมกัน (DFFITS, DFBETAS ทุกตัว, ${T('cooksd',"Cook's D")}>3.06) คือ influential รุนแรงที่สุด</li>
+       <li>Case 3, 15: Cook's D ต่ำมาก (0.121, 0.008) แต่ ${T('covratio','COVRATIO')} เบี่ยงจาก 1 มาก คือกระทบแค่ความแม่นยำของสัมประสิทธิ์ ไม่ได้ดึงค่าประมาณให้เปลี่ยน</li>
+       <li>Case 7: ผ่าน DFFITS/DFBETAS แต่ Cook's D ไม่ถึง cutoff เลย คือตัวอย่างจริงที่ต้องดูทุกเกณฑ์ประกอบกัน ไม่มีเกณฑ์เดียวที่พอ</li>
+       <li>ระวัง ${T('masking','Masking Effect')} เสมอ. จุด influential 2 จุดที่อยู่ใกล้กันอาจบังกันเอง ทำให้ diagnostic ทีละจุดตรวจไม่พบ ต้องดู scatter plot จริงประกอบทุกครั้ง</li>
+     </ul>
+     ถ้า influential จริง แก้ด้วย ${T('robust','Robust regression')} หรือตรวจสอบข้อมูลจุดนั้นโดยตรง แล้ว refit ใหม่`},
+   ], loopLabel:'ถ้า influential จริง → แก้แล้ว refit'},
+ hpi:[
+  hcard('ทดสอบ','เกณฑ์ threshold ไม่ใช่ p-value', `${T('cooksd',"Cook's D")}>4/n, ${T('leverage','leverage')}>2p/n, ${T('studres','studentized deleted residual')} เทียบ Bonferroni cutoff<br>lungpressure (n=19): leverage cutoff≈0.4211, Cook's D cutoff≈0.8783 (50th percentile) หรือ 3.056 (95th percentile)`),
+  pcard('ทำนาย','ผลของจุด influential ต่อค่าทำนาย', `ตัด/ไม่ตัดจุดนั้น เปลี่ยนค่าทำนายไปเท่าไหร่ วัดตรงๆด้วย ${T('dffits','DFFITS')}<br>Case 8: |DFFITS|=4.78 (สูงสุดในชุดข้อมูล) ตัดจุดนี้ทิ้งจะเปลี่ยนค่าทำนายอย่างมีนัยสำคัญ`),
+  icard('ตีความ','Leverage สูง ≠ Influential เสมอ', `leverage สูง+residual ต่ำ = ไม่ influential (โมเดลทำนายจุดนั้นแม่นอยู่แล้ว)<br>leverage สูง+residual สูงพร้อมกัน (แบบ Case 8) คืออันตรายสุด ต้องดูคู่กันเสมอ ไม่ใช่ดูแค่ตัวเดียว`),
+ ]},
+{id:'l5', num:'L5', title:'Model Selection', story:'พอมี X เยอะจาก L2 คำถามคือควรใส่ตัวไหนบ้าง',
+ flow:{type:'pipeline', cards:[
+   {title:'1. Forward Selection', body:`<pre><code>Step 0: Base Model      AIC=208.756  R2=0
+Step 1: +wt             AIC=166.029  R2=0.75283
+Step 2: +cyl            AIC=156.010  R2=0.83023</code></pre>
+     หยุดที่ step 2 เพราะเพิ่มตัวแปรต่อไปแล้ว AIC ไม่ลดลงอีก (ไม่มีตัวไหน p<0.05 เหลือให้เพิ่ม)`},
+   {title:'2. เทียบกับ Backward', body:`<ul>
+     <li>Backward Elimination บนข้อมูลเดียวกันได้ wt+qsec+am (AIC=154.119) คนละชุดกับ Forward เลย</li>
+     <li>เส้นทางค้นหาต่างกัน ผลลัพธ์จึงต่างกันได้ ไม่ใช่ความผิดพลาด</li>
+     <li>เทียบด้วย ${T('aicbic','AIC/BIC/Cp/adj-R²')} เสมอ ไม่มีวิธีไหน "ถูกต้องที่สุด" ตายตัว</li>
+   </ul>`},
+   {title:'3. ประเมินจริงด้วย CV', body:`${T('cv','Cross-Validation')} วัด error บนข้อมูลที่โมเดลไม่เคยเห็น ป้องกัน ${T('rmse','RMSE/MAE')} หลอกตาจาก overfitting`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ',"เทียบ nested model", `${T('extrassf','Extra-SS-F')} หรือเกณฑ์ ${T('aicbic','AIC/BIC')} ไม่มี p-value เดี่ยวสำหรับ "โมเดลไหนดีสุด" ต้องเทียบเป็นคู่ๆ หรือเทียบเกณฑ์รวม`),
+  pcard('ทำนาย','RMSE trap', `${T('rmse','RMSE')} บนข้อมูลฝึกไม่บอกว่าทำนายข้อมูลใหม่ดี โมเดลเต็มมักชนะ RMSE ฝึกเสมอแต่ overfit คำเตือนต้นฉบับ. "RMSE คำนวณจากชุดข้อมูลเดียวกับที่ใช้ฟิตโมเดล อาจ overfit แต่ทำนายข้อมูลใหม่ได้ไม่ดี"`),
+  icard('ตีความ','เขียนสมการสุดท้าย', `mtcars: \\(\\widehat{mpg}=39.686-3.191\\,wt-1.508\\,cyl\\) ดึงจาก parameter estimates ตรงๆ. "น้ำหนักรถ+1000 ปอนด์ mpg ลดลงเฉลี่ย 3.191 เมื่อ cyl คงที่"`),
+ ]},
+{id:'l6', num:'L6', title:'Single-Factor ANOVA', story:'ถ้า X เป็น categorical ล้วน MLR กลายเป็นกรณีพิเศษเรียกว่า ANOVA',
+ flow:{type:'diagnose', diamond:'variance เท่ากันทุกกลุ่ม?',
+   branches:[
+    {title:'ผ่าน → ANOVA มาตรฐาน', body:`เช็คด้วย ${T('levene',"Levene's/Bartlett's test")} ก่อนเสมอ แล้วฟิตด้วย ${T('cellfactor','Cell-means หรือ Factor-effects')} model แล้วแต่ contrast ที่เลือก`},
+    {title:'ไม่ผ่าน → Welch', body:T('welch','Welch ANOVA ไม่ต้องสมมติ variance เท่ากัน ปรับ df แทน')},
+    {title:'F-test ปฏิเสธ H₀ ต่อด้วย Post-hoc', body:`<pre><code>&gt; summary(aovmodel)
+F=184.6  df=(2,15)  p=2.74e-11
+
+&gt; TukeyHSD(aovmodel)
+diff CI ของแต่ละคู่ (bottom-middle,
+bottom-top, middle-top)</code></pre>
+     F-test บอกแค่ "มีอย่างน้อยหนึ่งคู่ต่างกัน" ต้องใช้ ${T('tukey','Tukey HSD')} หรือ ${T('lsdbonf','LSD/Bonferroni/Scheffe')} ต่อถึงจะรู้ว่าคู่ไหน`},
+   ], loopLabel:`ตรวจด้วย Levene's test`},
+ hpi:[
+  hcard('ทดสอบ','H₀: μ₁=...=μᵣ', `\\(F=MSTR/MSE\\sim F_{(r-1,\\,n_T-r)}\\)<br>bakesale (3 ตำแหน่งชั้นวาง): F=184.6, p=2.74e-11 → ปฏิเสธ H₀ ที่ α=0.05 อย่างชัดเจน`),
+  pcard('ทำนาย','ค่าเฉลี่ยกลุ่ม', `ค่าทำนายของกลุ่ม i คือ cell mean ของกลุ่มนั้นตรงๆ ไม่มี extrapolation ข้ามกลุ่ม เพราะไม่มีตัวแปรต่อเนื่องให้ extrapolate`),
+  icard('ตีความ',`ระวัง ${T('contrasts','contrast')}`, `bakesale contr.treatment: Intercept=55.8 (=ค่าเฉลี่ยกลุ่ม bottom)<br>contr.sum ข้อมูลเดียวกัน: Intercept=61.5 (=grand mean) ความหมาย Intercept เปลี่ยนไปตามวิธี contrast ที่ใช้ แม้ค่าทำนายสุดท้ายเท่ากัน`),
+ ]},
+{id:'l7', num:'L7', title:'Penalized Regression', story:'Model selection แบบ L5 ใช้ไม่ได้ดีเมื่อ X เยอะ/multicollinear',
+ flow:{type:'pipeline', cards:[
+   {title:'1. ทำไมต้องมี', body:`<pre><code>&gt; vif(model)
+X1    5.43
+X2   11.64
+X1X2 22.47</code></pre>
+     X2 กับ X1X2 เกิน VIF cutoff=10 ทั้งคู่ model selection แบบ stepwise เริ่มไม่เสถียร (เพิ่ม/ลดตัวแปรทีละตัวได้ผลไม่แน่นอนเมื่อตัวแปรสัมพันธ์กันสูง)`},
+   {title:'2. Ridge (L2) / LASSO (L1) / Elastic Net', body:T('ridge2','Ridge/LASSO/Elastic Net บีบสัมประสิทธิ์เข้าหา 0 โดยตั้งใจ ยอม bias แลก variance ต่ำ')},
+   {title:'3. เลือก λ ด้วย CV', body:`<pre><code>&gt; ridgemodel&lt;-lmridge(Y~X1*X2, K=0.5)
+&gt; summary(ridgemodel)
+R-squared: 0.3127
+AIC: 68.091</code></pre>
+     ${T('cv','Cross-Validation')} เลือก λ=K ที่ error ต่ำสุด ดู ridge trace plot ว่าสัมประสิทธิ์เริ่มนิ่งที่ไหนประกอบ`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ','ไม่มี inference มาตรฐาน', `ไม่มี p-value/SE ให้อ้างนัยสำคัญ เลือกโมเดลด้วย ${T('cv','CV')} error แทน hypothesis test เสมอ`),
+  pcard('ทำนาย','ทำนายได้เหมือน OLS', `\\(\\hat{Y}=X\\hat\\beta_{ridge}\\) ตรงๆ แต่ β ถูก shrink แล้ว lungpressure ตัวอย่าง. OLS coefficient หด 89-97% หลังทำ Ridge (บาง sign กลับด้านด้วย)`),
+  icard('ตีความ','ห้ามตีความขนาดตรงๆ', `standardized และ shrunk ตีความได้แค่ทิศทางกับขนาดสัมพัทธ์ระหว่างตัวแปร ไม่ใช่ effect size แม่นยำแบบ OLS`),
+ ]},
+{id:'l8', num:'L8', title:'Exponential Family & GLM Framework', story:'ทั้งหมดที่ผ่านมาสมมติ Y ต่อเนื่องแจกแจงปกติ. ข้อมูลจริงมักไม่ใช่ ต้องมีกรอบใหม่',
+ flow:{type:'pipeline', cards:[
+   {title:'1. Exponential Family Form', body:`\\(f(y;\\theta,\\phi)=\\exp\\left[\\frac{y\\theta-b(\\theta)}{a(\\phi)}+c(y,\\phi)\\right]\\)<br>Normal, Binomial, Poisson, Gamma ทุกตัวเขียนในรูปนี้ได้หมด ต่างกันแค่ b(θ) และ a(φ)`},
+   {title:'2. เลือก Distribution + Link', body:`${T('linkfn','Link Function')} เชื่อม μ กับ Xβ<br>Binomial→logit (หรือ ${T('probitcloglog','probit/cloglog')}), Poisson→log, Gamma→log/identity/inverse`},
+   {title:'3. IRWLS Estimation', body:`วนซ้ำจนลู่เข้า. working response → weight matrix → update β̂ (ไม่มีสูตรปิดแบบ OLS เพราะ non-linear ใน β)`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ',`${T('waldlrt','Wald vs LRT')}`, `สองวิธีทดสอบ β<sub>j</sub> ใน GLM. Wald ง่าย (อ่านจาก summary ตรงๆ z=β̂/SE), LRT แม่นกว่าตัวอย่างเล็ก (เทียบ deviance สองโมเดล) ทั้งคู่เทียบกับ ${T('satmodel','saturated model/null deviance')} เป็นจุดอ้างอิง`),
+  pcard('ทำนาย','g(μ̂)=Xβ̂', `คำนวณบน link scale ก่อนเสมอ แล้วค่อย back-transform ผ่าน inverse link ห้ามคำนวณ μ̂±1.96×SE ตรงๆ (อาจหลุดขอบเขตที่เป็นไปได้ของ μ)`),
+  icard('ตีความ','log link ให้ผลคูณ', `log link เปลี่ยนการตีความเป็นผลคูณ (multiplicative) ไม่ใช่ผลบวกแบบ OLS รายละเอียดเฉพาะแต่ละ family จะเจอจริงใน L9-13 ถัดไป`),
+ ]},
+{id:'l9', num:'L9', title:'Binary Data', story:'การประยุกต์ GLM แบบแรก: Y เป็น 0/1',
+ flow:{type:'gof', fit:`glm(family=binomial)
+(Intercept)  0.09196  z=0.052  p=0.958
+FMMale      -0.56127  z=-1.057 p=0.291
+BKNoBird    -1.36259  z=-3.313 p=0.0009`, diamond:'GOF ผ่านไหม?',
+   fail:{title:'ไม่ผ่าน (Hosmer-Lemeshow p<0.05)', body:'ขาดตัวแปรสำคัญ หรือ functional form ผิด ลอง polynomial term หรือกลับไปสำรวจ scatter plot ใหม่'},
+   pass:{title:'ผ่าน → ประเมินด้วย', body:`${T('rocauc','ROC/AUC')}, ${T('confmat','Confusion Matrix')}, ${T('pseudor2','Pseudo R²')}`}},
+ hpi:[
+  hcard('ทดสอบ',T('hosmerlem','Hosmer-Lemeshow'), `H₀. โมเดล fit ข้อมูล p สูง=ข่าวดี (ทิศทางตรงข้ามกับการทดสอบ β=0 ที่อยากได้ p ต่ำ) Pima Diabetes: p>0.05 → ไม่มีหลักฐานว่า fit ไม่ดี`),
+  pcard('ทำนาย','η̂→π̂', `\\(\\hat\\eta=X\\hat\\beta\\) → \\(\\hat\\pi=\\dfrac{e^{\\hat\\eta}}{1+e^{\\hat\\eta}}\\)<br>เลือก cutoff (มักเริ่ม 0.5) แล้วดู sensitivity/specificity trade-off จาก ${T('confmat','Confusion Matrix')}`),
+  icard('ตีความ','Odds Ratio', `BKNoBird: exp(-1.36259)=0.256 → "ผู้ไม่เลี้ยงนกมี odds เป็นมะเร็งปอด 0.256 เท่าของผู้เลี้ยงนก (ลด 74.4%) เมื่อควบคุมตัวแปรอื่นคงที่"<br>ระวัง ${T('prospretro','case-control design')} ทำให้ตีความ intercept ไม่ได้ (odds ratio ของสัมประสิทธิ์อื่นยังตีความได้ปกติ)`),
+ ]},
+{id:'l10', num:'L10', title:'Binomial Counts', story:'ขยายจาก binary รายตัว เป็นสัดส่วนจากกลุ่ม',
+ flow:{type:'gof', fit:`glm(cbind(damage,6-damage)~temp)
+(Intercept) 11.66299  z=3.538  p=0.0004
+temp        -0.21623  z=-4.066 p=4.78e-05
+Null dev: 38.898 on 22 df
+Resid dev: 16.912 on 21 df`, diamond:'Overdispersion?',
+   fail:{title:'มี → quasibinomial', body:`${T('overdisp','Overdispersion')} → ปรับ SE ด้วย √φ̂ (สัมประสิทธิ์ point estimate เท่าเดิมทุกตัว)`},
+   pass:{title:'ไม่มี → เชื่อ SE ปกติ', body:`ทดสอบด้วย ${T('devgof','Deviance GOF')} หรือ drop-in-deviance เทียบกับโมเดลลดรูป`}},
+ hpi:[
+  hcard('ทดสอบ',T('devgof','Deviance GOF / Drop-in-Deviance'), `orings (O-ring damage): Model1(null, dev=38.898/22df) vs Model2(+temp, dev=16.912/21df) LRT ลดลงมาก → temp มีผลจริงอย่างมีนัยสำคัญ`),
+  pcard('ทำนาย','เหมือน L9 แต่กรอบสัดส่วน', `η̂→π̂ วิธีเดียวกับ L9 แต่ตีความเป็น "สัดส่วนของกลุ่ม" (เช่น เสียหาย 3 จาก 6 ครั้ง) ไม่ใช่ความน่าจะเป็นรายตัว`),
+  icard('ตีความ','Rate ของ Odds Ratio', `temp: exp(-0.21623)≈0.806 → "อุณหภูมิเพิ่ม 1°F odds ของการเกิดความเสียหายลดลงเหลือประมาณ 0.806 เท่า (ลด ≈19.4%)"`),
+ ]},
+{id:'l11', num:'L11', title:'Count Regression', story:'ถ้า Y นับไม่มีขอบเขตบน (ไม่ใช่สัดส่วนจาก N ครั้ง) ใช้ Poisson',
+ flow:{type:'gof', fit:`glm(colonies~dose+I(dose^2), family=poisson)
+Null dev: กับ dispersion=4.126227
+1-pchisq(deviance,df) = 1.45e-06 (Poisson ไม่ผ่าน)`, diamond:'φ̂≫1? (Overdispersion)',
+   fail:{title:'มี → เปลี่ยน family', body:`${T('quasinb','quasi-Poisson หรือ Negative Binomial')} salmonella: NB GOF p=0.283 (ผ่าน) ดีกว่า Poisson มาก`},
+   pass:{title:'ไม่มี → เชื่อผลลัพธ์', body:'ใช้ Poisson ต่อได้เลย ไม่ต้องปรับอะไรเพิ่ม'}},
+ hpi:[
+  hcard('ทดสอบ','φ̂=deviance/df', `Salmonella: φ̂=4.126227≫1 → SE ขยาย √4.126≈2.03 เท่า t-value เดิม -4.066 กลายเป็น -3.517 (ยังนัยสำคัญแต่ไม่สุดโต่งเท่าตอนไม่ปรับ)`),
+  pcard('ทำนาย','μ̂=exp(Xβ̂)', `ถ้ามี ${T('offset','offset')}: log(μ̂)=Xβ̂+log(exposure) ตีความเป็นอัตราไม่ใช่จำนวนดิบ ต้องย้ายข้างก่อนตีความเป็น "อัตรา"`),
+  icard('ตีความ','Rate Ratio', `Galápagos Elevation: exp(3.541e-3)≈1.00355 → "ระดับความสูงเพิ่ม 1 เมตร จำนวนสปีชีส์คาดว่าเพิ่มเฉลี่ย ≈0.355% เมื่อควบคุมตัวแปรอื่นคงที่"`),
+ ]},
+{id:'l12', num:'L12', title:'Multinomial Data', story:'ถ้า Y มีมากกว่า 2 กลุ่ม ขยาย logistic ต่อ',
+ flow:{type:'diagnose', diamond:'มีลำดับไหม?',
+   branches:[
+    {title:'ไม่มี → Nominal', body:`<pre><code>&gt; multinom(vote~nincome)
+nincome: 0.01312  t=6.657</code></pre>baseline-category logit เขียนสมการแยกทุก category เทียบ baseline`},
+    {title:'มี → Ordinal', body:`<code>polr()</code> cumulative logit ใช้ β เดียวกันทุก cutpoint ต้องเช็ค ${T('brant','Brant test')} ก่อนเชื่อสมมติฐานนี้`},
+    {title:'Brant ไม่ผ่าน → แก้', body:`<pre><code>&gt; brant(model)  # โมเดลเต็ม
+Omnibus  X2=8.94  df=3  p=0.03  (ไม่ผ่าน)
+
+&gt; brant(model)  # ตัด nincome ออก
+Omnibus  p=0.69  (ผ่าน)</code></pre>
+     nincome คือตัวการที่ทำให้ assumption พัง ตัดออกแล้วเช็คซ้ำ หรือเปลี่ยนไปใช้ multinomial แทน (ไม่มี assumption นี้ตั้งแต่ต้น)`},
+   ], loopLabel:'ถ้า proportional-odds พัง → ตัดตัวการออกหรือเปลี่ยนโมเดล'},
+ hpi:[
+  hcard('ทดสอบ',T('brant','Brant Test'), `H₀:proportional odds เป็นจริง party-ID: Omnibus X²=8.94, df=3, p=0.03 → ปฏิเสธ H₀ (nincome คือตัวการ) ตัดออก → p=0.69 → ไม่ปฏิเสธ H₀`),
+  pcard('ทำนาย','RRR / cumulative logit', `Nominal: \\(\\log(\\hat\\pi_j/\\hat\\pi_{base})=X\\hat\\beta_j\\)<br>Ordinal: \\(\\text{logit}(\\hat{P}(Y\\leq j))=\\theta_j-\\hat\\beta X\\) ระวังเครื่องหมายลบหน้า β (ต่างจาก GLM ทั่วไป)`),
+  icard('ตีความ','Relative Risk Ratio', `nincome: exp(0.01312)≈1.0132 → "รายได้เพิ่ม 1 หน่วย ความเสี่ยงสัมพัทธ์ของกลุ่ม j เทียบ baseline เพิ่มประมาณ 1.32%" ต้องระบุทั้ง category ที่สนใจและ baseline เสมอ`),
+ ]},
+{id:'l13', num:'L13', title:'Other GLMs (Gamma/IG)', story:'กรอบ GLM ใช้ได้กับ Y ต่อเนื่องบวกเบ้ขวาด้วย',
+ flow:{type:'pipeline', cards:[
+   {title:'1. ทำไมต้อง Gamma', body:`ข้อมูล wafer resist: บวกเสมอ เบ้ขวาชัดเจน ${T('gammaig','Gamma vs Inverse-Gaussian')} จับ variance function ที่โตตาม mean ได้ธรรมชาติกว่าการเดา transform เอง`},
+   {title:'2. ลองทั้ง 3 Link แล้วเทียบ AIC', body:`<pre><code>&gt; glm(yield~nitrogen, family=Gamma(link=log))
+AIC: 409.08
+
+&gt; glm(yield~nitrogen, family=Gamma(link=identity))
+AIC: 406.09   (ต่ำสุด)
+
+&gt; glm(yield~nitrogen, family=Gamma(link=inverse))
+AIC: 411.38</code></pre>
+     family เดียวกัน ต่าง link เท่านั้น เทียบ AIC ตรงๆได้เลย เลือก identity link เพราะ AIC ต่ำสุดและตีความง่ายสุด`},
+   {title:'3. เทียบกับ log-transform+OLS', body:`Part(a) ใช้ \\(y^3\\) เป็นตัวแปรตอบสนอง ได้สัมประสิทธิ์ nitrogen=7278 ตีความยากมาก (สเกลยกกำลังสาม) ส่วน GLM identity link ให้ μ̂ ตรงสเกลเดิม ไม่ต้อง back-transform เลย`},
+ ]},
+ hpi:[
+  hcard('ทดสอบ','เทียบ AIC ข้าม link ได้', `family เดียวกัน ต่าง link เทียบ AIC ตรงๆได้ (ต่าง family เช่น Gamma vs log-normal เทียบ AIC ตรงๆไม่ได้ เพราะ likelihood มาจาก distribution คนละแบบ)`),
+  pcard('ทำนาย','μ̂ ตาม link ที่เลือก', `corn-nitrogen identity link: \\(\\hat\\mu=102.79+0.22554\\times\\text{nitrogen}\\) ให้ μ̂ ตรงสเกลเดิมทันที ไม่ต้อง back-transform`),
+  icard('ตีความ','Multiplicative (log link) หรือตรงตัว (identity)', `log link: "X+1 หน่วย μ เปลี่ยนเป็น exp(β̂) เท่าของเดิม" corn-nitrogen identity link: "ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ ผลผลิตข้าวโพดเฉลี่ยเพิ่มขึ้นประมาณ 0.2255 บุชเชล/เอเคอร์" ตรงตัว ไม่ต้อง back-transform`),
+ ]},
+{id:'l14', num:'L14', title:'Linear Mixed-Effects Models', story:'ถ้าข้อมูลไม่อิสระต่อกัน (วัดซ้ำ) ทุกโมเดลก่อนหน้าพัง ต้องเพิ่ม random effect',
+ flow:{type:'diagnose', diamond:'random effect จำเป็นไหม?',
+   branches:[
+    {title:'ทดสอบด้วย Bootstrap', body:`<pre><code>&gt; lmer(bright~1+(1|operator))
+Random effects:
+ operator (Intercept) var=0.06808
+ Residual             var=0.10625
+
+parametric bootstrap: LRT=2.568
+p-value = 19/1000 = 0.019</code></pre>
+     H₀:σ²D=0 ทดสอบด้วย χ² มาตรฐานไม่ได้ (ติดขอบเขตพารามิเตอร์ variance ติดลบไม่ได้) ต้องใช้ parametric bootstrap แทน p=0.019 → ปฏิเสธ H₀ ต้องมี random effect`},
+    {title:'เลือก ML vs REML', body:`${T('mlreml','ML vs REML')} pulp: REML var=0.06808 vs ML var=0.04575 (ML ให้ค่าต่ำกว่าจริงเป็นระบบ) ใช้ REML เป็นค่าเริ่มต้นเสมอ เปลี่ยนเป็น ML เฉพาะตอนเทียบ nested model ด้วย LRT`},
+    {title:`ดู ${T('icc','ICC')} ประกอบ`, body:'pulp: ICC=0.06808/(0.06808+0.10625)≈39% เกือบ 40% ของความแปรปรวนมาจากความต่างระหว่าง operator ยืนยันว่าต้องมี random effect'},
+   ], loopLabel:'จำเป็น → ใส่ (1|group) แล้ว fit ใหม่'},
+ hpi:[
+  hcard('ทดสอบ','2 แบบ', `Random effect: H₀:σ²D=0 (parametric bootstrap, pulp LRT=2.568→p=0.019→ปฏิเสธ) Fixed effect: ${T('kr','Kenward-Roger')} df (แม่นกว่า t-as-z เมื่อตัวอย่างเล็ก)`),
+  pcard('ทำนาย','Marginal vs Conditional', `Marginal (fixed เท่านั้น) vs Conditional/${T('blup','BLUP')} (เจาะจงกลุ่ม) eggprod: marginal=306.5 vs conditional=314.8 ต่างกันเพราะ ICC=25% มีนัยสำคัญพอที่จะทำให้สองค่าต่างกันชัดเจน`),
+  icard('ตีความ','Population-average vs Subject-specific', `Fixed β̂ = population-average (ค่าเฉลี่ยข้าม group ทั้งหมด) BLUP b̂ᵢ = subject-specific (เจาะจงกลุ่ม i) pulp ${T('icc','ICC')}≈39% รายงานความพอดีคู่กับ ${T('margcond','Marginal/Conditional R²')}`),
+ ]},
 ];
 
-const transformCards = [
-  {tag:'L3', title:'Y ไม่ linear / variance ไม่คงที่', body:`<ul>
-    <li>ใช้ ${T('boxcox','Box-Cox procedure')} หา λ อัตโนมัติ แทนเดา log/sqrt เอง</li>
-    <li>Variance ไม่คงที่: พิจารณา ${T('wls','WLS')}</li>
-    <li><a href="lessons/0003-regression-diagnostics-and-remedies.html">L3</a></li>
-  </ul>`},
-  {tag:'L8', title:'ใช้ GLM ต้องเลือก Link', body:`<ul>
-    <li>${T('linkfn','Link function')} เชื่อม μ กับ Xβ — Binomial→logit (หรือ ${T('probitcloglog','probit/cloglog')}), Poisson→log, Gamma→1/μ (มักใช้ log แทน)</li>
-    <li>ตารางเต็ม: <a href="reference/0016-equation-writing-master-guide.html">Master Guide เขียนสมการ §8</a></li>
-  </ul>`},
-  {tag:'L5', title:'ตัวแปรเยอะ ไม่ multicollinear', body:`<ul>
-    <li>เกณฑ์เลือก: ${T('aicbic','AIC/BIC/Cp/adj-R²')} (forward/backward/stepwise/best-subset)</li>
-    <li>ประเมินการทำนายจริงด้วย ${T('cv','Cross-Validation')} และดู ${T('rmse','RMSE/MAE')}</li>
-    <li><strong>ระวัง:</strong> แต่ละวิธีอาจให้ชุดตัวแปรต่างกัน — <a href="lessons/0005-model-selection.html">L5</a></li>
-  </ul>`},
-  {tag:'L7', title:'ตัวแปรเยอะ+multicollinear (p>n)', body:`<ul>
-    <li>ตรวจด้วย ${T('vif','VIF')} — สูง (>10) ให้ใช้ ${T('ridge2','Ridge/LASSO/Elastic Net')} แทน model selection</li>
-    <li><a href="lessons/0007-penalized-regression.html">L7</a></li>
-  </ul>`},
-];
+const CLOSING = {id:'wrap', num:'✓', title:'ครบ 14 บท. ไปฝึกจริง',
+ body:`<ul>
+   <li>ไม่ว่าใช้โมเดลไหนใน 14 บทนี้ ขั้นสุดท้ายเหมือนกันหมด: <strong>ทดสอบสมมติฐาน → ทำนายค่า → ตีความ</strong>. ทุกสถานีข้างบนมี 3 การ์ดนี้ของตัวเองแล้ว</li>
+   <li>รวมทุกบทไว้ที่เดียว: <a href="reference/0015-hypothesis-writing-master-guide.html">Master Guide Hypothesis</a> · <a href="reference/0016-equation-writing-master-guide.html">Master Guide Equation</a> · <a href="reference/0017-interpretation-master-guide.html">Master Guide Interpretation</a></li>
+   <li>ฝึกแบบข้อสอบจริงที่ <a href="exams/index.html">คลังข้อสอบจำลอง</a> (Drill 6 ชุด + Mock Exam 2 ชุด)</li>
+ </ul>`};
 
-const remedyCards = [
-  {tag:'L3', title:'OLS: residual plot ไม่ตรง', loopTo:'step3', loopLabel:'Step 3', body:`<ul>
-    <li>โค้ง/กรวยบาน → ${T('boxcox','Box-Cox transform')}, ${T('wls','WLS')} ถ้า variance ไม่คงที่</li>
-    <li>QQ เบี้ยว → ${T('shapiro','Shapiro-Wilk test')} ยืนยัน (อยากได้ p สูง)</li>
-    <li>Variance ไม่คงที่ยืนยันด้วย ${T('bp','Breusch-Pagan test')}</li>
-  </ul>`},
-  {tag:'L3', title:'OLS: residual ไม่อิสระต่อกัน', loopTo:'step3', loopLabel:'Step 3', body:`<ul>
-    <li>เช็คด้วย ${T('dw','Durbin-Watson/Run test')} (มักเจอกับ time series)</li>
-    <li>แก้ด้วย ${T('cochrane','Cochrane-Orcutt transformation')}</li>
-  </ul>`},
-  {tag:'L4', title:'OLS: จุดมีอิทธิพลสูง', loopTo:'step4', loopLabel:'Step 4', body:`<ul>
-    <li>ดู ${T('cooksd',"Cook's Distance")}, ${T('leverage','Leverage')}, ${T('dffits','DFFITS/DFBETAS')}, ${T('covratio','COV RATIO')}, ${T('studres','Studentized deleted residual')} พร้อมกัน</li>
-    <li>ระวัง ${T('masking','Masking effect')} — ดู scatter plot จริงประกอบเสมอ</li>
-    <li>ถ้า influential จริง → ${T('robust','Robust regression')} หรือตรวจข้อมูลจุดนั้น</li>
-  </ul>`},
-  {tag:'L6', title:'ANOVA: variance ไม่เท่ากันระหว่างกลุ่ม', loopTo:'step3', loopLabel:'Step 3', body:`<ul>
-    <li>เช็คด้วย ${T('levene',"Levene's/Bartlett's test")}</li>
-    <li>ไม่ผ่าน → ใช้ ${T('welch','Welch ANOVA')} แทน ANOVA มาตรฐาน</li>
-  </ul>`},
-  {tag:'L11', title:'Count: Overdispersion', loopTo:'step4', loopLabel:'Step 4', body:`<ul>
-    <li>เช็ค ${T('overdisp','dispersion parameter')} — ≫1 บ่งชี้ปัญหา</li>
-    <li>แก้ด้วย ${T('quasinb','quasi-Poisson หรือ Negative Binomial')}</li>
-  </ul>`},
-  {tag:'L9–L10', title:'Binary/Binomial: GOF ไม่ผ่าน', loopTo:'step2', loopLabel:'Step 2', body:`<ul>
-    <li>ทดสอบด้วย ${T('hosmerlem','Hosmer-Lemeshow')} (binary รายตัว) หรือ ${T('devgof','Deviance GOF')} (grouped)</li>
-    <li>อาจขาดตัวแปร หรือ functional form ผิด (ลอง polynomial term)</li>
-  </ul>`},
-  {tag:'L12', title:'Ordinal: Brant test ไม่ผ่าน', loopTo:'step1', loopLabel:'Step 1', body:`<ul>
-    <li>${T('brant','Brant test')} ปฏิเสธ H₀ → proportional odds ถูกละเมิด</li>
-    <li>หาตัวการ (ดู p-value รายตัว) แล้วตัดออก หรือเปลี่ยนไปใช้ multinomial แทน</li>
-  </ul>`},
-  {tag:'L14', title:'Mixed Model: random effect จำเป็นไหม', loopTo:'step4', loopLabel:'Step 4', body:`<ul>
-    <li>ทดสอบ \\(H_0:\\sigma^2_D=0\\) ด้วย parametric bootstrap (ไม่ใช่ χ² มาตรฐาน — ติดขอบเขตพารามิเตอร์)</li>
-    <li>ดู ${T('icc','ICC')} ประกอบว่าคุ้มใส่ random effect ไหม — ทดสอบ fixed effect ด้วย ${T('kr','Kenward-Roger')}</li>
-  </ul>`},
-];
-
-const inferCards = [
-  {tag:'', title:'① ทดสอบสมมติฐาน', hero:true, body:`<ul>
-    <li>ครบ 4 ส่วนเสมอ: <strong>H₀/Hₐ</strong> → <strong>test statistic+distribution</strong> → <strong>decision rule</strong> → <strong>ประโยคสรุปมีบริบท</strong></li>
-    <li><strong>กับดัก:</strong> ทดสอบสัมประสิทธิ์อยากปฏิเสธ H₀ — ทดสอบ GOF/assumption อยากไม่ปฏิเสธ (ทิศทางกลับด้าน)</li>
-    <li>ครอบคลุม: ${T('extrassf','Extra-SS-F')}, ${T('waldlrt','Wald vs LRT')}, ${T('satmodel','Saturated model')}</li>
-    <li><a href="reference/0015-hypothesis-writing-master-guide.html">Master Guide: Hypothesis (ครบ 10 แบบ)</a></li>
-  </ul>`},
-  {tag:'', title:'② ทำนายค่า', hero:true, body:`<ul>
-    <li>3 ขั้นเสมอ: <strong>คำนวณ linear predictor</strong> → <strong>back-transform</strong> ให้ถูก scale → ${T('cipi','CI/PI')}</li>
-    <li><strong>กับดัก:</strong> CI ของ GLM ต้องสร้างบน link scale ก่อน แล้วค่อย back-transform</li>
-    <li><a href="reference/0016-equation-writing-master-guide.html">Master Guide: เขียนสมการ</a> · <a href="exams/drill-06-predict-and-explain.html">ฝึกที่ Drill 6</a></li>
-  </ul>`},
-  {tag:'', title:'③ ตีความ', hero:true, body:`<ul>
-    <li>Template: "เมื่อ X เพิ่มขึ้น 1 หน่วย Y คาดว่าเปลี่ยนโดยเฉลี่ย [ค่า] (โดยตัวแปรอื่นคงที่)"</li>
-    <li><strong>ห้ามใช้</strong> "ทำให้"/"เป็นสาเหตุ" กับข้อมูล observational — ใช้ "สัมพันธ์กับ" เสมอ</li>
-    <li>Odds/rate ratio: exp(β̂) พูดเป็น "×เท่า" หรือ "(exp(β̂)−1)×100%"</li>
-    <li><a href="reference/0017-interpretation-master-guide.html">Master Guide: ตีความผลลัพธ์ (ครบ 14 บท)</a></li>
-  </ul>`},
-  {tag:'', title:'④ ประเมินโมเดล Classification', hero:true, body:`<ul>
-    <li>อ่าน ${T('confmat','Confusion Matrix')} ที่ cutoff ที่กำหนด → คำนวณ Sensitivity/Specificity</li>
-    <li>อ่าน ${T('rocauc','ROC curve และ AUC')} — เลือก cutoff ที่ดีที่สุดด้วย Youden's Index</li>
-    <li>ใช้กับโมเดล Binary/Binomial (Step 1) เป็นหลัก</li>
-  </ul>`},
-];
-
-// ================= Nodes =================
-// x/w are fixed by column layout; y/h are computed after real render (see layoutStack/layoutSingle below)
-// so every card grows to fit its own content instead of scrolling internally.
-const nodes = {};
-nodes.step1 = {kind:'diamond', x:COLX[0], y:CENTER_Y-DW/2, w:DW, h:DW, title:'Step 1', sub:'Response แบบไหน?'};
-familyCards.forEach((c,i)=> nodes['fam'+i] = {kind:'card', x:COLX[1], w:300, ...c});
-
-nodes.step2 = {kind:'card', x:COLX[2], w:340, tag:'', title:'Step 2 — สำรวจความสัมพันธ์ + เช็ค Pre-fit', body:`<ul>
-  <li><strong>Continuous:</strong> scatter plot ดู linearity, ${T('vif','VIF')} ระหว่าง X (multicollinearity)</li>
-  <li><strong>GLM:</strong> plot log-odds/log-mean vs X ดู functional form</li>
-  <li><strong>X เยอะ:</strong> เริ่มคิด model selection ตั้งแต่ตรงนี้</li>
-  <li><strong>Clustered:</strong> ระบุ grouping factor ให้ชัด</li>
-  </ul>`};
-
-nodes.step3 = {kind:'diamond', x:COLX[3], y:CENTER_Y-DW/2, w:DW, h:DW, title:'Step 3', sub:'Transform / Link / เลือกตัวแปร?'};
-transformCards.forEach((c,i)=> nodes['tf'+i] = {kind:'card', x:COLX[4], w:300, ...c});
-
-nodes.step4 = {kind:'card', x:COLX[5], w:340, tag:'', title:'Step 4 — Fit Model', body:`
-  <table><tr><th>Family</th><th>ฟังก์ชัน</th></tr>
-  <tr><td>Continuous</td><td><code>lm()</code></td></tr>
-  <tr><td>Robust</td><td><code>rlm()</code></td></tr>
-  <tr><td>Ridge/LASSO</td><td><code>glmnet()</code></td></tr>
-  <tr><td>Binary/Binomial</td><td><code>glm(family=binomial)</code></td></tr>
-  <tr><td>Count (+rate)</td><td><code>glm(family=poisson)</code>+<code>offset()</code></td></tr>
-  <tr><td>Multinomial</td><td><code>multinom()</code></td></tr>
-  <tr><td>Ordinal</td><td><code>polr()</code></td></tr>
-  <tr><td>Gamma</td><td><code>glm(family=Gamma(link=log))</code></td></tr>
-  <tr><td>Mixed</td><td><code>lmer()</code></td></tr>
-  </table>
-  <p><a href="reference/0016-equation-writing-master-guide.html">อ่าน output ทุกแบบ →</a></p>`};
-
-nodes.step5 = {kind:'diamond', x:COLX[6], y:CENTER_Y-DW/2, w:DW, h:DW, title:'Step 5', sub:'Assumption ผ่าน?'};
-remedyCards.forEach((c,i)=> nodes['rem'+i] = {kind:'card', x:COLX[7], w:320, ...c});
-inferCards.forEach((c,i)=> nodes['inf'+i] = {kind:'card', x:COLX[8], w:320, ...c});
-
-// ================= Anchors / paths =================
+// ================= Layout engine =================
+const ROW_GAP = 22, COL_GAP = 46, STATION_GAP = 90;
+const HEADER_W = 640, PIPE_CARD_W = 360, BRANCH_CARD_W = 380, HPI_CARD_W = 340, DIAMOND = 130;
+const svg = document.getElementById('svg');
+const cardsEl = document.getElementById('cards');
+function svgEl(tag, attrs) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function drawPath(d, cls) { const p = svgEl('path',{class:cls, d}); svg.appendChild(p); return p; }
 function anchor(n, side) {
   const cx = n.x+n.w/2, cy = n.y+n.h/2;
   if (side==='right') return [n.x+n.w, cy];
@@ -370,134 +513,165 @@ function anchor(n, side) {
   if (side==='top') return [cx, n.y];
   if (side==='bottom') return [cx, n.y+n.h];
 }
-function straight(a, b) {
-  const [x1,y1]=a, [x2,y2]=b, mx=(x1+x2)/2;
-  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
-}
-function busDiverge(fromNode, toNodes) {
-  const start = anchor(fromNode,'right');
-  const busX = start[0] + 70;
-  const ys = toNodes.map(n=>anchor(n,'left')[1]);
-  let d = `M${start[0]},${start[1]} L${busX},${start[1]} `;
-  d += `M${busX},${Math.min(...ys)} L${busX},${Math.max(...ys)} `;
-  toNodes.forEach(n=>{ const [tx,ty]=anchor(n,'left'); d += `M${busX},${ty} L${tx},${ty} `; });
-  return d;
-}
-function busConverge(fromNodes, toNode) {
-  const end = anchor(toNode,'left');
-  const busX = end[0] - 70;
-  const ys = fromNodes.map(n=>anchor(n,'right')[1]);
-  let d = '';
-  fromNodes.forEach(n=>{ const [fx,fy]=anchor(n,'right'); d += `M${fx},${fy} L${busX},${fy} `; });
-  d += `M${busX},${Math.min(...ys)} L${busX},${Math.max(...ys)} `;
-  d += `M${busX},${end[1]} L${end[0]},${end[1]} `;
-  return d;
-}
-function loopPath(fromNode, exitX, toNode, corridorX, laneY) {
-  const [fx,fy] = anchor(fromNode,'right');
-  const [tx,ty] = anchor(toNode,'right');
-  return `M${fx},${fy} L${exitX},${fy} L${exitX},${laneY} L${corridorX},${laneY} L${corridorX},${ty} L${tx},${ty}`;
-}
+function straight(a, b) { const [x1,y1]=a,[x2,y2]=b, mx=(x1+x2)/2; return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`; }
 
-// ================= Render =================
-const svg = document.getElementById('svg');
-const cardsEl = document.getElementById('cards');
-function svgEl(tag, attrs) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+function mountCard(n) {
+  const div = document.createElement('div');
+  let cls = 'card';
+  if (n.kind==='header') cls += ' header';
+  if (n.kind==='hpi') cls += ' '+n.hpiType;
+  div.className = cls;
+  div.style.left = n.x+'px'; div.style.top = '0px'; div.style.width = n.w+'px';
+  let html = '';
+  if (n.kind==='header') {
+    html = `<h3>${n.num} · ${n.title}</h3>` + (n.story ? `<p class="story-in">"${n.story}"</p>` : '');
+  } else if (n.kind==='hpi') {
+    html = `<span class="tag ${n.hpiType}">${n.tag}</span><h4>${n.title}</h4><div>${n.body}</div>`;
+  } else {
+    html = `<h4>${n.title}</h4><div>${n.body}</div>`;
+  }
+  div.innerHTML = html;
+  cardsEl.appendChild(div);
+  n.el = div;
+  return div;
+}
+function measure(n) { n.h = n.el.offsetHeight; }
+function place(n, x, y) { n.x = x; n.y = y; n.el.style.left = x+'px'; n.el.style.top = y+'px'; }
 
 function drawDiamond(n) {
   const cx=n.x+n.w/2, cy=n.y+n.h/2;
   svg.appendChild(svgEl('polygon',{class:'diamond', points:`${cx},${n.y} ${n.x+n.w},${cy} ${cx},${n.y+n.h} ${n.x},${cy}`}));
-  const t1 = svgEl('text',{class:'dtitle','text-anchor':'middle',x:cx,y:cy-6}); t1.textContent = n.title;
-  const t2 = svgEl('text',{class:'dsub','text-anchor':'middle',x:cx,y:cy+12}); t2.textContent = n.sub;
-  svg.appendChild(t1); svg.appendChild(t2);
+  const t1 = svgEl('text',{class:'dtitle','text-anchor':'middle',x:cx,y:cy-4}); t1.textContent = n.title;
+  svg.appendChild(t1);
+  if (n.sub) { const t2 = svgEl('text',{class:'dsub','text-anchor':'middle',x:cx,y:cy+13}); t2.textContent = n.sub; svg.appendChild(t2); }
 }
-function drawPath(d, cls) { svg.appendChild(svgEl('path',{class:cls, d})); }
-
-// Mount each card at top:0 with no height set, so the browser sizes it to fit its
-// own content (no internal scrollbar) — then we measure the real height and only
-// afterwards decide each card's vertical position (stacked centered, or single-centered).
-function mountCard(n) {
-  const div = document.createElement('div');
-  div.className = 'card' + (n.hero ? ' hero' : '');
-  div.style.left = n.x+'px'; div.style.top = '0px'; div.style.width = n.w+'px';
-  let html = '';
-  if (n.tag) html += `<span class="tag${n.hero?' accent':''}">${n.tag}</span>`;
-  html += `<h4>${n.title}</h4>${n.body}`;
-  if (n.loopTo) html += `<p style="margin-top:0.7em"><a href="#" class="loop-jump" data-target="${n.loopTo}" style="color:var(--bad)">🔁 วนกลับไป ${n.loopLabel}</a></p>`;
-  div.innerHTML = html;
-  cardsEl.appendChild(div);
-  n.el = div;
-}
-function layoutStack(list, gap) {
-  const heights = list.map(n => n.el.offsetHeight);
-  const ys = stackY(heights, gap);
-  list.forEach((n,i)=>{ n.h = heights[i]; n.y = ys[i]; n.el.style.top = n.y+'px'; });
-}
-function layoutSingle(n) {
-  n.h = n.el.offsetHeight;
-  n.y = CENTER_Y - n.h/2;
-  n.el.style.top = n.y+'px';
-}
-
-Object.values(nodes).forEach(n => { if (n.kind==='card') mountCard(n); });
-
-const famList = familyCards.map((c,i)=>nodes['fam'+i]);
-const tfList = transformCards.map((c,i)=>nodes['tf'+i]);
-const remList = remedyCards.map((c,i)=>nodes['rem'+i]);
-const infList = inferCards.map((c,i)=>nodes['inf'+i]);
-
-layoutStack(famList, 26);
-layoutSingle(nodes.step2);
-layoutStack(tfList, 26);
-layoutSingle(nodes.step4);
-layoutStack(remList, 22);
-layoutStack(infList, 24);
-
-// diamonds have fixed size so they can be drawn any time; connectors need every
-// card's final y/h, so draw everything only after the layout passes above.
-Object.values(nodes).forEach(n => { if (n.kind==='diamond') drawDiamond(n); });
-
-drawPath(busDiverge(nodes.step1, famList), 'conn');
-drawPath(busConverge(famList, nodes.step2), 'conn');
-drawPath(straight(anchor(nodes.step2,'right'), anchor(nodes.step3,'left')), 'conn');
-drawPath(busDiverge(nodes.step3, tfList), 'conn');
-drawPath(busConverge(tfList, nodes.step4), 'conn');
-drawPath(straight(anchor(nodes.step4,'right'), anchor(nodes.step5,'left')), 'conn');
-drawPath(busDiverge(nodes.step5, remList), 'conn');
-
-// pass-through: step5 -> inference cluster (curve above remedy column)
-{
-  const [sx,sy] = anchor(nodes.step5,'top');
-  const [ix,iy] = anchor(infList[0],'left');
-  const topY = Math.min(...remList.map(n=>anchor(n,'left')[1])) - 60;
-  drawPath(`M${sx},${sy} C${sx},${topY} ${ix},${topY} ${ix},${iy}`, 'conn-pass');
-  const lbl = svgEl('text',{class:'elbl',x:(sx+ix)/2,y:topY-6,'text-anchor':'middle',fill:'var(--good)'}); lbl.textContent='ผ่าน ✓'; svg.appendChild(lbl);
-}
-{
-  const [sx,sy] = anchor(nodes.step5,'bottom');
-  const lbl = svgEl('text',{class:'elbl',x:sx,y:sy+20,'text-anchor':'middle',fill:'var(--bad)'}); lbl.textContent='ไม่ผ่าน ↓'; svg.appendChild(lbl);
-}
-
-// loop-back lane
-const LANE_Y = Math.max(...Object.values(nodes).map(n=>n.y+n.h)) + 90;
-const CORRIDOR = { step1: 235, step2: 1065, step3: 1290, step4: 2115 };
-const EXIT_X = 2770;
-remList.forEach(rc => { drawPath(loopPath(rc, EXIT_X, nodes[rc.loopTo], CORRIDOR[rc.loopTo], LANE_Y), 'conn-loop'); });
 
 const defs = svgEl('defs',{});
 defs.innerHTML = `
   <marker id="mArrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--ink-soft)"/></marker>
   <marker id="mArrowGood" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--good)"/></marker>
-  <marker id="mArrowBad" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--bad)"/></marker>`;
-svg.prepend(defs);
+  <marker id="mArrowBad" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--bad)"/></marker>
+  <marker id="mArrowStory" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6b5fa8"/></marker>`;
+svg.appendChild(defs);
+
+let curX = 40;
+const stationBounds = [];
+const allNodes = [];
+
+STATIONS.forEach((st, si) => {
+  const nodes = {};
+  // Row A: header
+  nodes.header = {kind:'header', x:curX, w:HEADER_W, num:st.num, title:st.title, story: si>0 ? STATIONS[si-1].story : null};
+  mountCard(nodes.header); measure(nodes.header);
+  place(nodes.header, curX, 30);
+  let rowBTop = 30 + nodes.header.h + ROW_GAP;
+  let rowBBottom = rowBTop;
+  let stationRight = curX + HEADER_W;
+
+  // Row B: internal mini-flow
+  if (st.flow.type === 'pipeline') {
+    let x = curX;
+    const cards = st.flow.cards.map(c => ({kind:'card', x:0, w:PIPE_CARD_W, title:c.title, body:c.body}));
+    cards.forEach(c => { mountCard(c); measure(c); });
+    const maxH = Math.max(...cards.map(c=>c.h));
+    cards.forEach((c,i) => {
+      place(c, x, rowBTop);
+      x += PIPE_CARD_W + COL_GAP;
+      if (i < cards.length-1) drawPath(straight(anchor(c,'right'), [x-COL_GAP, rowBTop+maxH/2]), 'conn-thin');
+    });
+    for (let i=0;i<cards.length-1;i++) drawPath(straight(anchor(cards[i],'right'), anchor(cards[i+1],'left')), 'conn');
+    rowBBottom = rowBTop + maxH;
+    stationRight = Math.max(stationRight, x - COL_GAP);
+    nodes.exitAnchor = cards[cards.length-1];
+  } else if (st.flow.type === 'diagnose') {
+    const dia = {kind:'diamond', x:curX, y:rowBTop, w:DIAMOND, h:DIAMOND, title:st.flow.diamond, sub:''};
+    drawDiamond(dia);
+    const branchX = curX + DIAMOND + COL_GAP + 40;
+    const branches = st.flow.branches.map(b => ({kind:'card', w:BRANCH_CARD_W, title:b.title, body:b.body}));
+    branches.forEach(b => { mountCard(b); measure(b); });
+    let by = rowBTop;
+    branches.forEach(b => { place(b, branchX, by); by += b.h + 16; });
+    const busX = curX + DIAMOND + COL_GAP;
+    const [sx,sy] = anchor(dia,'right');
+    const ys = branches.map(b=>anchor(b,'left')[1]);
+    let d = `M${sx},${sy} L${busX},${sy} M${busX},${Math.min(...ys)} L${busX},${Math.max(...ys)} `;
+    branches.forEach(b=>{ const [tx,ty]=anchor(b,'left'); d += `M${busX},${ty} L${tx},${ty} `; });
+    drawPath(d, 'conn');
+    // local loop-back label under branches
+    const loopY = by + 8;
+    const lbl = svgEl('text',{class:'elbl',x:branchX,y:loopY+10,fill:'var(--bad)'}); lbl.textContent = '↩ '+st.flow.loopLabel; svg.appendChild(lbl);
+    rowBBottom = Math.max(dia.y+dia.h, by) + 26;
+    stationRight = Math.max(stationRight, branchX + BRANCH_CARD_W);
+    nodes.exitAnchor = {x:branchX, y:rowBTop, w:BRANCH_CARD_W, h:(rowBBottom-rowBTop)};
+  } else if (st.flow.type === 'gof') {
+    const fitCard = {kind:'card', w:PIPE_CARD_W, title:'Fit', body:st.flow.fit.includes('\n') ? `<pre><code>${st.flow.fit}</code></pre>` : `<code>${st.flow.fit}</code>`};
+    mountCard(fitCard); measure(fitCard); place(fitCard, curX, rowBTop);
+    const diaX = curX + PIPE_CARD_W + COL_GAP;
+    const dia = {kind:'diamond', x:diaX, y:rowBTop + (fitCard.h-DIAMOND)/2, w:DIAMOND, h:DIAMOND, title:st.flow.diamond, sub:''};
+    drawDiamond(dia);
+    drawPath(straight(anchor(fitCard,'right'), anchor(dia,'left')), 'conn');
+    const branchX = diaX + DIAMOND + COL_GAP;
+    const failCard = {kind:'card', w:BRANCH_CARD_W, title:st.flow.fail.title, body:st.flow.fail.body};
+    const passCard = {kind:'card', w:BRANCH_CARD_W, title:st.flow.pass.title, body:st.flow.pass.body};
+    mountCard(failCard); measure(failCard); mountCard(passCard); measure(passCard);
+    place(failCard, branchX, rowBTop);
+    place(passCard, branchX, rowBTop + failCard.h + 18);
+    drawPath(straight(anchor(dia,'right'), anchor(failCard,'left')), 'conn-loop');
+    drawPath(straight(anchor(dia,'right'), anchor(passCard,'left')), 'conn-pass');
+    rowBBottom = Math.max(dia.y+dia.h, passCard.y+passCard.h) + 10;
+    stationRight = Math.max(stationRight, branchX + BRANCH_CARD_W);
+    nodes.exitAnchor = passCard;
+  }
+
+  // Row C: H/P/I cards
+  let rowCTop = rowBBottom + ROW_GAP + 10;
+  let x = curX;
+  const hpiCards = st.hpi.map(h => ({kind:'hpi', hpiType:h.hpiType, tag:h.tag, title:h.title, body:h.body, w:HPI_CARD_W}));
+  hpiCards.forEach(c => { mountCard(c); measure(c); });
+  const hpiMaxH = Math.max(...hpiCards.map(c=>c.h));
+  hpiCards.forEach(c => { place(c, x, rowCTop); x += HPI_CARD_W + 20; });
+  stationRight = Math.max(stationRight, x - 20);
+  const stationBottom = rowCTop + hpiMaxH + 30;
+
+  // station background box
+  const bg = svgEl('rect',{class:'station-bg', x:curX-16, y:14, width:(stationRight-curX)+32, height:stationBottom-14, rx:14});
+  svg.insertBefore(bg, svg.firstChild.nextSibling);
+  const numLbl = svgEl('text',{class:'station-num', x:curX-4, y:stationBottom-8, 'font-size':46}); numLbl.textContent = st.num;
+  svg.appendChild(numLbl);
+
+  stationBounds.push({x:curX, right:stationRight, bottom:stationBottom, exitAnchor: nodes.exitAnchor || nodes.header, headerNode: nodes.header, story: st.story});
+  curX = stationRight + STATION_GAP;
+});
+
+// Closing station
+{
+  const node = {kind:'header', x:curX, w:420, num:CLOSING.num, title:CLOSING.title, story: STATIONS[STATIONS.length-1].story};
+  mountCard(node); measure(node); place(node, curX, 30);
+  const body = {kind:'card', x:curX, w:420, title:'', body:CLOSING.body};
+  mountCard(body); measure(body); place(body, curX, 30+node.h+ROW_GAP);
+  const bottom = 30+node.h+ROW_GAP+body.h+30;
+  const bg = svgEl('rect',{class:'station-bg', x:curX-16, y:14, width:420+32, height:bottom-14, rx:14});
+  svg.insertBefore(bg, svg.firstChild.nextSibling);
+  stationBounds.push({x:curX, right:curX+420, bottom, exitAnchor: node, headerNode: node, story:null});
+  curX += 420 + 40;
+}
+
+// story connectors between stations (purple, with narrative label)
+for (let i=0;i<stationBounds.length-1;i++) {
+  const from = stationBounds[i], to = stationBounds[i+1];
+  const [fx,fy] = anchor(from.exitAnchor,'right');
+  const [tx,ty] = anchor(to.headerNode,'left');
+  const midY = Math.min(fy,ty) - 40;
+  drawPath(`M${fx},${fy} C${fx+30},${fy} ${tx-30},${ty} ${tx},${ty}`, 'conn-story');
+}
 svg.querySelectorAll('.conn').forEach(p=>p.setAttribute('marker-end','url(#mArrow)'));
+svg.querySelectorAll('.conn-thin').forEach(p=>p.setAttribute('marker-end','url(#mArrow)'));
 svg.querySelectorAll('.conn-pass').forEach(p=>p.setAttribute('marker-end','url(#mArrowGood)'));
 svg.querySelectorAll('.conn-loop').forEach(p=>p.setAttribute('marker-end','url(#mArrowBad)'));
+svg.querySelectorAll('.conn-story').forEach(p=>p.setAttribute('marker-end','url(#mArrowStory)'));
 
-const allX = Object.values(nodes).flatMap(n=>[n.x, n.x+n.w]);
-const allY = Object.values(nodes).flatMap(n=>[n.y, n.y+n.h]);
-const CANVAS_W = Math.max(...allX) + 80;
-const CANVAS_H = Math.max(LANE_Y, Math.max(...allY)) + 60;
+const CANVAS_W = curX + 40;
+const CANVAS_H = Math.max(...stationBounds.map(s=>s.bottom)) + 60;
 svg.setAttribute('width', CANVAS_W); svg.setAttribute('height', CANVAS_H);
 document.getElementById('viewport').style.width = CANVAS_W+'px';
 document.getElementById('viewport').style.height = CANVAS_H+'px';
@@ -506,11 +680,11 @@ document.getElementById('viewport').style.height = CANVAS_H+'px';
 const frame = document.getElementById('frame');
 const viewport = document.getElementById('viewport');
 let tx = 0, ty = 0, scale = 1;
-const MIN_S = 0.2, MAX_S = 1.6;
+const MIN_S = 0.15, MAX_S = 1.6;
 function apply() { viewport.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`; }
 function fitStart() {
   const fh = frame.clientHeight;
-  scale = Math.max(MIN_S, Math.min(MAX_S, Math.min(1, fh/(CANVAS_H*0.62))));
+  scale = Math.max(MIN_S, Math.min(MAX_S, Math.min(1, fh/(CANVAS_H*0.7))));
   tx = 20; ty = (fh - CANVAS_H*scale)/2; apply();
 }
 const pointers = new Map();
@@ -558,17 +732,6 @@ document.getElementById('zoomIn').addEventListener('click', ()=>{ const r=frame.
 document.getElementById('zoomOut').addEventListener('click', ()=>{ const r=frame.getBoundingClientRect(); zoomAt(r.left+r.width/2, r.top+r.height/2, 0.83); });
 document.getElementById('resetView').addEventListener('click', fitStart);
 
-document.addEventListener('click', (e)=>{
-  const a = e.target.closest('.loop-jump');
-  if (!a) return;
-  e.preventDefault();
-  const n = nodes[a.dataset.target];
-  const rect = frame.getBoundingClientRect();
-  tx = rect.width/2 - (n.x+n.w/2)*scale; ty = rect.height/2 - (n.y+n.h/2)*scale; apply();
-  const el = [...cardsEl.children].find(c=>parseFloat(c.style.left)===n.x && parseFloat(c.style.top)===n.y);
-  if (el) { el.style.outline = '3px solid var(--bad)'; setTimeout(()=>el.style.outline='', 1400); }
-});
-
 fitStart();
 window.addEventListener('resize', fitStart);
 
@@ -578,12 +741,20 @@ const modalBox = document.getElementById('modalBox');
 function openTerm(id) {
   const g = GLOSSARY[id];
   if (!g) return;
+  let visualHtml = '';
+  if (g.visual && g.visual.length) {
+    visualHtml = `<div class="mrow"><div class="label">กราฟจริง (ถูก vs ผิด)</div>` +
+      g.visual.map(v => `<figure class="mfig"><img src="${v.img}" alt=""><figcaption>${v.cap}</figcaption></figure>`).join('') +
+      `</div>`;
+  }
   modalBox.innerHTML = `
     <button class="modal-close" id="modalCloseBtn">✕</button>
     <h3>${g.title}</h3>
-    <div class="mrow"><div class="label">ใช้ทำอะไร</div>${g.purpose}</div>
-    <div class="mrow"><div class="label">ดู / อ่านผลยังไง</div>${g.read}</div>
+    <div class="mdef">${g.def}</div>
+    <div class="mrow"><div class="label">ใช้ตอนไหน / ทำไม</div>${g.when}</div>
+    <div class="mrow"><div class="label">ดู / คำนวณอะไร</div>${g.read}</div>
     <div class="mrow"><div class="label">เกณฑ์ตัดสิน</div>${g.criteria}</div>
+    ${visualHtml}
     <div class="mrow"><div class="label">ตัวอย่างจริง</div>${g.example}</div>`;
   modalBack.hidden = false;
   renderMathInElement(modalBox, { delimiters: [{left:"\\[",right:"\\]",display:true},{left:"\\(",right:"\\)",display:false}], throwOnError:false });

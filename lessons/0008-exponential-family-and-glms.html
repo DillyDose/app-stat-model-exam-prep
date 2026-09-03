@@ -18,16 +18,35 @@
 <p class="kicker">Lecture 8 — Exponential Family and Generalized Linear Models</p>
 <h1>Exponential Family and GLM: กรอบทฤษฎีที่ Lecture 9–14 ทั้งหมดตั้งอยู่บน</h1>
 
-<p>บทเรียนนี้คือ<strong>จุดหักเห</strong>ของวิชา: จาก Lecture 1–7 ที่ทุกโมเดลเป็น Y ~ Normal ล้วน ๆ มาสู่กรอบทั่วไปที่ครอบคลุมทุกชนิดของ response — ทวินาม (binary/proportion), นับจำนวน (count), บวกเบ้ขวา (skewed positive) ฯลฯ Lecture 9 เป็นต้นไปจะเป็นการเอา GLM framework นี้ไปใช้กับ distribution เฉพาะทางแต่ละแบบ ดังนั้นถ้าจับ 3 เรื่องในบทนี้ไม่แม่น — (1) รูปทั่วไปของ Exponential Family, (2) 3 องค์ประกอบของ GLM (random/systematic/link), (3) การเขียนสมการโมเดล GLM แบบเต็ม — บทถัด ๆ ไปจะสร้างความเข้าใจผิดสะสมทันที</p>
+<p>บทเรียนนี้คือ<strong>จุดหักเห</strong>ของวิชา: จาก Lecture 1–7 ที่ทุกโมเดลเป็น Y ~ Normal ล้วน ๆ มาสู่กรอบทั่วไปที่ครอบคลุมทุกชนิดของ response — ทวินาม (binary/proportion), นับจำนวน (count), บวกเบ้ขวา (skewed positive) ฯลฯ Lecture 9 เป็นต้นไปจะเป็นการเอา GLM framework นี้ไปใช้กับ distribution เฉพาะทางแต่ละแบบ ดังนั้นถ้าจับ 3 เรื่องในบทนี้ไม่แม่น:</p>
+<ul>
+<li>รูปทั่วไปของ Exponential Family</li>
+<li>3 องค์ประกอบของ GLM (random/systematic/link)</li>
+<li>การเขียนสมการโมเดล GLM แบบเต็ม</li>
+</ul>
+<p>บทถัด ๆ ไปจะสร้างความเข้าใจผิดสะสมทันที</p>
 
 <h2>1. ทำไม Classical Linear Model ใช้ไม่ได้เสมอไป</h2>
-<p>ทบทวนจาก Lecture 1–7: Classical Linear Model เขียนเป็น \(y_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} + \varepsilon_i\) โดย \(\varepsilon_i \sim \text{iid } N(0, \sigma^2)\) ซึ่งมี assumption หลัก 4 ข้อ: <strong>linearity</strong> (\(E[y_i|x_{i1},\ldots,x_{ip}] = \beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\)), <strong>independent errors</strong> (\(\text{cov}(\varepsilon_i,\varepsilon_j)=0\)), <strong>constant error variance</strong> (\(\text{var}(\varepsilon_i)=\sigma^2\) ทุก i), และ <strong>normality</strong> (ε_i แจกแจงปกติ) — 4 ข้อนี้คือ assumption เดียวกับที่เจอมาตั้งแต่ Lecture 1 ทุกประการ ไม่มีอะไรใหม่</p>
+<p>ทบทวนจาก Lecture 1–7: Classical Linear Model เขียนเป็น \(y_i = \beta_0 + \beta_1 x_{i1} + \cdots + \beta_p x_{ip} + \varepsilon_i\) โดย \(\varepsilon_i \sim \text{iid } N(0, \sigma^2)\) ซึ่งมี assumption หลัก 4 ข้อ:</p>
+<ul>
+<li><strong>linearity</strong> (\(E[y_i|x_{i1},\ldots,x_{ip}] = \beta_0+\beta_1 x_{i1}+\cdots+\beta_p x_{ip}\))</li>
+<li><strong>independent errors</strong> (\(\text{cov}(\varepsilon_i,\varepsilon_j)=0\))</li>
+<li><strong>constant error variance</strong> (\(\text{var}(\varepsilon_i)=\sigma^2\) ทุก i)</li>
+<li><strong>normality</strong> (ε_i แจกแจงปกติ)</li>
+</ul>
+<p>4 ข้อนี้คือ assumption เดียวกับที่เจอมาตั้งแต่ Lecture 1 ทุกประการ ไม่มีอะไรใหม่</p>
 <p>ปัญหาเกิดเมื่อ response ไม่ใช่ตัวเลขต่อเนื่องแบบไม่มีขอบเขต ตัวอย่างที่สไลด์ยกมาคือ response แบบ Bernoulli:</p>
 <figure>
 <img src="../assets/slides/as8-p04-bernoulli-problem-classical-model.png" alt="Slide showing the problem with classical linear model when y_i is Bernoulli(pi_i): E[y_i]=pi_i is bounded in [0,1] but the linear predictor is unbounded, Var[y_i]=pi_i(1-pi_i) violates constant variance, and residuals cannot be normal">
 <figcaption>Slide: Problem with classical linear model (Lecture 8, p.4)</figcaption>
 </figure>
-<p>ไล่ทีละข้อจากภาพ: ถ้า \(y_i \sim \text{Bernoulli}(\pi_i)\) แล้ว \(E[y_i] = \pi_i\) มีค่าได้แค่ระหว่าง 0 ถึง 1 เท่านั้น แต่ \(\hat{y}_i = \hat{\beta}_0+\hat{\beta}_1 x_{i1}+\cdots\) จากโมเดลเชิงเส้นทำนายค่าได้ตั้งแต่ −∞ ถึง ∞ — สมการทำนายค่านอกช่วงที่เป็นไปได้จริงได้ตลอดเวลา (เช่น ทำนายความน่าจะเป็น = 1.4 หรือ −0.2) ซึ่งไม่มีความหมายทางสถิติเลย นอกจากนี้ \(\text{Var}[y_i] = \pi_i(1-\pi_i)\) ขึ้นกับ π_i โดยตรง แปลว่า variance เปลี่ยนไปทุกจุดตาม X ละเมิด constant variance assumption ตั้งแต่ต้น และเพราะ y_i รับค่าได้แค่ 0 กับ 1 เท่านั้น residual \(e_i = y_i - \hat{y}_i\) จึงไม่มีทางแจกแจงแบบต่อเนื่องแบบ Normal ได้เลยไม่ว่าจะพยายามยังไง — ทั้ง 3 assumption (linearity ของค่าทำนาย, constant variance, normality) พังพร้อมกันตั้งแต่เลือกใช้โมเดลผิด ไม่ใช่ปัญหาที่แก้ด้วยการ transform ข้อมูลเพิ่มเติมแบบผิวเผิน</p>
+<p>ไล่ทีละข้อจากภาพ ถ้า \(y_i \sim \text{Bernoulli}(\pi_i)\) แล้ว \(E[y_i] = \pi_i\) มีค่าได้แค่ระหว่าง 0 ถึง 1 เท่านั้น:</p>
+<ul>
+<li><strong>Linearity ของค่าทำนายพัง:</strong> \(\hat{y}_i = \hat{\beta}_0+\hat{\beta}_1 x_{i1}+\cdots\) จากโมเดลเชิงเส้นทำนายค่าได้ตั้งแต่ −∞ ถึง ∞ — สมการทำนายค่านอกช่วงที่เป็นไปได้จริงได้ตลอดเวลา (เช่น ทำนายความน่าจะเป็น = 1.4 หรือ −0.2) ซึ่งไม่มีความหมายทางสถิติเลย</li>
+<li><strong>Constant variance พัง:</strong> \(\text{Var}[y_i] = \pi_i(1-\pi_i)\) ขึ้นกับ π_i โดยตรง แปลว่า variance เปลี่ยนไปทุกจุดตาม X ละเมิด constant variance assumption ตั้งแต่ต้น</li>
+<li><strong>Normality พัง:</strong> เพราะ y_i รับค่าได้แค่ 0 กับ 1 เท่านั้น residual \(e_i = y_i - \hat{y}_i\) จึงไม่มีทางแจกแจงแบบต่อเนื่องแบบ Normal ได้เลยไม่ว่าจะพยายามยังไง</li>
+</ul>
+<p>ทั้ง 3 assumption (linearity ของค่าทำนาย, constant variance, normality) พังพร้อมกันตั้งแต่เลือกใช้โมเดลผิด ไม่ใช่ปัญหาที่แก้ด้วยการ transform ข้อมูลเพิ่มเติมแบบผิวเผิน</p>
 <p><em class="term">Generalized Linear Model (GLM)</em> คือคำตอบ — ขยายกรอบโมเดลเชิงเส้นให้ response แจกแจงแบบอื่นที่ไม่ใช่ Normal ได้ โดยยังรักษาโครงสร้าง "เชิงเส้น" ของตัวแปรอธิบายไว้เหมือนเดิม</p>
 
 <div class="quiz">
@@ -48,7 +67,12 @@
 <img src="../assets/slides/as8-p05-exponential-family-general-form.png" alt="Slide defining exponential family distribution: f(y; theta, phi) = exp{(y*theta - b(theta))/a(phi) + c(y,phi)} where theta is the canonical parameter representing location, phi is the dispersion parameter representing scale, and a(.), b(.), c(.) are known functions; usually a(phi) = phi/w">
 <figcaption>Slide: Exponential Family Distributions — general form (Lecture 8, p.5)</figcaption>
 </figure>
-<p>อ่านสูตรทีละพจน์ (นี่คือสัญกรณ์ที่ใช้ตลอด Lecture 8–14 ห้ามสลับความหมาย): \(\theta\) (canonical parameter) แทน<strong>ตำแหน่ง (location)</strong> ของการแจกแจง — เป็นตัวที่ผูกกับ mean ของ Y โดยตรงในภายหลัง ส่วน \(\phi\) (dispersion parameter) แทน<strong>ขนาดการกระจาย (scale)</strong> — คล้าย σ² ใน Normal ที่คุ้นเคย ฟังก์ชัน \(a(\cdot), b(\cdot), c(\cdot)\) เป็นฟังก์ชันที่รู้รูปแบบชัดเจนแล้ว (ไม่ใช่พารามิเตอร์ที่ต้องประมาณ) และมักเขียน \(a(\phi) = \phi/w\) โดย w เป็น prior weight ที่รู้ค่าอยู่แล้วและอาจต่างกันในแต่ละ observation (เช่น n_i ของแต่ละกลุ่มใน Binomial)</p>
+<p>อ่านสูตรทีละพจน์ (นี่คือสัญกรณ์ที่ใช้ตลอด Lecture 8–14 ห้ามสลับความหมาย):</p>
+<ul>
+<li>\(\theta\) (canonical parameter) แทน<strong>ตำแหน่ง (location)</strong> ของการแจกแจง — เป็นตัวที่ผูกกับ mean ของ Y โดยตรงในภายหลัง</li>
+<li>\(\phi\) (dispersion parameter) แทน<strong>ขนาดการกระจาย (scale)</strong> — คล้าย σ² ใน Normal ที่คุ้นเคย</li>
+<li>ฟังก์ชัน \(a(\cdot), b(\cdot), c(\cdot)\) เป็นฟังก์ชันที่รู้รูปแบบชัดเจนแล้ว (ไม่ใช่พารามิเตอร์ที่ต้องประมาณ) และมักเขียน \(a(\phi) = \phi/w\) โดย w เป็น prior weight ที่รู้ค่าอยู่แล้วและอาจต่างกันในแต่ละ observation (เช่น n_i ของแต่ละกลุ่มใน Binomial)</li>
+</ul>
 <div class="box source">
 <div class="label">จุดที่ต้องจำให้แม่น</div>
 θ คือพารามิเตอร์ตัวเดียวที่จะกลายเป็น "ตัวเชื่อม" กับ linear predictor ผ่าน link function ในหัวข้อ 7 — ถ้าจำ θ สลับกับ φ จะงงไปตลอดทั้งบทที่เหลือ
@@ -71,7 +95,13 @@
 <img src="../assets/slides/as8-p06-binomial-exponential-family-derivation.png" alt="Slide deriving the Binomial(n_i, pi_i) pmf into exponential family form, with theta_i = log(pi_i/(1-pi_i)), phi=1, a(phi)=phi, b(theta_i)=n_i log(1+e^theta_i), c(y_i,phi)=log(n_i choose y_i)">
 <figcaption>Slide: Exponential Family Distributions — Binomial (Lecture 8, p.6)</figcaption>
 </figure>
-<p>จัดรูปแล้วได้ \(\theta_i = \log\left(\frac{\pi_i}{1-\pi_i}\right)\) — สังเกตว่านี่คือ<strong>log-odds</strong> ของ π_i พอดี (ค่าที่คุ้นเคยจาก logistic regression ที่จะเจอใน Lecture 9) และ \(\phi = 1\) คงที่เสมอสำหรับ Binomial ไม่ต้องประมาณเพิ่ม ส่วน \(b(\theta_i) = n_i \log(1+e^{\theta_i})\) และ \(c(y_i,\phi) = \log\binom{n_i}{y_i}\) เป็นพจน์ normalizing ที่ไม่ขึ้นกับ θ ในแบบที่ทำให้ผลรวมความน่าจะเป็นเท่ากับ 1 พอดี — สังเกตว่า \(\theta_i\) เป็นฟังก์ชันของ π_i ล้วน ๆ ในขณะที่ φ ไม่ขึ้นกับ π_i เลย ตรงกับนิยาม "θ คือตำแหน่ง, φ คือขนาดกระจาย" จากหัวข้อ 2 เป๊ะ</p>
+<p>จัดรูปแล้วได้ผลดังนี้:</p>
+<ul>
+<li>\(\theta_i = \log\left(\frac{\pi_i}{1-\pi_i}\right)\) — สังเกตว่านี่คือ<strong>log-odds</strong> ของ π_i พอดี (ค่าที่คุ้นเคยจาก logistic regression ที่จะเจอใน Lecture 9)</li>
+<li>\(\phi = 1\) คงที่เสมอสำหรับ Binomial ไม่ต้องประมาณเพิ่ม</li>
+<li>\(b(\theta_i) = n_i \log(1+e^{\theta_i})\) และ \(c(y_i,\phi) = \log\binom{n_i}{y_i}\) เป็นพจน์ normalizing ที่ไม่ขึ้นกับ θ ในแบบที่ทำให้ผลรวมความน่าจะเป็นเท่ากับ 1 พอดี</li>
+</ul>
+<p>สังเกตว่า \(\theta_i\) เป็นฟังก์ชันของ π_i ล้วน ๆ ในขณะที่ φ ไม่ขึ้นกับ π_i เลย ตรงกับนิยาม "θ คือตำแหน่ง, φ คือขนาดกระจาย" จากหัวข้อ 2 เป๊ะ</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 3</span><span>Binomial EFD</span></div>
@@ -91,7 +121,13 @@
 <img src="../assets/slides/as8-p07-normal-exponential-family-derivation.png" alt="Slide deriving N(mu_i, sigma^2) pdf into exponential family form: theta_i = mu_i, phi = sigma^2, w_i = 1, a(phi)=phi, b(theta_i) = theta_i^2/2, c(y_i,phi) = -y_i^2/(2phi) - (1/2)log(2*pi*phi)">
 <figcaption>Slide: Exponential Family Distributions — Normal (Lecture 8, p.7)</figcaption>
 </figure>
-<p>ผลลัพธ์สำคัญที่สุดในสไลด์นี้คือ \(\theta_i = \mu_i\) พอดี — ต่างจาก Binomial ที่ θ_i เป็น log-odds (ฟังก์ชันแปลงรูปของ π_i) กรณี Normal ตัว canonical parameter เท่ากับ mean ตรง ๆ ไม่ต้องแปลงอะไรเลย และ \(\phi = \sigma^2\) คือ dispersion parameter ที่ต้องประมาณจากข้อมูล (คุ้นเคยดีจาก Residual standard error ใน Lecture 1) ได้ \(a(\phi)=\phi\), \(b(\theta_i) = \theta_i^2/2\) — ผลลัพธ์นี้จะกลับมาใช้ยืนยันในหัวข้อ 9 ว่า OLS เป็นกรณีพิเศษของ GLM พอดี</p>
+<p>ผลลัพธ์สำคัญที่สุดในสไลด์นี้:</p>
+<ul>
+<li>\(\theta_i = \mu_i\) พอดี — ต่างจาก Binomial ที่ θ_i เป็น log-odds (ฟังก์ชันแปลงรูปของ π_i) กรณี Normal ตัว canonical parameter เท่ากับ mean ตรง ๆ ไม่ต้องแปลงอะไรเลย</li>
+<li>\(\phi = \sigma^2\) คือ dispersion parameter ที่ต้องประมาณจากข้อมูล (คุ้นเคยดีจาก Residual standard error ใน Lecture 1)</li>
+<li>ได้ \(a(\phi)=\phi\), \(b(\theta_i) = \theta_i^2/2\)</li>
+</ul>
+<p>ผลลัพธ์นี้จะกลับมาใช้ยืนยันในหัวข้อ 9 ว่า OLS เป็นกรณีพิเศษของ GLM พอดี</p>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 4 (Free response)</span><span>ตรวจสอบด้วย μ=b'(θ), Var=b''(θ)a(φ)</span></div>
@@ -111,7 +147,12 @@
 <img src="../assets/slides/as8-p08-poisson-gamma-ig-exercise-forms.png" alt="Slide listing exercise pdfs to convert to exponential family: Poisson(lambda_i), Gamma(nu, mu_i/nu), and Inverse Gaussian(mu_i, lambda), each given in standard pdf/pmf form without the exponential-family derivation worked out">
 <figcaption>Slide: Exponential Family Distributions — Exercise: Poisson, Gamma, IG (Lecture 8, p.8)</figcaption>
 </figure>
-<p>สังเกตรูปแบบ pdf ที่ให้มา: \(\text{Gamma}(\nu, \mu_i/\nu)\) คือ parameterize ด้วย shape \(\nu\) และ scale \(\mu_i/\nu\) (เขียนแบบนี้เพื่อให้ mean ของ distribution เท่ากับ μ_i พอดีไม่ว่า ν จะเป็นเท่าไร — สะดวกสำหรับใช้เป็น GLM) ส่วน \(\text{Inverse Gaussian}(\mu_i, \lambda)\) มี pdf ที่ซับซ้อนกว่าเพราะมีพจน์ \(y_i^3\) ในตัวส่วน — ทั้งสองแบบจะได้จัดรูปให้ครบใน "ตารางสรุป" หัวข้อ 8 ด้านล่าง โดยใช้เทคนิคเดียวกับที่ทำกับ Binomial/Normal ไปแล้ว (ดึงพจน์ที่มี y ออกมาเป็น yθ, พจน์ที่เหลือที่ไม่มี y จัดเป็น b(θ), ที่เหลือทั้งหมดเป็น c(y,φ))</p>
+<p>สังเกตรูปแบบ pdf ที่ให้มา:</p>
+<ul>
+<li>\(\text{Gamma}(\nu, \mu_i/\nu)\) คือ parameterize ด้วย shape \(\nu\) และ scale \(\mu_i/\nu\) (เขียนแบบนี้เพื่อให้ mean ของ distribution เท่ากับ μ_i พอดีไม่ว่า ν จะเป็นเท่าไร — สะดวกสำหรับใช้เป็น GLM)</li>
+<li>\(\text{Inverse Gaussian}(\mu_i, \lambda)\) มี pdf ที่ซับซ้อนกว่าเพราะมีพจน์ \(y_i^3\) ในตัวส่วน</li>
+</ul>
+<p>ทั้งสองแบบจะได้จัดรูปให้ครบใน "ตารางสรุป" หัวข้อ 8 ด้านล่าง โดยใช้เทคนิคเดียวกับที่ทำกับ Binomial/Normal ไปแล้ว (ดึงพจน์ที่มี y ออกมาเป็น yθ, พจน์ที่เหลือที่ไม่มี y จัดเป็น b(θ), ที่เหลือทั้งหมดเป็น c(y,φ))</p>
 
 <h2>6. Mean, Variance, และ Variance Function ของ EFD</h2>
 <p>ผลลัพธ์ทั่วไปที่ใช้ตรวจคำตอบในหัวข้อ 3–5 (และใช้ซ้ำตลอดบทถัดไป) มาจากทฤษฎีของ EFD โดยตรง ไม่ต้องหาแยกทีละ distribution:</p>
@@ -119,7 +160,14 @@
 <img src="../assets/slides/as8-p09-mean-variance-function.png" alt="Slide stating that for Y ~ EFD(theta, phi), mu = E[Y] = b'(theta) and Var[Y] = b''(theta) times a(phi), and defining the variance function V(mu) = b''(theta) so that Var[Y] = a(phi) V(mu)">
 <figcaption>Slide: Exponential Family Distributions — mean, variance, variance function (Lecture 8, p.9)</figcaption>
 </figure>
-<p>สองสูตรนี้ \(\mu \equiv E[Y] = b'(\theta)\) และ \(\text{Var}[Y] = b''(\theta)\cdot a(\phi)\) ใช้ได้กับ EFD <strong>ทุกตัว</strong> ไม่ใช่แค่ Normal — คือเหตุผลที่หัวข้อ 4 ตรวจคำตอบได้ด้วยการหาอนุพันธ์ของ b(θ) เฉย ๆ โดยไม่ต้องคำนวณ E[Y] จาก definition ตรง ๆ ทุกครั้ง สไลด์นิยาม <em class="term">variance function</em> \(V(\mu) \equiv b''(\theta)\) เพิ่มเติม — เป็นฟังก์ชันของ <strong>mean μ</strong> (ไม่ใช่ของ θ โดยตรง แม้จะคำนวณจาก b''(θ) ก็ตาม เพราะ θ เป็นฟังก์ชันของ μ อยู่แล้ว) ที่บอกว่า variance ของ Y สัมพันธ์กับ mean ของมันเองอย่างไร ทำให้เขียนใหม่ได้เป็น \(\text{Var}[Y] = a(\phi)\cdot V(\mu)\) — สูตรนี้สำคัญเพราะ <strong>V(μ) ต่างกันไปตาม distribution แต่ละตัว</strong> (ดูตารางหัวข้อ 8: V(μ)=1 สำหรับ Normal, V(μ)=μ สำหรับ Poisson, V(μ)=μ(1−μ) สำหรับ Binomial) — เป็นตัวบ่งชี้ที่ชัดเจนที่สุดว่าทำไม constant-variance assumption ของ classical linear model (ที่เท่ากับบังคับ V(μ)=1 เสมอ) จึงใช้ไม่ได้กับ distribution อื่น</p>
+<p>สองสูตรนี้ \(\mu \equiv E[Y] = b'(\theta)\) และ \(\text{Var}[Y] = b''(\theta)\cdot a(\phi)\) ใช้ได้กับ EFD <strong>ทุกตัว</strong> ไม่ใช่แค่ Normal — คือเหตุผลที่หัวข้อ 4 ตรวจคำตอบได้ด้วยการหาอนุพันธ์ของ b(θ) เฉย ๆ โดยไม่ต้องคำนวณ E[Y] จาก definition ตรง ๆ ทุกครั้ง</p>
+<p>สไลด์นิยาม <em class="term">variance function</em> \(V(\mu) \equiv b''(\theta)\) เพิ่มเติม — เป็นฟังก์ชันของ <strong>mean μ</strong> (ไม่ใช่ของ θ โดยตรง แม้จะคำนวณจาก b''(θ) ก็ตาม เพราะ θ เป็นฟังก์ชันของ μ อยู่แล้ว) ที่บอกว่า variance ของ Y สัมพันธ์กับ mean ของมันเองอย่างไร ทำให้เขียนใหม่ได้เป็น \(\text{Var}[Y] = a(\phi)\cdot V(\mu)\) — สูตรนี้สำคัญเพราะ <strong>V(μ) ต่างกันไปตาม distribution แต่ละตัว</strong> (ดูตารางหัวข้อ 8):</p>
+<ul>
+<li>V(μ)=1 สำหรับ Normal</li>
+<li>V(μ)=μ สำหรับ Poisson</li>
+<li>V(μ)=μ(1−μ) สำหรับ Binomial</li>
+</ul>
+<p>เป็นตัวบ่งชี้ที่ชัดเจนที่สุดว่าทำไม constant-variance assumption ของ classical linear model (ที่เท่ากับบังคับ V(μ)=1 เสมอ) จึงใช้ไม่ได้กับ distribution อื่น</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 5</span><span>Variance Function</span></div>
@@ -179,12 +227,20 @@
 <img src="../assets/slides/as8-p11-glms-canonical-links-table.png" alt="Slide table of GLMs with canonical links for Normal, Poisson, Binomial, Gamma, and Inverse Gaussian, showing notation, range of y, phi, b(theta), mu(theta), canonical link, and V(mu) for each; the Gamma and Inverse Gaussian columns are left blank with question marks as an exercise">
 <figcaption>Slide: GLMs with Canonical Links (Lecture 8, p.11)</figcaption>
 </figure>
-<p>อ่านตารางทีละคอลัมน์: <strong>Normal</strong> — φ=σ², canonical link = identity (g(μ)=μ ตรง ๆ ไม่แปลงรูป), V(μ)=1 (variance คงที่ ไม่ขึ้นกับ mean — คือ assumption "constant variance" ของ Lecture 1–7 นั่นเอง). <strong>Poisson</strong> — φ=1 คงที่ (ไม่มี extra dispersion parameter ต้องประมาณ), canonical link = log, V(μ)=μ (variance เท่ากับ mean พอดี — สมบัติเฉพาะของ Poisson ที่เรียกว่า equidispersion). <strong>Binomial</strong> — φ=1 เช่นกัน, canonical link = logit (ตรงกับ θ_i=log(π_i/(1−π_i)) ที่หาไว้ในหัวข้อ 3 พอดี), V(μ)=μ(1−μ) (variance สูงสุดที่ μ=0.5 และลดลงเมื่อเข้าใกล้ 0 หรือ 1). ส่วน <strong>Gamma</strong> และ <strong>Inv. Gaussian</strong> สไลด์เว้นว่างไว้เป็นแบบฝึกหัด (สอดคล้องกับ pdf ที่ให้มาในหัวข้อ 5) — ใช้สูตรทั่วไป μ=b'(θ), Var[Y]=b''(θ)a(φ) แบบเดียวกับหัวข้อ 4 มาเติมให้ครบ:</p>
+<p>อ่านตารางทีละคอลัมน์:</p>
+<ul>
+<li><strong>Normal</strong> — φ=σ², canonical link = identity (g(μ)=μ ตรง ๆ ไม่แปลงรูป), V(μ)=1 (variance คงที่ ไม่ขึ้นกับ mean — คือ assumption "constant variance" ของ Lecture 1–7 นั่นเอง)</li>
+<li><strong>Poisson</strong> — φ=1 คงที่ (ไม่มี extra dispersion parameter ต้องประมาณ), canonical link = log, V(μ)=μ (variance เท่ากับ mean พอดี — สมบัติเฉพาะของ Poisson ที่เรียกว่า equidispersion)</li>
+<li><strong>Binomial</strong> — φ=1 เช่นกัน, canonical link = logit (ตรงกับ θ_i=log(π_i/(1−π_i)) ที่หาไว้ในหัวข้อ 3 พอดี), V(μ)=μ(1−μ) (variance สูงสุดที่ μ=0.5 และลดลงเมื่อเข้าใกล้ 0 หรือ 1)</li>
+</ul>
+<p>ส่วน <strong>Gamma</strong> และ <strong>Inv. Gaussian</strong> สไลด์เว้นว่างไว้เป็นแบบฝึกหัด (สอดคล้องกับ pdf ที่ให้มาในหัวข้อ 5) — ใช้สูตรทั่วไป μ=b'(θ), Var[Y]=b''(θ)a(φ) แบบเดียวกับหัวข้อ 4 มาเติมให้ครบ:</p>
 
 <div class="box">
 <div class="label">เติมให้ครบ: Gamma และ Inverse Gaussian (จัดรูปโดยใช้สูตรทั่วไปของหัวข้อ 6 กับ pdf ในหัวข้อ 5 — ไม่ได้เฉลยไว้ในสไลด์ต้นฉบับ)</div>
-<p><strong>Gamma(ν, μ/ν):</strong> กำหนด \(\theta = -1/\mu\) (θ&lt;0 เสมอเพราะ μ&gt;0), \(\phi = 1/\nu\), \(a(\phi)=\phi\), \(b(\theta) = -\log(-\theta)\) — ตรวจสอบ: \(b'(\theta) = -1/\theta = \mu\) ✓ ตรงกับที่ตั้งไว้, \(b''(\theta) = 1/\theta^2 = \mu^2\) ⇒ \(V(\mu) = \mu^2\), canonical link \(g(\mu) = -1/\mu\) (มักเรียกว่า "inverse"/reciprocal link — R ใช้ค่า default \(1/\mu\) ต่างกันแค่เครื่องหมายซึ่งไม่กระทบการตีความเพราะ β ปรับเครื่องหมายชดเชยได้)</p>
-<p><strong>Inverse Gaussian(μ, λ):</strong> กำหนด \(\theta = -1/(2\mu^2)\), \(\phi = 1/\lambda\), \(b(\theta) = -\sqrt{-2\theta}\) — ตรวจสอบ: \(b'(\theta) = 1/\sqrt{-2\theta} = \mu\) ✓, \(b''(\theta) = (-2\theta)^{-3/2} = \mu^3\) ⇒ \(V(\mu) = \mu^3\), canonical link \(g(\mu) = 1/\mu^2\) (เรียกว่า "1/μ²" link)</p>
+<ul>
+<li><strong>Gamma(ν, μ/ν):</strong> กำหนด \(\theta = -1/\mu\) (θ&lt;0 เสมอเพราะ μ&gt;0), \(\phi = 1/\nu\), \(a(\phi)=\phi\), \(b(\theta) = -\log(-\theta)\) — ตรวจสอบ: \(b'(\theta) = -1/\theta = \mu\) ✓ ตรงกับที่ตั้งไว้, \(b''(\theta) = 1/\theta^2 = \mu^2\) ⇒ \(V(\mu) = \mu^2\), canonical link \(g(\mu) = -1/\mu\) (มักเรียกว่า "inverse"/reciprocal link — R ใช้ค่า default \(1/\mu\) ต่างกันแค่เครื่องหมายซึ่งไม่กระทบการตีความเพราะ β ปรับเครื่องหมายชดเชยได้)</li>
+<li><strong>Inverse Gaussian(μ, λ):</strong> กำหนด \(\theta = -1/(2\mu^2)\), \(\phi = 1/\lambda\), \(b(\theta) = -\sqrt{-2\theta}\) — ตรวจสอบ: \(b'(\theta) = 1/\sqrt{-2\theta} = \mu\) ✓, \(b''(\theta) = (-2\theta)^{-3/2} = \mu^3\) ⇒ \(V(\mu) = \mu^3\), canonical link \(g(\mu) = 1/\mu^2\) (เรียกว่า "1/μ²" link)</li>
+</ul>
 </div>
 
 <div class="quiz free">
@@ -224,7 +280,13 @@
 <img src="../assets/slides/as8-p15-irwls-flowchart.png" alt="Flowchart of IRWLS: initialize beta, then loop updating the working response Z and weight matrix W, updating beta by fitting weighted regression, checking convergence, and stopping when converged; formulas given for Z_k = eta_hat_k + (Y - mu_hat_k)(d_eta/d_mu)_k, W_k = diag(w_i) = diag(Var^-1[Y_i](d_mu/d_eta)^2_k), and beta_hat_(k+1) = (X^t W^(k) X)^-1 X^t W^(k) Z^(k)">
 <figcaption>Slide: Iteratively Reweighted Least Squares (IRWLS) (Lecture 8, p.15)</figcaption>
 </figure>
-<p>อ่าน flowchart ทีละขั้น: เริ่มจาก \(\text{Initialize } \beta\) (เดาค่าเริ่มต้น) แล้ววนลูป 3 ขั้นตอนซ้ำจนกว่าจะ<strong>ลู่เข้า (converge)</strong>: (1) คำนวณ <em>working response</em> \(Z^{(k)} = \hat{\eta}^k + (Y-\hat{\mu}^{(k)})\left(\dfrac{d\eta}{d\mu}\right)_{(k)}\) — ปรับ response ให้อยู่ในสเกลของ linear predictor แทนสเกลของ μ เดิม (2) คำนวณ <em>weight matrix</em> \(W^k = \text{diag}\left\{\text{Var}^{-1}[Y_i]\left(\dfrac{d\mu}{d\eta}\right)^2_{(k)}\right\}\) — ให้น้ำหนักมากกับ observation ที่ variance ต่ำ (แม่นยำกว่า) และน้อยกับตัวที่ variance สูง (3) ประมาณ \(\hat{\beta}^{(k+1)} = (X^TW^{(k)}X)^{-1}X^TW^{(k)}Z^{(k)}\) — สูตรนี้<strong>หน้าตาเหมือน weighted least squares ของ OLS ทุกประการ</strong> ต่างแค่ Z และ W ต้องคำนวณใหม่ทุกรอบเพราะขึ้นกับ β̂ ปัจจุบัน (นี่คือที่มาของคำว่า "iteratively" — ทำซ้ำแล้วปรับน้ำหนักใหม่เรื่อย ๆ) กระบวนการนี้เองที่ <code>glm()</code> ใน R รันอยู่เบื้องหลังทุกครั้งที่เรียกใช้</p>
+<p>อ่าน flowchart ทีละขั้น: เริ่มจาก \(\text{Initialize } \beta\) (เดาค่าเริ่มต้น) แล้ววนลูป 3 ขั้นตอนซ้ำจนกว่าจะ<strong>ลู่เข้า (converge)</strong>:</p>
+<ol>
+<li>คำนวณ <em>working response</em> \(Z^{(k)} = \hat{\eta}^k + (Y-\hat{\mu}^{(k)})\left(\dfrac{d\eta}{d\mu}\right)_{(k)}\) — ปรับ response ให้อยู่ในสเกลของ linear predictor แทนสเกลของ μ เดิม</li>
+<li>คำนวณ <em>weight matrix</em> \(W^k = \text{diag}\left\{\text{Var}^{-1}[Y_i]\left(\dfrac{d\mu}{d\eta}\right)^2_{(k)}\right\}\) — ให้น้ำหนักมากกับ observation ที่ variance ต่ำ (แม่นยำกว่า) และน้อยกับตัวที่ variance สูง</li>
+<li>ประมาณ \(\hat{\beta}^{(k+1)} = (X^TW^{(k)}X)^{-1}X^TW^{(k)}Z^{(k)}\) — สูตรนี้<strong>หน้าตาเหมือน weighted least squares ของ OLS ทุกประการ</strong> ต่างแค่ Z และ W ต้องคำนวณใหม่ทุกรอบเพราะขึ้นกับ β̂ ปัจจุบัน (นี่คือที่มาของคำว่า "iteratively" — ทำซ้ำแล้วปรับน้ำหนักใหม่เรื่อย ๆ)</li>
+</ol>
+<p>กระบวนการนี้เองที่ <code>glm()</code> ใน R รันอยู่เบื้องหลังทุกครั้งที่เรียกใช้</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 10</span><span>Fitting a GLM</span></div>
@@ -239,7 +301,12 @@
 </div>
 
 <h2>11. Inference for GLM: Deviance และ Goodness-of-Fit</h2>
-<p>การอนุมานสำหรับ GLM มี 3 เรื่องหลัก: goodness-of-fit test, การทดสอบ \(H_0: \beta_j=0\), และการเทียบโมเดล nested — ทั้งหมดตั้งอยู่บนแนวคิดเดียวคือ <em class="term">deviance</em> ซึ่งมาจาก log ของอัตราส่วน likelihood (log-likelihood ratio)</p>
+<p>การอนุมานสำหรับ GLM มี 3 เรื่องหลัก ทั้งหมดตั้งอยู่บนแนวคิดเดียวคือ <em class="term">deviance</em> ซึ่งมาจาก log ของอัตราส่วน likelihood (log-likelihood ratio):</p>
+<ul>
+<li>goodness-of-fit test</li>
+<li>การทดสอบ \(H_0: \beta_j=0\)</li>
+<li>การเทียบโมเดล nested</li>
+</ul>
 <p>จุดตั้งต้นคือ <em class="term">saturated model (full model)</em> — โมเดล GLM ที่ใช้ distribution/link เดียวกับโมเดลที่สนใจ แต่ยอมให้ mean response ต่างกันได้ในทุกกลุ่มข้อมูลซ้ำ (replicate) ถ้าไม่มีข้อมูลซ้ำเลย จะประมาณ μ_i ด้วย \(\tilde{\mu}_i = y_i\) ตรง ๆ (ทำนายค่าจริงของแต่ละจุดเป๊ะ):</p>
 <figure>
 <img src="../assets/slides/as8-p17-saturated-model-definition.png" alt="Slide defining the saturated/full model as the GLM with the same distribution and link function that allows a different mean response per group of replicates; if there are no replicates, mu_i is estimated by mu_tilde_i = y_i">
@@ -256,7 +323,13 @@
 <img src="../assets/slides/as8-p20-pictorial-deviance-null-deviance.png" alt="Diagram showing likelihood sorting of the model space on a number line from l(beta_hat_0) worst fit (intercept only) on the left, through l(beta_hat) the model analysed in the middle, to l_s perfect fit (interpolation) on the right; D (deviance) spans from the analysed model to the perfect fit, while D_0 (null deviance) spans from the worst fit to the perfect fit">
 <figcaption>Slide: Pictorial representation of the deviance and the null deviance (Lecture 8, p.20)</figcaption>
 </figure>
-<p>อ่านเส้นจำนวนนี้จากซ้ายไปขวา: ซ้ายสุดคือ \(l(\hat{\beta}_0)\) — "Worst fit (intercept only)" คือโมเดลที่มีแค่ β₀ ไม่มีตัวแปรอธิบายเลย (แย่ที่สุดเท่าที่ยังนับเป็นโมเดล GLM ได้) ตรงกลางคือ \(l(\hat{\beta})\) — "Model analysed" คือโมเดลจริงที่กำลังสนใจ (มีตัวแปรอธิบายครบตามที่ตั้งไว้) ขวาสุดคือ \(l_s\) — "Perfect fit (interpolation)" คือ saturated model ที่ทำนายได้เป๊ะทุกจุด ระยะจากกลางไปขวา (Model analysed → Perfect fit) คือ <strong>D (deviance)</strong> — วัดว่าโมเดลที่สนใจ "เสียของ" ไปเท่าไรเทียบกับฟิตสมบูรณ์แบบ ส่วนระยะจากซ้ายสุดไปขวาสุดทั้งหมด (Worst fit → Perfect fit) คือ <strong>D₀ (null deviance)</strong> — วัดว่าถ้าไม่ใส่ตัวแปรอธิบายเลยจะเสียของไปเท่าไร ตัวเลขสองตัวนี้ (deviance กับ null deviance) ปรากฏใน <code>summary(glm(...))</code> ของ R เสมอ และเทียบกันได้ทำนองเดียวกับ R² ใน OLS: <strong>ยิ่ง deviance ลดจาก null deviance ลงมามาก ยิ่งแปลว่าตัวแปรอธิบายช่วยได้มาก</strong></p>
+<p>อ่านเส้นจำนวนนี้จากซ้ายไปขวา:</p>
+<ul>
+<li>ซ้ายสุดคือ \(l(\hat{\beta}_0)\) — "Worst fit (intercept only)" คือโมเดลที่มีแค่ β₀ ไม่มีตัวแปรอธิบายเลย (แย่ที่สุดเท่าที่ยังนับเป็นโมเดล GLM ได้)</li>
+<li>ตรงกลางคือ \(l(\hat{\beta})\) — "Model analysed" คือโมเดลจริงที่กำลังสนใจ (มีตัวแปรอธิบายครบตามที่ตั้งไว้)</li>
+<li>ขวาสุดคือ \(l_s\) — "Perfect fit (interpolation)" คือ saturated model ที่ทำนายได้เป๊ะทุกจุด</li>
+</ul>
+<p>ระยะจากกลางไปขวา (Model analysed → Perfect fit) คือ <strong>D (deviance)</strong> — วัดว่าโมเดลที่สนใจ "เสียของ" ไปเท่าไรเทียบกับฟิตสมบูรณ์แบบ ส่วนระยะจากซ้ายสุดไปขวาสุดทั้งหมด (Worst fit → Perfect fit) คือ <strong>D₀ (null deviance)</strong> — วัดว่าถ้าไม่ใส่ตัวแปรอธิบายเลยจะเสียของไปเท่าไร ตัวเลขสองตัวนี้ (deviance กับ null deviance) ปรากฏใน <code>summary(glm(...))</code> ของ R เสมอ และเทียบกันได้ทำนองเดียวกับ R² ใน OLS: <strong>ยิ่ง deviance ลดจาก null deviance ลงมามาก ยิ่งแปลว่าตัวแปรอธิบายช่วยได้มาก</strong></p>
 <p>Goodness-of-fit test ตั้งสมมติฐานที่<strong>สลับด้าน</strong>จากที่คุ้นเคยใน Lecture 1–7:</p>
 <div class="box">
 \(H_0: g(\theta) = X\beta\) (โมเดลที่ตั้งไว้ฟิตข้อมูลได้ดี) &nbsp;vs&nbsp; \(H_1: g(\theta) \neq X\beta\)<br>
@@ -333,7 +406,15 @@ Deviance เป็น test statistic ที่มี \(\chi^2_{(n-p-1)}\) distri
 <figcaption>Slide: Outliers and Influential Points — leverage and hat matrix (Lecture 8, p.26)</figcaption>
 </figure>
 <p>เทียบกับ hat matrix ของ OLS ที่คุ้นเคย (\(H = X(X^TX)^{-1}X^T\)) สูตรของ GLM \(H = W^{1/2}X(X^TWX)^{-1}X^TW^{1/2}\) ต่างกันตรงมี weight matrix \(W\) (ตัวเดียวกับที่ใช้ใน IRWLS หัวข้อ 10) แทรกเข้ามาถ่วงน้ำหนักแต่ละจุดตาม variance ของมัน — <strong>ค่า h_ii บนเส้นทแยงมุมของ H สูง</strong> แปลว่าจุดนั้นมี "ศักยภาพ" สูงที่จะดึงเส้นฟิตให้เปลี่ยนไปถ้าค่า response ที่จุดนั้นเปลี่ยน (ไม่ได้แปลว่าจุดนั้นเป็น outlier ที่มีผลจริงเสมอไป — ต้องแยกจาก <em>influential point</em> ที่เป็น outlier ที่มีผลกระทบจริง ไม่ใช่แค่มีศักยภาพ) ใน R ดึงค่า leverage ได้ด้วย <code>influence(model)$hat</code></p>
-<p>ส่วนการตรวจ influential point ที่แท้จริงใช้เครื่องมือชุดเดียวกับ linear model จาก Lecture ก่อนหน้า: <code>cooks.distance(model)</code> (Cook's Distance), <code>dffits(model)</code>, <code>dfbetas(model)</code>, <code>covratio(model)</code>, และสรุปรวมทุกตัวได้ในคำสั่งเดียวด้วย <code>influence.measures(model)</code> — สไลด์ไม่ได้อธิบายสูตรของแต่ละตัวซ้ำ (สอนละเอียดแล้วในบท linear model diagnostics ก่อนหน้า) แค่ยืนยันว่าใช้ concept และคำสั่ง R ชุดเดียวกันได้กับ GLM ด้วย</p>
+<p>ส่วนการตรวจ influential point ที่แท้จริงใช้เครื่องมือชุดเดียวกับ linear model จาก Lecture ก่อนหน้า:</p>
+<ul>
+<li><code>cooks.distance(model)</code> (Cook's Distance)</li>
+<li><code>dffits(model)</code></li>
+<li><code>dfbetas(model)</code></li>
+<li><code>covratio(model)</code></li>
+<li><code>influence.measures(model)</code> — สรุปรวมทุกตัวข้างต้นได้ในคำสั่งเดียว</li>
+</ul>
+<p>สไลด์ไม่ได้อธิบายสูตรของแต่ละตัวซ้ำ (สอนละเอียดแล้วในบท linear model diagnostics ก่อนหน้า) แค่ยืนยันว่าใช้ concept และคำสั่ง R ชุดเดียวกันได้กับ GLM ด้วย</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 15</span><span>Leverage และ Influential Points</span></div>

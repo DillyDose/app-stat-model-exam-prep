@@ -19,7 +19,14 @@
 <p class="kicker">Lecture 14 — Introduction to Linear Mixed-Effects Models (บทสุดท้าย)</p>
 <h1>Linear Mixed-Effects Models: เมื่อข้อมูลไม่ independent อีกต่อไป</h1>
 
-<p>บทเรียนนี้ตอบ 4 เรื่องเดิมที่ใช้มาตลอดคอร์ส แต่ในบริบทใหม่ที่ <strong>ข้อมูล "ไม่เป็นอิสระต่อกัน" ตั้งแต่ต้น</strong>: <strong>เขียนสมการโมเดลถูก</strong> (แยก fixed effect กับ random effect ให้ชัด), <strong>เช็คได้ว่าเมื่อไรต้องใช้ mixed model</strong> แทน ordinary regression, <strong>อ่าน output จาก <code>summary(lmer(...))</code> ได้ทุกบรรทัด</strong> รวมถึงส่วนที่ไม่เคยเห็นใน <code>lm()</code> (variance ของ random effect), และ<strong>เขียนประโยคแปลผล</strong> ทั้งของ fixed-effect coefficient (แบบเดิม) และของ variance component (แบบใหม่) — นี่คือ Lecture สุดท้ายของวิชา และเป็นคำตอบของคำถามที่ค้างมาตั้งแต่ Lesson 1: "ถ้า error terms ไม่ independent จะทำอย่างไร?"</p>
+<p>บทเรียนนี้ตอบ 4 เรื่องเดิมที่ใช้มาตลอดคอร์ส แต่ในบริบทใหม่ที่ <strong>ข้อมูล "ไม่เป็นอิสระต่อกัน" ตั้งแต่ต้น</strong>:</p>
+<ul>
+<li><strong>เขียนสมการโมเดลถูก</strong> (แยก fixed effect กับ random effect ให้ชัด)</li>
+<li><strong>เช็คได้ว่าเมื่อไรต้องใช้ mixed model</strong> แทน ordinary regression</li>
+<li><strong>อ่าน output จาก <code>summary(lmer(...))</code> ได้ทุกบรรทัด</strong> รวมถึงส่วนที่ไม่เคยเห็นใน <code>lm()</code> (variance ของ random effect)</li>
+<li><strong>เขียนประโยคแปลผล</strong> ทั้งของ fixed-effect coefficient (แบบเดิม) และของ variance component (แบบใหม่)</li>
+</ul>
+<p>นี่คือ Lecture สุดท้ายของวิชา และเป็นคำตอบของคำถามที่ค้างมาตั้งแต่ Lesson 1: "ถ้า error terms ไม่ independent จะทำอย่างไร?"</p>
 
 <div class="box source">
 <div class="label">อ่านเพิ่มก่อนเริ่ม (แนะนำ)</div>

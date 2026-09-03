@@ -27,14 +27,34 @@
 </nav>
 
 <h2>1. จาก GLM สู่ Logistic Regression — ทำไมใช้ Linear Regression ตรง ๆ ไม่ได้</h2>
-<p>Binary response คือตัวแปรตามที่มีแค่ 2 ค่า เข้ารหัสมาตรฐานเป็น <code>Y_i = 0 (no)</code> และ <code>Y_i = 1 (yes)</code> สไลด์กำหนดการแจกแจงของ <code>Y_i</code> ตรง ๆ ว่า \(Y_i \sim \text{Bernoulli}(\pi_i)\) หรือเท่ากันคือ \(\text{Binomial}(1, \pi_i)\) โดย \(\text{Mean}[Y_i] = \pi_i\) และ \(\text{Variance}[Y_i] = \pi_i(1-\pi_i)\) — สังเกตว่า variance <strong>ไม่คงที่</strong> แต่ขึ้นกับ π_i โดยตรง นี่คือจุดที่ผิดกับ assumption ของ linear regression ตั้งแต่ต้น (Lecture 1 หัวข้อ 4: constant variance).</p>
-<p>ถ้าลองฟิต normal linear regression ตรง ๆ กับข้อมูล binary (\(\hat{\pi}_i = \hat{\beta}_0+\hat{\beta}_1 X_{i1}+\cdots+\hat{\beta}_p X_{ip}\)) จะเจอปัญหา 2 ข้อ: (1) ค่าที่ทำนายได้ \(\hat{\pi}\) อาจหลุดออกนอกช่วง \([0,1]\) ซึ่งไม่มีความหมายในฐานะความน่าจะเป็น และ (2) assumption เรื่อง linear, constant variance, และ normal ถูกละเมิดทั้งหมด (เพราะ Y มีแค่ 2 ค่า จะแจกแจงแบบปกติไม่ได้เลย). ภาพต่อไปนี้ใช้ข้อมูล Donner Party จริง (อายุ กับ รอดชีวิตหรือไม่) แสดงปัญหานี้ให้เห็นชัด:</p>
+<p>Binary response คือตัวแปรตามที่มีแค่ 2 ค่า เข้ารหัสมาตรฐานเป็น <code>Y_i = 0 (no)</code> และ <code>Y_i = 1 (yes)</code> สไลด์กำหนดการแจกแจงของ <code>Y_i</code> ไว้ดังนี้:</p>
+<ul>
+<li><strong>การแจกแจง:</strong> \(Y_i \sim \text{Bernoulli}(\pi_i)\) หรือเท่ากันคือ \(\text{Binomial}(1, \pi_i)\)</li>
+<li><strong>ค่าเฉลี่ย:</strong> \(\text{Mean}[Y_i] = \pi_i\)</li>
+<li><strong>ความแปรปรวน:</strong> \(\text{Variance}[Y_i] = \pi_i(1-\pi_i)\) — สังเกตว่า<strong>ไม่คงที่</strong> แต่ขึ้นกับ π_i โดยตรง</li>
+</ul>
+<p>นี่คือจุดที่ผิดกับ assumption ของ linear regression ตั้งแต่ต้น (Lecture 1 หัวข้อ 4: constant variance).</p>
+<p>ถ้าลองฟิต normal linear regression ตรง ๆ กับข้อมูล binary (\(\hat{\pi}_i = \hat{\beta}_0+\hat{\beta}_1 X_{i1}+\cdots+\hat{\beta}_p X_{ip}\)) จะเจอปัญหา 2 ข้อ:</p>
+<ol>
+<li>ค่าที่ทำนายได้ \(\hat{\pi}\) อาจหลุดออกนอกช่วง \([0,1]\) ซึ่งไม่มีความหมายในฐานะความน่าจะเป็น</li>
+<li>assumption เรื่อง linear, constant variance, และ normal ถูกละเมิดทั้งหมด (เพราะ Y มีแค่ 2 ค่า จะแจกแจงแบบปกติไม่ได้เลย)</li>
+</ol>
+<p>ภาพต่อไปนี้ใช้ข้อมูล Donner Party จริง (อายุ กับ รอดชีวิตหรือไม่) แสดงปัญหานี้ให้เห็นชัด:</p>
 <figure>
 <img src="../assets/slides/as9-p05-binary-response-scatter-motivation.png" alt="Scatterplot of binary Y (0 or 1, survival) against X (age) showing points clustered only at y=0 and y=1, illustrating that a straight line cannot fit binary data well">
 <figcaption>Slide: Fitting Regression with Binomial Responses — ปัญหาของ Linear Regression กับ Binary Y (Lecture 9, p.5)</figcaption>
 </figure>
-<p>อ่านภาพ: จุดข้อมูลทั้งหมดเกาะอยู่แค่สองแถวคือ <code>Y=0</code> กับ <code>Y=1</code> เท่านั้น ไม่มีจุดไหนอยู่ระหว่างกลางเลย — ถ้าลากเส้นตรง (linear) ผ่านกลุ่มจุดแบบนี้ เส้นจะต้องมีความชันคงที่ตลอดช่วง X ซึ่งไม่มีทางแทนความจริงที่ว่า "ความน่าจะเป็นเปลี่ยนแบบไม่เชิงเส้น" (เร็วช่วงกลาง ช้าที่ปลายทั้งสองข้าง เพราะถูกบีบด้วยขอบเขต 0 กับ 1) ได้ — และถ้า X มีค่ามากพอ เส้นตรงจะทำนาย π̂ ได้ค่าติดลบหรือเกิน 1 ซึ่งตีความเป็นความน่าจะเป็นไม่ได้เลย.</p>
-<p>ทางแก้คือใช้กรอบ <strong>GLM</strong> ที่วางไว้ใน Lecture 8: กำหนด random component (การแจกแจงของ Y) และ link function \(g(\mu)=\eta\) ที่เชื่อม linear predictor \(\eta=\beta_0+\beta_1 X_1+\cdots+\beta_p X_p\) เข้ากับ \(\mu=E[Y]\) — ในตาราง "GLMs with Canonical Links" ของ Lecture 8 canonical link ของ Binomial คือ <strong>logit</strong> พอดี ดังนั้น logistic regression จึงเป็นแค่กรณีพิเศษของ GLM ที่ random component = Bernoulli/Binomial และ link function = logit ไม่ใช่โมเดลใหม่แยกต่างหาก.</p>
+<p>อ่านภาพ: จุดข้อมูลทั้งหมดเกาะอยู่แค่สองแถวคือ <code>Y=0</code> กับ <code>Y=1</code> เท่านั้น ไม่มีจุดไหนอยู่ระหว่างกลางเลย</p>
+<ul>
+<li>ถ้าลากเส้นตรง (linear) ผ่านกลุ่มจุดแบบนี้ เส้นจะต้องมีความชันคงที่ตลอดช่วง X ซึ่งไม่มีทางแทนความจริงที่ว่า "ความน่าจะเป็นเปลี่ยนแบบไม่เชิงเส้น" (เร็วช่วงกลาง ช้าที่ปลายทั้งสองข้าง เพราะถูกบีบด้วยขอบเขต 0 กับ 1) ได้</li>
+<li>ถ้า X มีค่ามากพอ เส้นตรงจะทำนาย π̂ ได้ค่าติดลบหรือเกิน 1 ซึ่งตีความเป็นความน่าจะเป็นไม่ได้เลย</li>
+</ul>
+<p>ทางแก้คือใช้กรอบ <strong>GLM</strong> ที่วางไว้ใน Lecture 8 ซึ่งประกอบด้วย 2 ส่วนหลัก:</p>
+<ul>
+<li><strong>Random component:</strong> การแจกแจงของ Y</li>
+<li><strong>Link function:</strong> \(g(\mu)=\eta\) ที่เชื่อม linear predictor \(\eta=\beta_0+\beta_1 X_1+\cdots+\beta_p X_p\) เข้ากับ \(\mu=E[Y]\)</li>
+</ul>
+<p>ในตาราง "GLMs with Canonical Links" ของ Lecture 8 canonical link ของ Binomial คือ <strong>logit</strong> พอดี ดังนั้น logistic regression จึงเป็นแค่กรณีพิเศษของ GLM ที่ random component = Bernoulli/Binomial และ link function = logit ไม่ใช่โมเดลใหม่แยกต่างหาก.</p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 1</span><span>ทำไมใช้ Linear Regression ตรง ๆ ไม่ได้</span></div>

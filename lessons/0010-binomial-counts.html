@@ -19,10 +19,19 @@
 <p class="kicker">Lecture 10 — Binomial Counts</p>
 <h1>Binomial Counts: จาก Binary สู่ "จำนวนสำเร็จจาก n ครั้ง"</h1>
 
-<p>Lecture 9 สอน logistic regression บนข้อมูล binary (Y=0/1 ต่อหนึ่งหน่วยสังเกต) บทนี้ขยายไปยังกรณีที่ข้อมูลถูก<strong>รวมกลุ่ม (aggregate)</strong> ไว้แล้ว — แต่ละแถวไม่ใช่คนคนเดียว แต่เป็น "จำนวนสำเร็จจาก n ครั้งลอง" เช่น จำนวน O-ring ที่เสียหายจาก 6 วง หรือจำนวนนกที่สูญพันธุ์จากทั้งหมดที่เสี่ยง — สิ่งที่เปลี่ยนคือ<strong>รูปแบบข้อมูลและ syntax ใน R</strong> (ต้องบอก R ว่า "สำเร็จกี่ครั้งจากกี่ครั้ง" ไม่ใช่แค่ Y เดียว) ส่วนสิ่งที่<strong>ไม่เปลี่ยน</strong>คือความหมายของสัมประสิทธิ์ (ยังคือ log-odds ต่อหนึ่งหน่วย X เหมือนเดิม) บทนี้ยังเพิ่มการเช็ค assumption ใหม่ที่ไม่มีในข้อมูล binary — <em class="term">overdispersion</em> — ซึ่งเป็นการเช็ค assumption ที่ออกสอบเป็นรูปธรรมที่สุดของบทนี้</p>
+<p>Lecture 9 สอน logistic regression บนข้อมูล binary (Y=0/1 ต่อหนึ่งหน่วยสังเกต) บทนี้ขยายไปยังกรณีที่ข้อมูลถูก<strong>รวมกลุ่ม (aggregate)</strong> ไว้แล้ว — แต่ละแถวไม่ใช่คนคนเดียว แต่เป็น "จำนวนสำเร็จจาก n ครั้งลอง" เช่น จำนวน O-ring ที่เสียหายจาก 6 วง หรือจำนวนนกที่สูญพันธุ์จากทั้งหมดที่เสี่ยง</p>
+<ul>
+<li><strong>สิ่งที่เปลี่ยน:</strong> รูปแบบข้อมูลและ syntax ใน R (ต้องบอก R ว่า "สำเร็จกี่ครั้งจากกี่ครั้ง" ไม่ใช่แค่ Y เดียว)</li>
+<li><strong>สิ่งที่ไม่เปลี่ยน:</strong> ความหมายของสัมประสิทธิ์ (ยังคือ log-odds ต่อหนึ่งหน่วย X เหมือนเดิม)</li>
+</ul>
+<p>บทนี้ยังเพิ่มการเช็ค assumption ใหม่ที่ไม่มีในข้อมูล binary — <em class="term">overdispersion</em> — ซึ่งเป็นการเช็ค assumption ที่ออกสอบเป็นรูปธรรมที่สุดของบทนี้</p>
 
 <h2>1. Binary vs Binomial Counts — สองแบบของ Response</h2>
-<p>สไลด์แบ่ง response variable ของ logistic-regression family เป็น 2 แบบ: (1) <strong>Binary</strong> — Y coding เป็น 0/1 ต่อหนึ่งหน่วยสังเกต (Lecture 9) และ (2) <strong>Binomial counts</strong> — จำนวนความสำเร็จ (successes) จาก n ครั้งลอง (trials) ต่อหนึ่งกลุ่ม เช่น "จำนวนสำเร็จใน 10 ครั้งลอง" ทั้งสองแบบมาจากตระกูลการแจกแจงเดียวกัน:</p>
+<p>สไลด์แบ่ง response variable ของ logistic-regression family เป็น 2 แบบ ทั้งสองแบบมาจากตระกูลการแจกแจงเดียวกัน:</p>
+<ol>
+<li><strong>Binary</strong> — Y coding เป็น 0/1 ต่อหนึ่งหน่วยสังเกต (Lecture 9)</li>
+<li><strong>Binomial counts</strong> — จำนวนความสำเร็จ (successes) จาก n ครั้งลอง (trials) ต่อหนึ่งกลุ่ม เช่น "จำนวนสำเร็จใน 10 ครั้งลอง"</li>
+</ol>
 <div class="box">
 \(Y \sim \text{Binomial}(n, \pi)\)&nbsp;&nbsp; โดย \(\text{Mean}[Y] = n\pi\), &nbsp;\(\text{Var}[Y] = n\pi(1-\pi)\)
 </div>
@@ -41,12 +50,23 @@
 </div>
 
 <h2>2. Case Study 1: Challenger O-rings — ตั้งโจทย์และข้อมูลจริง</h2>
-<p>ยานอวกาศ Challenger ระเบิดในปี 1986 สาเหตุเชื่อมโยงกับความล้มเหลวของ O-ring ในเครื่องยนต์จรวด — มีการเก็บข้อมูลจาก 23 ภารกิจก่อนหน้า แต่ละภารกิจมี booster 2 ตัว ตัวละ 3 O-ring รวม 6 O-ring ต่อภารกิจ และวัด "จำนวน O-ring ที่เสียหาย" พร้อมอุณหภูมิขณะปล่อยยาน — <strong>อุณหภูมิวันที่ยานระเบิดคือ 31°F</strong> ซึ่งเป็นตัวเลขสำคัญที่จะกลับมาใช้ตอบคำถามตั้งต้นของ case study นี้ในหัวข้อ 8: "ทำนายความล้มเหลวได้หรือไม่":</p>
+<p>ยานอวกาศ Challenger ระเบิดในปี 1986 สาเหตุเชื่อมโยงกับความล้มเหลวของ O-ring ในเครื่องยนต์จรวด นักวิจัยเก็บข้อมูลไว้ดังนี้:</p>
+<ul>
+<li>ข้อมูลจาก 23 ภารกิจก่อนหน้า</li>
+<li>แต่ละภารกิจมี booster 2 ตัว ตัวละ 3 O-ring รวม 6 O-ring ต่อภารกิจ</li>
+<li>วัด "จำนวน O-ring ที่เสียหาย" พร้อมอุณหภูมิขณะปล่อยยาน</li>
+<li><strong>อุณหภูมิวันที่ยานระเบิดคือ 31°F</strong> ซึ่งเป็นตัวเลขสำคัญที่จะกลับมาใช้ตอบคำถามตั้งต้นของ case study นี้ในหัวข้อ 8: "ทำนายความล้มเหลวได้หรือไม่"</li>
+</ul>
 <figure>
 <img src="../assets/slides/as10-p04-orings-damage-vs-temp-scatter.png" alt="Scatterplot of number of damaged O-rings (0-5) against launch temperature for 23 shuttle missions, with most missions clustered at 0 damage between 65-80F and higher damage counts appearing at lower temperatures around 53-58F">
 <figcaption>Slide: Case Study 1 — Challenger O-rings, ข้อมูลจริง 23 ภารกิจ (Lecture 10, p.4)</figcaption>
 </figure>
-<p>อ่านจุดข้อมูลในกราฟ: ที่อุณหภูมิต่ำสุดในข้อมูล (ประมาณ 53°F) มี O-ring เสียหายถึง 5 จาก 6 วง ขณะที่ภารกิจส่วนใหญ่ที่ปล่อยตอนอากาศอุ่น (65–80°F) แทบไม่มีความเสียหายเลย (damage=0) — เห็นแนวโน้มคร่าว ๆ แล้วว่ายิ่งอุณหภูมิต่ำ ยิ่งมีโอกาสเสียหายมากขึ้น แต่ช่วงข้อมูลจริงที่ใช้ฟิตโมเดลอยู่ประมาณ <strong>53–81°F เท่านั้น</strong> — สังเกตว่า 31°F (อุณหภูมิวันเกิดเหตุ) อยู่<strong>นอกช่วงข้อมูลทั้งหมด</strong> ต่ำกว่าจุดที่หนาวที่สุดที่เคยสังเกตมาถึง 22°F ซึ่งเป็นประเด็น extrapolation ที่ต้องระวัง (เหมือนที่เตือนไว้ตั้งแต่ Lesson 1 หัวข้อ 7) แต่ก็ยังเป็นคำถามที่ต้องตอบเพราะเป็นข้อมูลจริงที่เกิดขึ้น</p>
+<p>อ่านจุดข้อมูลในกราฟ:</p>
+<ul>
+<li>ที่อุณหภูมิต่ำสุดในข้อมูล (ประมาณ 53°F) มี O-ring เสียหายถึง 5 จาก 6 วง</li>
+<li>ภารกิจส่วนใหญ่ที่ปล่อยตอนอากาศอุ่น (65–80°F) แทบไม่มีความเสียหายเลย (damage=0) — เห็นแนวโน้มคร่าว ๆ แล้วว่ายิ่งอุณหภูมิต่ำ ยิ่งมีโอกาสเสียหายมากขึ้น</li>
+<li>ช่วงข้อมูลจริงที่ใช้ฟิตโมเดลอยู่ประมาณ <strong>53–81°F เท่านั้น</strong> — สังเกตว่า 31°F (อุณหภูมิวันเกิดเหตุ) อยู่<strong>นอกช่วงข้อมูลทั้งหมด</strong> ต่ำกว่าจุดที่หนาวที่สุดที่เคยสังเกตมาถึง 22°F ซึ่งเป็นประเด็น extrapolation ที่ต้องระวัง (เหมือนที่เตือนไว้ตั้งแต่ Lesson 1 หัวข้อ 7) แต่ก็ยังเป็นคำถามที่ต้องตอบเพราะเป็นข้อมูลจริงที่เกิดขึ้น</li>
+</ul>
 <p>ตั้งโมเดล: ให้ \(Y_i\) = จำนวน O-ring ที่เสียหายในภารกิจที่ i และ \(X_i\) = อุณหภูมิขณะปล่อยยานของภารกิจที่ i เพราะแต่ละภารกิจมี 6 O-ring ที่อาจเสียหายหรือไม่เสียหายอย่างเป็นอิสระ(โดยประมาณ)กัน จึงมองว่า \(Y_i\) เป็น binomial count ได้อย่างธรรมชาติ:</p>
 <div class="box">
 \(Y_i \sim \text{Binomial}(6, \pi_i)\)&nbsp;&nbsp; และ model π ด้วย logistic regression: &nbsp;\(\log(\pi_i / (1-\pi_i)) = \beta_0 + \beta_1 X_i\)<br>
@@ -69,8 +89,10 @@
 <p>เหมือน Lecture 9, ฟิตด้วย <code>glm()</code>: <code>glm(formula, data, family=binomial, subset, weights, ...)</code> — <code>family=binomial</code> ใช้ link เริ่มต้นเป็น logit เหมือนเดิมทุกประการ สิ่งที่ต่างคือวิธีระบุ <strong>ตัวแปรตอบสนอง (response)</strong> ใน formula:</p>
 <div class="box win">
 <p><strong>สิ่งที่เปลี่ยนระหว่าง Binary กับ Binomial Counts:</strong></p>
-<p>Binary (n_i=1 ทุกแถว, Lecture 9): ระบุ response ตรง ๆ เป็น \(Y_i\) เช่น <code>glm(Survived ~ Age+Sex, data=donner, family=binomial)</code></p>
-<p>Binomial counts (n_i อาจมากกว่า 1): ต้องระบุ response เป็น <code>cbind(Y_i, n_i − Y_i)</code> คือคู่ (จำนวนสำเร็จ, จำนวนไม่สำเร็จ) ไม่ใช่ Y ตัวเดียว เพราะ R ต้องรู้ทั้ง "สำเร็จกี่ครั้ง" และ "n มีกี่ครั้ง" เพื่อคำนวณ likelihood ของ Binomial ให้ถูก</p>
+<ul>
+<li><strong>Binary</strong> (n_i=1 ทุกแถว, Lecture 9): ระบุ response ตรง ๆ เป็น \(Y_i\) เช่น <code>glm(Survived ~ Age+Sex, data=donner, family=binomial)</code></li>
+<li><strong>Binomial counts</strong> (n_i อาจมากกว่า 1): ต้องระบุ response เป็น <code>cbind(Y_i, n_i − Y_i)</code> คือคู่ (จำนวนสำเร็จ, จำนวนไม่สำเร็จ) ไม่ใช่ Y ตัวเดียว เพราะ R ต้องรู้ทั้ง "สำเร็จกี่ครั้ง" และ "n มีกี่ครั้ง" เพื่อคำนวณ likelihood ของ Binomial ให้ถูก</li>
+</ul>
 </div>
 <p>สำหรับ O-rings: \(Y_i\) = damage (จำนวนเสียหาย), \(n_i - Y_i\) = 6 − damage (จำนวนไม่เสียหาย):</p>
 <pre><code>model&lt;-glm(cbind(damage,6-damage)~temp,
@@ -99,7 +121,13 @@ Residual deviance: 16.912  on 21  degrees of freedom
 AIC: 33.675
 
 Number of Fisher Scoring iterations: 6</code></pre>
-<p>อ่าน output: \(\hat{\beta}_0 = 11.663\), \(\hat{\beta}_1 = -0.216\) (ทดสอบด้วย <em>z value</em> ไม่ใช่ <em>t value</em> เหมือน <code>lm()</code> — เพราะ GLM ใช้ MLE ที่มี sampling distribution เป็น normal โดยประมาณ ไม่ใช่ t-distribution แบบ exact ของ OLS) \(\Pr(>|z|)\) ของ temp คือ 4.78e-05 (มีนัยสำคัญมาก) — สมการที่ได้คือ \(\log(\hat{\pi}/(1-\hat{\pi})) = 11.663 - 0.216 \times \text{temp}\) คอลัมน์ <code>(Dispersion parameter for binomial family taken to be 1)</code> คือค่าตั้งต้นที่ยัง<strong>ไม่ได้เช็ค overdispersion</strong> — จะกลับมาเช็คจริงในหัวข้อ 9</p>
+<p>อ่าน output:</p>
+<ul>
+<li>\(\hat{\beta}_0 = 11.663\), \(\hat{\beta}_1 = -0.216\) (ทดสอบด้วย <em>z value</em> ไม่ใช่ <em>t value</em> เหมือน <code>lm()</code> — เพราะ GLM ใช้ MLE ที่มี sampling distribution เป็น normal โดยประมาณ ไม่ใช่ t-distribution แบบ exact ของ OLS)</li>
+<li>\(\Pr(>|z|)\) ของ temp คือ 4.78e-05 (มีนัยสำคัญมาก)</li>
+<li>สมการที่ได้คือ \(\log(\hat{\pi}/(1-\hat{\pi})) = 11.663 - 0.216 \times \text{temp}\)</li>
+<li>คอลัมน์ <code>(Dispersion parameter for binomial family taken to be 1)</code> คือค่าตั้งต้นที่ยัง<strong>ไม่ได้เช็ค overdispersion</strong> — จะกลับมาเช็คจริงในหัวข้อ 9</li>
+</ul>
 
 <div class="quiz free">
   <div class="qhead"><span>คำถาม 3 (Free response)</span><span>เขียนสมการ + โค้ด R</span></div>
@@ -121,9 +149,18 @@ Number of Fisher Scoring iterations: 6</code></pre>
 <p><strong>2. Odds ratio scale (ที่นิยมใช้ตอบข้อสอบที่สุด):</strong> "odds คูณด้วย \(e^{\hat{\beta}_1}\) ทุก ๆ 1 หน่วยที่ X เพิ่มขึ้น" — สำหรับ temp: \(e^{-0.21623} \approx 0.8056\) แปลว่า <strong>ทุก 1°F ที่อุณหภูมิเพิ่มขึ้น odds ของการเสียหายลดลงเหลือ 80.56% ของเดิม (ลดลงประมาณ 19.4%)</strong></p>
 <p><strong>3. Probability scale (ตอบคำถามเชิงปฏิบัติ):</strong> คำนวณ π̂ ตรง ๆ ที่ X ค่าใดค่าหนึ่งด้วย \(\hat{\pi} = e^{\hat{\eta}}/(1+e^{\hat{\eta}})\) เมื่อ \(\hat{\eta} = \hat{\beta}_0+\hat{\beta}_1 X\) — จะใช้จริงในหัวข้อ 8</p>
 </div>
-<p>ขยายผลด้วยตัวเลขจริง: เทียบอุณหภูมิ 31°F (วันเกิดเหตุ) กับ 70°F (ใกล้ค่าเฉลี่ยของข้อมูล) — สูตร odds ratio ระหว่างสองจุด \(\omega_A/\omega_B = e^{\beta_1(A-B)}\) จาก Lecture 9 หัวข้อ interpretation ยังใช้ได้เป๊ะ: \(e^{-0.21623\times(31-70)} = e^{8.433} \approx 4{,}600\) — <strong>odds ของการเสียหายที่ 31°F สูงกว่าที่ 70°F ถึงประมาณ 4,600 เท่า</strong> เป็นตัวเลขที่ชัดเจนว่าโมเดลบ่งชี้ความเสี่ยงมหาศาลที่อุณหภูมินั้น (แม้จะเป็นการ extrapolate ไกลจากช่วงข้อมูลตามที่เตือนไว้ในหัวข้อ 2 ก็ตาม — extrapolate ไกลแบบนี้ ตัวเลขจึงควรตีความเป็น "สัญญาณเตือนที่ชัดเจน" มากกว่า "ตัวเลขแม่นยำ")</p>
+<p>ขยายผลด้วยตัวเลขจริง: เทียบอุณหภูมิ 31°F (วันเกิดเหตุ) กับ 70°F (ใกล้ค่าเฉลี่ยของข้อมูล) — สูตร odds ratio ระหว่างสองจุด \(\omega_A/\omega_B = e^{\beta_1(A-B)}\) จาก Lecture 9 หัวข้อ interpretation ยังใช้ได้เป๊ะ:</p>
+<ul>
+<li>\(e^{-0.21623\times(31-70)} = e^{8.433} \approx 4{,}600\)</li>
+<li><strong>odds ของการเสียหายที่ 31°F สูงกว่าที่ 70°F ถึงประมาณ 4,600 เท่า</strong> เป็นตัวเลขที่ชัดเจนว่าโมเดลบ่งชี้ความเสี่ยงมหาศาลที่อุณหภูมินั้น (แม้จะเป็นการ extrapolate ไกลจากช่วงข้อมูลตามที่เตือนไว้ในหัวข้อ 2 ก็ตาม — extrapolate ไกลแบบนี้ ตัวเลขจึงควรตีความเป็น "สัญญาณเตือนที่ชัดเจน" มากกว่า "ตัวเลขแม่นยำ")</li>
+</ul>
 
-<p><strong>สิ่งที่เปลี่ยนจริง ๆ ระหว่าง binary กับ binomial-count logistic regression มีแค่ 2 อย่าง:</strong> (1) <strong>รูปแบบข้อมูล</strong> — ต้องมีทั้งจำนวนสำเร็จและจำนวนครั้งลองต่อแถว ไม่ใช่แค่ 0/1 ต่อแถว และ (2) <strong>syntax ใน R</strong> — ต้องใช้ <code>cbind(Y, n−Y)</code> หรือ <code>y/n ~ x</code> พร้อม <code>weights=n</code> แทนที่จะระบุ Y ตรง ๆ — <strong>ไม่มีอะไรเปลี่ยนในทฤษฎีเบื้องหลังหรือวิธีตีความสัมประสิทธิ์เลย</strong></p>
+<p><strong>สิ่งที่เปลี่ยนจริง ๆ ระหว่าง binary กับ binomial-count logistic regression มีแค่ 2 อย่าง:</strong></p>
+<ol>
+<li><strong>รูปแบบข้อมูล</strong> — ต้องมีทั้งจำนวนสำเร็จและจำนวนครั้งลองต่อแถว ไม่ใช่แค่ 0/1 ต่อแถว</li>
+<li><strong>syntax ใน R</strong> — ต้องใช้ <code>cbind(Y, n−Y)</code> หรือ <code>y/n ~ x</code> พร้อม <code>weights=n</code> แทนที่จะระบุ Y ตรง ๆ</li>
+</ol>
+<p><strong>ไม่มีอะไรเปลี่ยนในทฤษฎีเบื้องหลังหรือวิธีตีความสัมประสิทธิ์เลย</strong></p>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 4</span><span>Binary vs Binomial Counts — อะไรเหมือน/ต่าง</span></div>
@@ -154,7 +191,12 @@ Number of Fisher Scoring iterations: 6</code></pre>
 <img src="../assets/slides/as10-p10-bird-extinction-data-table.png" alt="Table showing bird survey data for Krunnit Islands: Island name, Area in square km, AtRisk count, and Extinct count for the first 6 of 18 islands, e.g. Ulkokrunni 185.80 sq km with 75 at-risk species and 5 extinctions">
 <figcaption>Slide: Case Study 2 — ข้อมูล Bird Extinction, ตัวอย่าง 6 จาก 18 เกาะ (Lecture 10, p.10)</figcaption>
 </figure>
-<p>อ่านแถวแรก: เกาะ Ulkokrunni มีพื้นที่ 185.80 ตร.กม. (เกาะใหญ่ที่สุดในตัวอย่างนี้) มีสปีชีส์เสี่ยง 75 ชนิด สูญพันธุ์ไป 5 ชนิด คิดเป็นสัดส่วน 5/75 ≈ 6.7% เทียบกับเกาะ Kraasukka ที่เล็กกว่ามาก (4.50 ตร.กม.) มีสปีชีส์เสี่ยง 20 ชนิด สูญพันธุ์ไป 4 ชนิด คิดเป็นสัดส่วน 4/20 = 20% — เห็นแนวโน้มคร่าว ๆ แล้วว่าเกาะเล็กมีสัดส่วนสูญพันธุ์สูงกว่าเกาะใหญ่ ซึ่งเป็นข้อมูลดิบที่จะยืนยันด้วยโมเดลต่อไป โดยที่นี่ \(n_i = \text{AtRisk}_i\) (จำนวนครั้งลองต่อเกาะไม่เท่ากัน ต่างจาก O-rings ที่ n=6 คงที่ทุกภารกิจ)</p>
+<p>อ่านแถวแรก:</p>
+<ul>
+<li>เกาะ Ulkokrunni มีพื้นที่ 185.80 ตร.กม. (เกาะใหญ่ที่สุดในตัวอย่างนี้) มีสปีชีส์เสี่ยง 75 ชนิด สูญพันธุ์ไป 5 ชนิด คิดเป็นสัดส่วน 5/75 ≈ 6.7%</li>
+<li>เทียบกับเกาะ Kraasukka ที่เล็กกว่ามาก (4.50 ตร.กม.) มีสปีชีส์เสี่ยง 20 ชนิด สูญพันธุ์ไป 4 ชนิด คิดเป็นสัดส่วน 4/20 = 20%</li>
+<li>เห็นแนวโน้มคร่าว ๆ แล้วว่าเกาะเล็กมีสัดส่วนสูญพันธุ์สูงกว่าเกาะใหญ่ ซึ่งเป็นข้อมูลดิบที่จะยืนยันด้วยโมเดลต่อไป โดยที่นี่ \(n_i = \text{AtRisk}_i\) (จำนวนครั้งลองต่อเกาะไม่เท่ากัน ต่างจาก O-rings ที่ n=6 คงที่ทุกภารกิจ)</li>
+</ul>
 <p>ก่อนฟิตโมเดล สไลด์ตรวจสอบความสัมพันธ์ระหว่าง <em>sample logit</em> กับตัวแปรอิสระด้วยตาก่อน (เหมือนหลักการ "plot ก่อนเสมอ" จาก Lesson 1) — แต่ปัญหาคือ sample logit \(\log(y_i/(n_i-y_i))\) ไม่นิยามเมื่อ \(y_i=0\) หรือ \(y_i=n_i\) (log(0) หรือหารด้วย 0) Haldane (1956) จึงเสนอตัวปรับแก้:</p>
 <div class="box">
 \[\hat{\eta}_i = \log\!\left[\frac{y_i + 0.5}{n_i - y_i + 0.5}\right]\]
@@ -164,7 +206,13 @@ Number of Fisher Scoring iterations: 6</code></pre>
 <img src="../assets/slides/as10-p11-bird-logit-vs-area-plots.png" alt="Three scatterplots: sample logit vs raw Area showing a curved pattern concentrated near zero, sample logit vs log(Area) showing a roughly linear negative trend, and adjusted (Haldane) sample logit vs log(Area) showing the same roughly linear pattern">
 <figcaption>Slide: Bird Extinction — sample logit เทียบกับ Area และ log(Area) (Lecture 10, p.11)</figcaption>
 </figure>
-<p>เทียบ 3 กราฟ: กราฟซ้าย (logit เทียบกับ Area ดิบ) จุดข้อมูลกระจุกตัวอยู่ใกล้ 0 แล้วมีจุดเดียวที่ Area≈185 (เกาะ Ulkokrunni) ยื่นออกไปไกล — ไม่เห็นแนวโน้มเส้นตรงชัดเจน กราฟกลาง (logit เทียบกับ \(\log(\text{Area})\)) จุดข้อมูลกระจายเป็นเส้นตรงลาดลงชัดเจนกว่ามาก และกราฟขวา (adjusted logit ตามสูตร Haldane เทียบกับ \(\log(\text{Area})\)) ให้รูปแบบเดียวกับกราฟกลางแทบไม่ต่าง — สรุปได้ว่า <strong>\(\log(\text{Area})\) เป็นตัวแปรอิสระที่เหมาะสมกว่า \(\text{Area}\) ดิบ</strong> เพราะทำให้ความสัมพันธ์กับ logit เป็นเส้นตรงมากขึ้น (พื้นที่เกาะมีสเกลกว้างมาก ตั้งแต่ 4.5 ถึง 185.8 ตร.กม. การ log จึงบีบสเกลให้ใช้งานได้ดีขึ้น)</p>
+<p>เทียบ 3 กราฟ:</p>
+<ul>
+<li>กราฟซ้าย (logit เทียบกับ Area ดิบ): จุดข้อมูลกระจุกตัวอยู่ใกล้ 0 แล้วมีจุดเดียวที่ Area≈185 (เกาะ Ulkokrunni) ยื่นออกไปไกล — ไม่เห็นแนวโน้มเส้นตรงชัดเจน</li>
+<li>กราฟกลาง (logit เทียบกับ \(\log(\text{Area})\)): จุดข้อมูลกระจายเป็นเส้นตรงลาดลงชัดเจนกว่ามาก</li>
+<li>กราฟขวา (adjusted logit ตามสูตร Haldane เทียบกับ \(\log(\text{Area})\)): ให้รูปแบบเดียวกับกราฟกลางแทบไม่ต่าง</li>
+</ul>
+<p>สรุปได้ว่า <strong>\(\log(\text{Area})\) เป็นตัวแปรอิสระที่เหมาะสมกว่า \(\text{Area}\) ดิบ</strong> เพราะทำให้ความสัมพันธ์กับ logit เป็นเส้นตรงมากขึ้น (พื้นที่เกาะมีสเกลกว้างมาก ตั้งแต่ 4.5 ถึง 185.8 ตร.กม. การ log จึงบีบสเกลให้ใช้งานได้ดีขึ้น)</p>
 <p>ฟิตโมเดลด้วย \(\log(\text{Area})\):</p>
 <pre><code>birdmodel&lt;-glm(cbind(Extinct, AtRisk-Extinct)~log(Area), data=bird,
 family=binomial)</code></pre>
@@ -192,7 +240,11 @@ Number of Fisher Scoring iterations: 4</code></pre>
 <div class="box win">
 \(\log(\omega) = \beta_0 + \beta_1 \log(X)\) &nbsp;⟹&nbsp; ถ้า X เพิ่มขึ้น k เท่า (kX) odds จะเปลี่ยนไปด้วยตัวคูณ \(k^{\beta_1}\)
 </div>
-<p>ใช้กับ \(\hat{\beta}_1 = -0.29710\): ถ้าเกาะมีพื้นที่<strong>เพิ่มขึ้นเป็น 2 เท่า</strong> (k=2) odds ของการสูญพันธุ์จะเปลี่ยนไปด้วยตัวคูณ \(2^{-0.29710} \approx 0.8139\) — <strong>odds ของการสูญพันธุ์ลดลงเหลือประมาณ 81.4% ของเดิม (ลดลง ~18.6%) เมื่อพื้นที่เกาะเพิ่มเป็นสองเท่า</strong> — ยืนยันสมมติฐานจากข้อมูลดิบก่อนหน้านี้ว่าเกาะใหญ่กว่ามีความเสี่ยงสูญพันธุ์ต่ำกว่า ตอบคำถามตั้งต้นของ case study ได้บางส่วนแล้วว่า "พื้นที่ใหญ่ต่อเนื่อง" ดูจะช่วยลดอัตราสูญพันธุ์ต่อสปีชีส์ได้จริง</p>
+<p>ใช้กับ \(\hat{\beta}_1 = -0.29710\):</p>
+<ul>
+<li>ถ้าเกาะมีพื้นที่<strong>เพิ่มขึ้นเป็น 2 เท่า</strong> (k=2) odds ของการสูญพันธุ์จะเปลี่ยนไปด้วยตัวคูณ \(2^{-0.29710} \approx 0.8139\)</li>
+<li><strong>odds ของการสูญพันธุ์ลดลงเหลือประมาณ 81.4% ของเดิม (ลดลง ~18.6%) เมื่อพื้นที่เกาะเพิ่มเป็นสองเท่า</strong> — ยืนยันสมมติฐานจากข้อมูลดิบก่อนหน้านี้ว่าเกาะใหญ่กว่ามีความเสี่ยงสูญพันธุ์ต่ำกว่า ตอบคำถามตั้งต้นของ case study ได้บางส่วนแล้วว่า "พื้นที่ใหญ่ต่อเนื่อง" ดูจะช่วยลดอัตราสูญพันธุ์ต่อสปีชีส์ได้จริง</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 6</span><span>อ่าน summary(birdmodel)</span></div>
@@ -215,12 +267,23 @@ Number of Fisher Scoring iterations: 4</code></pre>
 </div>
 
 <h2>6. Goodness-of-Fit Test — เช็ค Assumption ข้อแรกของ Binomial GLM</h2>
-<p>สไลด์แจงประเภทของการทดสอบใน logistic regression ไว้ 3 แบบ: (1) goodness-of-fit test (2) hypothesis test สำหรับสัมประสิทธิ์เดี่ยว และ (3) เปรียบเทียบโมเดลที่ซ้อนกัน (nested models) — เริ่มจากข้อแรก ซึ่งเป็นการเช็ค assumption ที่ตรงไปตรงมาที่สุดสำหรับ binomial GLM (คู่ขนานกับการเช็ค residual plot ใน OLS)</p>
+<p>สไลด์แจงประเภทของการทดสอบใน logistic regression ไว้ 3 แบบ:</p>
+<ol>
+<li>goodness-of-fit test</li>
+<li>hypothesis test สำหรับสัมประสิทธิ์เดี่ยว</li>
+<li>เปรียบเทียบโมเดลที่ซ้อนกัน (nested models)</li>
+</ol>
+<p>เริ่มจากข้อแรก ซึ่งเป็นการเช็ค assumption ที่ตรงไปตรงมาที่สุดสำหรับ binomial GLM (คู่ขนานกับการเช็ค residual plot ใน OLS)</p>
 <p>ถ้า \(Y_i\) เป็น binomial จริง และ \(n_i\) มีค่ามากพอ (ทุก \(n_i \ge 5\)) ค่า deviance ของโมเดลจะมีการแจกแจงประมาณ \(\chi^2\) ด้วย \(df = n - (p+1)\) — ใช้ทดสอบว่าโมเดลปัจจุบัน "fit เพียงพอ" หรือไม่ (ค่า deviance สูงผิดปกติเทียบกับ df แปลว่า fit ไม่ดี):</p>
 <pre><code>> model<-glm(cbind(damage,6-damage)~temp,data=orings,family=binomial)
 > pchisq(deviance(model), df.residual(model), lower=FALSE)
 [1] 0.7164099</code></pre>
-<p>อ่านผล: p-value = 0.7164 มากกว่า 0.05 มาก จึงสรุปว่า<strong>โมเดลนี้ fit ข้อมูลได้เพียงพอ</strong> (ไม่มีหลักฐานปฏิเสธ) — แต่สไลด์เตือนไว้ชัดเจนว่า <strong>ผลนี้ไม่ได้แปลว่าโมเดลถูกต้อง หรือไม่มีโมเดลที่ง่ายกว่านี้ที่ fit ได้ดีเท่ากัน</strong> การไม่ปฏิเสธ H₀ ไม่ได้พิสูจน์ความถูกต้องของโมเดล เป็นแค่การไม่มีหลักฐานคัดค้าน — เมื่อ \(n_i\) มีค่าน้อย (การประมาณ χ² ไม่แม่นยำ) แนะนำให้ใช้ Hosmer-Lemeshow test แทน</p>
+<p>อ่านผล:</p>
+<ul>
+<li>p-value = 0.7164 มากกว่า 0.05 มาก จึงสรุปว่า<strong>โมเดลนี้ fit ข้อมูลได้เพียงพอ</strong> (ไม่มีหลักฐานปฏิเสธ)</li>
+<li>แต่สไลด์เตือนไว้ชัดเจนว่า <strong>ผลนี้ไม่ได้แปลว่าโมเดลถูกต้อง หรือไม่มีโมเดลที่ง่ายกว่านี้ที่ fit ได้ดีเท่ากัน</strong> การไม่ปฏิเสธ H₀ ไม่ได้พิสูจน์ความถูกต้องของโมเดล เป็นแค่การไม่มีหลักฐานคัดค้าน</li>
+<li>เมื่อ \(n_i\) มีค่าน้อย (การประมาณ χ² ไม่แม่นยำ) แนะนำให้ใช้ Hosmer-Lemeshow test แทน</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 8</span><span>Goodness-of-Fit</span></div>
@@ -263,7 +326,12 @@ Model 2: cbind(damage, 6 - damage) ~ temp
   Resid. Df Resid. Dev Df Deviance  Pr(>Chi)
 1        22     38.898
 2        21     16.912  1   21.985 2.747e-06 ***</code></pre>
-<p>คำนวณตรวจสอบ: \(LRT = 38.898 - 16.912 = 21.985\) ตรงกับคอลัมน์ Deviance เป๊ะ, \(df = 22-21 = 1\) (ต่างกัน 1 พารามิเตอร์คือ temp), p-value = 2.747e-06 <strong>เล็กกว่า Wald's test p-value (4.78e-05) จากหัวข้อ 3 ด้วยซ้ำ</strong> — ทั้งสองวิธีให้ข้อสรุปเดียวกัน (ปฏิเสธ H₀: β_temp=0 อย่างชัดเจน) แต่ตัวเลข p-value ไม่เท่ากันเป๊ะเหมือนกรณี t²=F ใน SLR เพราะ Wald's test กับ LRT เป็นการประมาณ asymptotic คนละแบบ — สไลด์ระบุว่า <strong>ถ้าโจทย์ต้องการทดสอบหลายสัมประสิทธิ์พร้อมกัน LRT เป็นทางเลือกเดียวที่ใช้ได้จริง ส่วนถ้าทดสอบสัมประสิทธิ์เดี่ยว ใช้ได้ทั้งคู่ แต่ LRT ให้ p-value ที่แม่นยำกว่าโดยทั่วไป ขณะที่ Wald's test คำนวณง่ายกว่าและมักเพียงพอเมื่อ p-value ชัดเจนมากหรือน้อยมากอยู่แล้ว</strong></p>
+<p>คำนวณตรวจสอบ:</p>
+<ul>
+<li>\(LRT = 38.898 - 16.912 = 21.985\) ตรงกับคอลัมน์ Deviance เป๊ะ, \(df = 22-21 = 1\) (ต่างกัน 1 พารามิเตอร์คือ temp)</li>
+<li>p-value = 2.747e-06 <strong>เล็กกว่า Wald's test p-value (4.78e-05) จากหัวข้อ 3 ด้วยซ้ำ</strong> — ทั้งสองวิธีให้ข้อสรุปเดียวกัน (ปฏิเสธ H₀: β_temp=0 อย่างชัดเจน) แต่ตัวเลข p-value ไม่เท่ากันเป๊ะเหมือนกรณี t²=F ใน SLR เพราะ Wald's test กับ LRT เป็นการประมาณ asymptotic คนละแบบ</li>
+<li>สไลด์ระบุว่า <strong>ถ้าโจทย์ต้องการทดสอบหลายสัมประสิทธิ์พร้อมกัน LRT เป็นทางเลือกเดียวที่ใช้ได้จริง</strong> ส่วนถ้าทดสอบสัมประสิทธิ์เดี่ยว ใช้ได้ทั้งคู่ แต่ LRT ให้ p-value ที่แม่นยำกว่าโดยทั่วไป ขณะที่ Wald's test คำนวณง่ายกว่าและมักเพียงพอเมื่อ p-value ชัดเจนมากหรือน้อยมากอยู่แล้ว</li>
+</ul>
 
 <div class="quiz">
   <div class="qhead"><span>คำถาม 9</span><span>Wald's Test หรือ LRT</span></div>
