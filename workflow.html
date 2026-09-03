@@ -214,12 +214,16 @@ function icard(tag,title,body){ return {kind:'hpi', hpiType:'interp', tag, title
 const STATIONS = [
 {id:'l1', num:'L1', title:'Simple Linear Regression', story:'เริ่มจากโมเดลที่ง่ายที่สุด. X ตัวเดียวทำนาย Y ต่อเนื่อง',
  flow:{type:'pipeline', cards:[
-   {title:'1. จำรูปแบบข้อมูล', body:`<ul>
+   {title:'1. โมเดลและสมการ', body:`<ul>
+     <li>Deterministic model (Y=f(X) เป๊ะ ไม่มีคลาดเคลื่อน) ใช้กับข้อมูลจริงไม่ได้ ต้องมี error term ε เก็บส่วนที่อธิบายไม่ได้: \\(Y=\\beta_0+\\beta_1X+\\varepsilon\\)</li>
+     <li>β₁ คือ associative effect (X กับ Y สัมพันธ์กัน) ไม่ใช่ causal effect (X ทำให้ Y เปลี่ยน) เว้นแต่มาจาก randomized experiment จริง ระวังคำพูดเชิงเหตุผลเสมอ</li>
+   </ul>`},
+   {title:'2. จำรูปแบบข้อมูล', body:`<ul>
      <li>Y ต่อเนื่อง X ตัวเดียว วาด <code>plot(x,y)</code> ก่อนเสมอ</li>
      <li>ดูสองอย่างจากภาพ. ทิศทาง (บวก/ลบ) และรูปร่าง (เส้นตรงจริงไหม ไม่ใช่โค้ง)</li>
      <li>ตัวอย่าง Automobile Data (n=10): จุดกระจายเรียงขึ้นเป็นเส้นตรงคร่าวๆ ไม่มีโค้งชัด</li>
    </ul>`},
-   {title:'2. Fit + อ่านตาราง', body:`<pre><code>&gt; model&lt;-lm(y~x)
+   {title:'3. Fit + อ่านตาราง', body:`<pre><code>&gt; model&lt;-lm(y~x)
 &gt; summary(model)
             Estimate Std.Error t value Pr(&gt;|t|)
 (Intercept)   23.333     6.873   3.395  0.00943 **
@@ -231,25 +235,26 @@ R-squared: 0.5399</code></pre>
        <li>t value = Estimate/Std.Error (3.394/1.108=3.064 ตรงกับที่ตารางให้)</li>
        <li>สมการที่ได้: \\(\\hat{Y}=23.333+3.394X\\)</li>
      </ul>`},
-   {title:'3. เช็ค 4 assumption', body:`<ul>
+   {title:'4. เช็ค 4 assumption', body:`<ul>
      <li>วาด residual-vs-fitted และ QQ-plot ทันทีหลัง fit อย่าเชื่อ R² อย่างเดียว</li>
      <li>4 ข้อที่ต้องผ่าน. mean-zero, independent, constant variance, normal</li>
      <li>เช็คด้วยตา + ยืนยันด้วยเลข ${T('shapiro','Shapiro-Wilk')} และ ${T('bp','Breusch-Pagan')}</li>
    </ul>`},
  ]},
  hpi:[
-  hcard('ทดสอบ','H₀: β₁=0', `\\(t=\\hat\\beta_1/SE\\sim t_{(n-2)}\\)<br>ตัวอย่างจริง: \\(t=3.394/1.108=3.064\\), df=8, p=0.01548 → ปฏิเสธ H₀ ที่ α=0.05<br>เทียบผลกับ F-test ภาพรวม: F=9.389 บน (1,8) df, p=0.01548 ค่าเดียวกันเป๊ะ (SLR: t²=F เสมอ)`),
-  pcard('ทำนาย', `${T('cipi','CI vs PI')}`, `\\(\\hat{Y}=\\hat\\beta_0+\\hat\\beta_1X_0\\) จุดเดียวกัน แต่ SE ต่าง<br>ตัวอย่างจริง: ที่ X₀ เดียวกัน 95% CI กว้าง 91.8 หน่วย ในขณะที่ 95% PI กว้าง 583.5 หน่วย (ต่างกัน 6 เท่า เพราะ PI ต้องรวมความแปรปรวนของค่าสังเกตใหม่ด้วย)`),
-  icard('ตีความ','Slope template', `"เมื่อ X เพิ่ม 1 หน่วย Y คาดว่าเพิ่มขึ้นเฉลี่ย 3.394 หน่วย (p=0.01548, มีนัยสำคัญที่ α=0.05)"<br>R²=0.5399 แปลว่าโมเดลอธิบายความแปรปรวนของ Y ได้ 54% ไม่ใช่ "ทำนายแม่น 54%"`),
+  hcard('ทดสอบ','H₀: β₁=0', `H₀: β₁=0 (X ไม่มีผลต่อ Y) เทียบ Hₐ: β₁≠0<br>สถิติทดสอบ: \\(t=\\hat\\beta_1/SE\\sim t_{(n-2)}\\), ปฏิเสธ H₀ ถ้า p<α<br>ผลจริง: t=3.394/1.108=3.064, df=8, p=0.01548 < 0.05 → ปฏิเสธ H₀<br>สรุป: X มีผลต่อ Y อย่างมีนัยสำคัญที่ α=0.05 (ตรงกับ F-test ภาพรวม F=9.389 บน (1,8) df, p เดียวกันเป๊ะ เพราะ SLR ตัวแปรเดียว t²=F เสมอ)`),
+  pcard('ทำนาย', `${T('cipi','CI vs PI')}`, `จุดทำนายเดียวกัน \\(\\hat{Y}=\\hat\\beta_0+\\hat\\beta_1X_0\\) แต่ถามคนละคำถาม: CI ถามหา "ค่าเฉลี่ยของ Y ที่ X₀" (แคบกว่า), PI ถามหา "ค่าสังเกตใหม่ 1 ตัวที่ X₀" (กว้างกว่าเสมอ เพราะบวกความแปรปรวนของ observation ใหม่เข้าไปอีกก้อน)<br>ผลจริงที่ X₀ เดียวกัน: 95% CI กว้าง 91.8 หน่วย, 95% PI กว้าง 583.5 หน่วย (กว้างกว่า 6 เท่า)`),
+  icard('ตีความ','Slope template', `Template: "เมื่อ X เพิ่มขึ้น 1 หน่วย Y คาดว่าเปลี่ยนแปลงเฉลี่ย β̂₁ หน่วย (p=..., มีนัยสำคัญที่ α=...)"<br>เติมจริง: "เมื่อ X เพิ่ม 1 หน่วย Y คาดว่าเพิ่มขึ้นเฉลี่ย 3.394 หน่วย (p=0.01548, มีนัยสำคัญที่ α=0.05)"<br>ระวัง: ห้ามใช้คำเชิงเหตุผล ("ทำให้", "ส่งผลให้") ใช้ "สัมพันธ์กับ"/"คาดว่า" แทน. R²=0.5399 แปลว่าอธิบายความแปรปรวนของ Y ได้ 54% ไม่ใช่ "ทำนายแม่น 54%"`),
  ]},
 {id:'l2', num:'L2', title:'Multiple Linear Regression', story:'โลกจริงมี X มากกว่า 1 ตัวเสมอ. ขยายจาก 1 X เป็นหลาย X',
  flow:{type:'pipeline', cards:[
-   {title:'1. สำรวจก่อน fit', body:`<ul>
+   {title:'1. สมการ MLR', body:`ขยายจาก SLR ตรงๆ ด้วยการเพิ่มพจน์ X: \\(Y=\\beta_0+\\beta_1X_1+\\cdots+\\beta_pX_p+\\varepsilon\\)<br>β<sub>j</sub> แต่ละตัวคือ partial slope. ผลของ X<sub>j</sub> ต่อ Y เมื่อคุมตัวแปรอื่นทุกตัวให้คงที่ ไม่ใช่ผลเดี่ยวๆ เหมือน SLR อีกต่อไป`},
+   {title:'2. สำรวจก่อน fit', body:`<ul>
      <li>scatterplot matrix ดูความสัมพันธ์ Y กับทุก X พร้อมกัน</li>
      <li>เช็ค ${T('vif','VIF')} ระหว่าง X ด้วยกันเอง ก่อนเชื่อ p-value ใดๆ</li>
      <li>ข้อมูล whiteside: มี 2 กลุ่ม (Insul=Before/After) แยกฟิตทีละกลุ่มก่อนดูว่าเส้นต่างกันจริงไหม</li>
    </ul>`},
-   {title:'2. Fit แบบไม่มี vs มี Interaction', body:`<pre><code>&gt; modelBefore&lt;-lm(Gas~Temp, subset=Before)
+   {title:'3. Fit แบบไม่มี vs มี Interaction', body:`<pre><code>&gt; modelBefore&lt;-lm(Gas~Temp, subset=Before)
 (Intercept)  6.8538
 Temp        -0.3932
 
@@ -266,18 +271,28 @@ InsulAfter:Temp  0.11530</code></pre>
        <li>สังเกต: สัมประสิทธิ์จากโมเดลรวม (พร้อม interaction) เท่ากับตอนแยกฟิตทีละกลุ่มเป๊ะ (6.85383-2.12998=4.72385, -0.39324+0.11530=-0.27794)</li>
        <li>พิสูจน์ว่า interaction term คือกลไกที่ทำให้ "เส้น 2 เส้นมี slope ต่างกัน" ในโมเดลเดียว</li>
      </ul>`},
-   {title:'3. อ่าน partial-t', body:`<ul>
+   {title:'4. อ่าน partial-t', body:`<ul>
      <li>ทุกสัมประสิทธิ์คือ partial effect คุมตัวแปรอื่นในสมการให้คงที่เสมอ</li>
      <li>InsulAfter=-2.12998 หมายถึงผลต่างระหว่างกลุ่ม เมื่อ Temp เท่ากัน ไม่ใช่ผลรวม</li>
    </ul>`},
  ]},
  hpi:[
-  hcard('ทดสอบ','3 แบบ', `H₀:β<sub>j</sub>=0 (t-test รายตัว) · H₀:β₁=...=β<sub>p</sub>=0 (overall F) · ${T('extrassf','Extra-SS-F')} (กลุ่มตัวแปร)<br>whiteside: H₀:β<sub>InsulAfter</sub>=β<sub>InsulAfter:Temp</sub>=0 (q=2) เทียบโมเดลเต็มกับโมเดลที่มีแค่ Temp ได้ p<2.2e-16 → ปฏิเสธ H₀ เก็บ Insul ไว้`),
-  pcard('ทำนาย','ระวัง Hidden Extrapolation', `\\(\\hat{Y}=\\hat\\beta_0+\\sum\\hat\\beta_jX_j\\)<br>จุดที่แต่ละ X อยู่ในช่วงข้อมูลแยกกัน แต่ combination ของทั้งคู่ไม่เคยเกิดขึ้นจริงในข้อมูล ก็ยังถือเป็น extrapolation ได้ ต้องเช็คด้วย scatterplot matrix ไม่ใช่แค่ช่วงของแต่ละตัวแปร`),
-  icard('ตีความ','Dummy/Interaction/Polynomial', `Dummy: "กลุ่ม After มี Gas เฉลี่ยต่ำกว่า Before อยู่ 2.12998 หน่วย เมื่อ Temp เท่ากัน"<br>Interaction: ตีความเดี่ยวๆไม่ได้ ต้องบอกว่าผลของ Temp ขึ้นกับกลุ่ม (Before=-0.39324, After=-0.27794)<br>Polynomial: marginal effect เปลี่ยนตาม X เสมอ (ดูอนุพันธ์)`),
+  hcard('ทดสอบ','3 แบบ', `H₀:β<sub>j</sub>=0 (t-test รายตัว, ทดสอบตัวแปรเดียว) เทียบ H₀:β₁=...=β<sub>p</sub>=0 (overall F, ทดสอบทั้งโมเดลพร้อมกัน) เทียบ ${T('extrassf','Extra-SS-F')} (ทดสอบเป็นกลุ่มตัวแปร)<br>whiteside: H₀:β<sub>InsulAfter</sub>=β<sub>InsulAfter:Temp</sub>=0 (q=2 ตัวพร้อมกัน) เทียบโมเดลเต็มกับโมเดลที่มีแค่ Temp<br>ผลจริง: p<2.2e-16 → ปฏิเสธ H₀ → ต้องเก็บ Insul (และ interaction) ไว้ในโมเดล`),
+  pcard('ทำนาย','ระวัง Hidden Extrapolation', `\\(\\hat{Y}=\\hat\\beta_0+\\sum\\hat\\beta_jX_j\\) แทนค่า X ทุกตัวแล้วบวกกัน<br>กับดัก: จุดที่แต่ละ X อยู่ในช่วงข้อมูลแยกกัน แต่ combination ของทั้งคู่ไม่เคยเกิดขึ้นจริงในข้อมูล ก็ยังถือเป็น extrapolation ได้ ต้องเช็คด้วย scatterplot matrix ไม่ใช่แค่ช่วงของแต่ละตัวแปรทีละตัว`),
+  icard('ตีความ','Dummy/Interaction/Polynomial', `Dummy: "กลุ่ม After มี Gas เฉลี่ยต่ำกว่า Before อยู่ 2.12998 หน่วย เมื่อ Temp เท่ากัน"<br>Interaction: ตีความเดี่ยวๆไม่ได้ ต้องบอกว่าผลของ Temp ขึ้นกับกลุ่ม (Before slope=-0.39324, After slope=-0.27794 ต่างกันเพราะมี interaction)<br>Polynomial: marginal effect เปลี่ยนตาม X เสมอ (ต้องดูอนุพันธ์ ไม่ใช่ค่าสัมประสิทธิ์ตรงๆ)`),
  ]},
 {id:'l3', num:'L3', title:'Diagnostics & Remedies', story:'MLR วางบนสมมติฐานหลายข้อ. ไม่ผ่านเสมอในข้อมูลจริง ต้องตรวจและแก้',
- flow:{type:'diagnose', diamond:'ผ่าน assumption ไหม?',
+ flow:{type:'diagnose',
+   lead:[
+    {title:'1. Residual ≠ Error', body:`ε (error) คือค่าที่แท้จริงแต่สังเกตไม่ได้ (unobservable) ส่วน residual \\(e_i=Y_i-\\hat{Y}_i\\) คือค่าประมาณของ ε ที่คำนวณได้จริงหลัง fit เท่านั้น ทุก diagnostic ต่อจากนี้ตรวจสอบผ่าน residual เพราะ ε ไม่มีทางเห็นตรงๆ`},
+    {title:'2. 4 Assumption ↔ Diagnostic', body:`<ul>
+      <li>Linearity → residual-vs-fitted ต้องไม่มีรูปแบบ (โค้ง/pattern)</li>
+      <li>Constant Variance → residual-vs-fitted ต้องไม่บาน (funnel shape) + ${T('bp','Breusch-Pagan')}</li>
+      <li>Normality → QQ-plot ต้องเกาะเส้น 45° + ${T('shapiro','Shapiro-Wilk')}</li>
+      <li>Independence → residual-vs-order/time ต้องไม่มีแนวโน้ม + ${T('dw','Durbin-Watson')}</li>
+    </ul>`},
+   ],
+   diamond:'ผ่าน assumption ไหม?',
    branches:[
     {title:'Non-linear หรือ Variance ไม่คงที่?', body:`<pre><code>&gt; summary(model)
 (Intercept)  2.5753  t=10.354  p=1.20e-07
@@ -295,14 +310,24 @@ R-squared: 0.993</code></pre>
      หรือถ้ารู้ pattern ของ variance ชัดแล้ว (ไม่คงที่อย่างเดียว ไม่โค้ง) ใช้ ${T('wls','WLS')} แทน`},
     {title:'Non-normal?', body:`${T('shapiro',"Shapiro-Wilk")} p ต่ำ (ปฏิเสธ H₀:normal) → ลอง transform เดียวกับที่แก้ non-linearity มักช่วยเรื่อง normality ไปด้วยพร้อมกัน`},
     {title:'Non-independent?', body:`residual-vs-time/order มีแนวโน้มชัด (ไม่กระจายสุ่ม) → ${T('dw','Durbin-Watson')} ยืนยัน → แก้ด้วยเพิ่มตัวแปรเวลา หรือ ${T('cochrane','Cochrane-Orcutt')} ถ้ายังไม่พอ`},
+    {title:'Multicollinearity (นอก 4 ข้อ แต่ต้องเช็คคู่กัน)', body:`ไม่ใช่ 1 ใน 4 assumption แต่เป็นปัญหาเฉพาะ MLR (X สัมพันธ์กันเอง) ${T('vif','VIF')}>10 = รุนแรง แก้ด้วย centering, ตัดตัวแปรทิ้ง, หรือ Ridge (ต่อยอดเต็มที่ใน L7)`},
    ], loopLabel:'ไม่ผ่าน → transform แล้ว fit ใหม่'},
  hpi:[
-  hcard('ทดสอบ','ทิศทางกลับด้าน!', `${T('shapiro','Shapiro-Wilk')} (H₀:normal), ${T('bp','Breusch-Pagan')} (H₀:constant var), ${T('dw','Run test')} (H₀:independent)<br><strong>อยากได้ p สูง</strong> (ตรงข้ามกับการทดสอบ β=0 ที่อยากได้ p ต่ำ) เพราะ H₀ ที่นี่คือ "assumption เป็นจริง"`),
-  pcard('ทำนาย','หลัง transform ต้อง back-transform', `ถ้า fit บน log(Y) ต้อง \\(\\hat{Y}=\\exp(\\widehat{\\log Y})\\)<br>ระวัง Jensen's inequality. back-transform ตรงๆทำให้เกิด bias เล็กน้อยเสมอ (ค่าจริงมักสูงกว่าที่คำนวณตรงๆเล็กน้อย)`),
-  icard('ตีความ','Box-Cox เลือกทางแก้ให้', `Solution Concentration: λ≈0 → log(Y) → R² จาก 0.8116 เป็น 0.9930 การแปลงเดียวแก้ทั้ง linearity และ variance พร้อมกัน`),
+  hcard('ทดสอบ','ทิศทางกลับด้าน!', `H₀: assumption เป็นจริง (เช่น H₀:normal, H₀:constant variance, H₀:independent) เทียบ Hₐ: assumption ไม่จริง<br>ใช้ ${T('shapiro','Shapiro-Wilk')}, ${T('bp','Breusch-Pagan')}, ${T('dw','Durbin-Watson')} ตามลำดับ<br><strong>อยากได้ p สูง</strong> (>α คือไม่ปฏิเสธ H₀ = assumption น่าจะจริง) ตรงข้ามกับการทดสอบ β=0 ที่อยากได้ p ต่ำ`),
+  pcard('ทำนาย','หลัง transform ต้อง back-transform', `ถ้า fit บน log(Y) ทำนายได้ \\(\\widehat{\\log Y}\\) ก่อน ต้อง back-transform เป็น \\(\\hat{Y}=\\exp(\\widehat{\\log Y})\\) เสมอก่อนรายงาน<br>ระวัง Jensen's inequality. back-transform ตรงๆทำให้เกิด bias เล็กน้อยเสมอ (ค่าคาดหวังจริงมักสูงกว่าที่คำนวณตรงๆเล็กน้อย)`),
+  icard('ตีความ','Box-Cox เลือกทางแก้ให้', `ไม่ต้องเดา transform เอง ให้ Box-Cox หา λ ที่เหมาะสุดจากข้อมูล<br>Solution Concentration: λ≈0 (CI ไม่ครอบคลุม λ=1) → ใช้ log(Y) → R² จาก 0.8116 เป็น 0.9930, residual plot จากรูปตัว V กลายเป็นราบเรียบ. การแปลงครั้งเดียวแก้ทั้ง linearity และ variance พร้อมกันได้ในเคสนี้`),
  ]},
 {id:'l4', num:'L4', title:'Diagnostics II. Influence', story:'นอกจาก assumption ยังมีจุดที่ "อิทธิพลเกินสัดส่วน" อีกปัญหาหนึ่ง',
- flow:{type:'diagnose', diamond:'influential จริงไหม?',
+ flow:{type:'diagnose',
+   lead:[
+    {title:'1. สามคำที่ต้องแยกให้ออก', body:`<ul>
+      <li><strong>Outlier</strong>. จุดที่ Y ผิดปกติ (โมเดลทำนายพลาดมาก) วัดจากแกน Y</li>
+      <li><strong>Leverage Point</strong>. จุดที่ X ผิดปกติ (ห่างจากค่าเฉลี่ย X มาก) วัดจากแกน X อย่างเดียว ยังไม่บอกว่ากระทบผลลัพธ์หรือไม่</li>
+      <li><strong>Influential Point</strong>. จุดที่ถ้าตัดออกแล้วผลลัพธ์ (β̂ หรือ Ŷ) เปลี่ยนไปมาก ต้องวัดจากผลกระทบจริง ไม่ใช่แค่ตำแหน่งของจุด</li>
+    </ul>
+    Leverage สูงไม่ได้แปลว่า influential เสมอไป ต้องเช็คต่อ`},
+   ],
+   diamond:'influential จริงไหม?',
    branches:[
     {title:'ขั้น 1. เช็คฝั่ง X ก่อน (Leverage)', body:`<pre><code>&gt; vif(predictors)
 X1   5.43
@@ -334,24 +359,31 @@ Case 3, 8, 15 เกิน cutoff (outlying ในแกน X)</code></pre>
  ]},
 {id:'l5', num:'L5', title:'Model Selection', story:'พอมี X เยอะจาก L2 คำถามคือควรใส่ตัวไหนบ้าง',
  flow:{type:'pipeline', cards:[
-   {title:'1. Forward Selection', body:`<pre><code>Step 0: Base Model      AIC=208.756  R2=0
+   {title:'1. ทำไมต้องเลือก (Occam\'s Razor)', body:`เพิ่มตัวแปรเข้าโมเดล R² ฝึกจะสูงขึ้นเสมอ (ต่อให้ตัวแปรนั้นไม่เกี่ยวจริง) แต่ทำนายข้อมูลใหม่แย่ลงได้ (overfit) เป้าหมายคือหาโมเดลที่ "ง่ายที่สุดเท่าที่ยังอธิบายข้อมูลได้ดีพอ" ไม่ใช่โมเดลที่ R² สูงสุด`},
+   {title:'2. Forward Selection', body:`<pre><code>Step 0: Base Model      AIC=208.756  R2=0
 Step 1: +wt             AIC=166.029  R2=0.75283
 Step 2: +cyl            AIC=156.010  R2=0.83023</code></pre>
      หยุดที่ step 2 เพราะเพิ่มตัวแปรต่อไปแล้ว AIC ไม่ลดลงอีก (ไม่มีตัวไหน p<0.05 เหลือให้เพิ่ม)`},
-   {title:'2. เทียบกับ Backward', body:`<ul>
+   {title:'3. เทียบกับ Backward', body:`<ul>
      <li>Backward Elimination บนข้อมูลเดียวกันได้ wt+qsec+am (AIC=154.119) คนละชุดกับ Forward เลย</li>
      <li>เส้นทางค้นหาต่างกัน ผลลัพธ์จึงต่างกันได้ ไม่ใช่ความผิดพลาด</li>
      <li>เทียบด้วย ${T('aicbic','AIC/BIC/Cp/adj-R²')} เสมอ ไม่มีวิธีไหน "ถูกต้องที่สุด" ตายตัว</li>
    </ul>`},
-   {title:'3. ประเมินจริงด้วย CV', body:`${T('cv','Cross-Validation')} วัด error บนข้อมูลที่โมเดลไม่เคยเห็น ป้องกัน ${T('rmse','RMSE/MAE')} หลอกตาจาก overfitting`},
+   {title:'4. ประเมินจริงด้วย CV', body:`${T('cv','Cross-Validation')} วัด error บนข้อมูลที่โมเดลไม่เคยเห็น ป้องกัน ${T('rmse','RMSE/MAE')} หลอกตาจาก overfitting`},
  ]},
  hpi:[
-  hcard('ทดสอบ',"เทียบ nested model", `${T('extrassf','Extra-SS-F')} หรือเกณฑ์ ${T('aicbic','AIC/BIC')} ไม่มี p-value เดี่ยวสำหรับ "โมเดลไหนดีสุด" ต้องเทียบเป็นคู่ๆ หรือเทียบเกณฑ์รวม`),
-  pcard('ทำนาย','RMSE trap', `${T('rmse','RMSE')} บนข้อมูลฝึกไม่บอกว่าทำนายข้อมูลใหม่ดี โมเดลเต็มมักชนะ RMSE ฝึกเสมอแต่ overfit คำเตือนต้นฉบับ. "RMSE คำนวณจากชุดข้อมูลเดียวกับที่ใช้ฟิตโมเดล อาจ overfit แต่ทำนายข้อมูลใหม่ได้ไม่ดี"`),
-  icard('ตีความ','เขียนสมการสุดท้าย', `mtcars: \\(\\widehat{mpg}=39.686-3.191\\,wt-1.508\\,cyl\\) ดึงจาก parameter estimates ตรงๆ. "น้ำหนักรถ+1000 ปอนด์ mpg ลดลงเฉลี่ย 3.191 เมื่อ cyl คงที่"`),
+  hcard('ทดสอบ',"เทียบ nested model", `ไม่มี p-value เดี่ยวสำหรับ "โมเดลไหนดีสุด" ต้องเทียบเป็นคู่ (nested เท่านั้น) ด้วย ${T('extrassf','Extra-SS-F')} หรือเทียบเกณฑ์รวมอย่าง ${T('aicbic','AIC/BIC')} (ค่าต่ำกว่า=ดีกว่า ใช้ได้แม้โมเดลไม่ nested กัน)`),
+  pcard('ทำนาย','RMSE trap', `${T('rmse','RMSE')} คำนวณจากชุดข้อมูลเดียวกับที่ใช้ฟิตโมเดลไม่บอกว่าทำนายข้อมูลใหม่ดีจริงไหม โมเดลเต็มมักชนะ RMSE ฝึกเสมอแต่ overfit<br>ต้องวัดด้วย ${T('cv','CV')} error บนข้อมูลที่โมเดลไม่เคยเห็นเท่านั้นถึงเชื่อได้`),
+  icard('ตีความ','เขียนสมการสุดท้าย', `ดึงจาก parameter estimates ของโมเดลที่เลือกไว้ตรงๆ<br>mtcars: \\(\\widehat{mpg}=39.686-3.191\\,wt-1.508\\,cyl\\)<br>"น้ำหนักรถเพิ่ม 1000 ปอนด์ mpg คาดว่าลดลงเฉลี่ย 3.191 เมื่อจำนวนสูบ (cyl) คงที่"`),
  ]},
 {id:'l6', num:'L6', title:'Single-Factor ANOVA', story:'ถ้า X เป็น categorical ล้วน MLR กลายเป็นกรณีพิเศษเรียกว่า ANOVA',
- flow:{type:'diagnose', diamond:'variance เท่ากันทุกกลุ่ม?',
+ flow:{type:'diagnose',
+   lead:[
+    {title:'1. ตัวอย่างตั้งต้น', body:`Bakery Shelf Display Height. ยอดขายเฉลี่ยที่ชั้นวาง 3 ระดับ (bottom/middle/top) นี่คือ MLR ที่ X เป็น categorical ล้วน (ไม่มี X ต่อเนื่องเลย) จึงกลายเป็นกรณีพิเศษที่เรียกว่า ANOVA`},
+    {title:'2. สมการโมเดล', body:`Cell-means: \\(Y_{ij}=\\mu_i+\\varepsilon_{ij}\\) (ค่าเฉลี่ยของกลุ่ม i ตรงๆ)<br>Factor-effects: \\(Y_{ij}=\\mu+\\tau_i+\\varepsilon_{ij}\\) (grand mean บวกผลต่างจากกลุ่ม i, \\(\\sum\\tau_i=0\\))<br>สองแบบให้ค่าทำนายเท่ากัน ต่างที่การตีความ Intercept ${T('cellfactor','(รายละเอียดเต็ม)')}`},
+    {title:'3. Assumptions + Between/Within', body:`Assumption เหมือน L1 ทุกข้อ (normality, constant variance, independence) แค่เปลี่ยนบริบทจาก residual รอบเส้น regression เป็น residual รอบค่าเฉลี่ยแต่ละกลุ่ม<br>ทำไม \\(F=MSTR/MSE\\) ทดสอบ "กลุ่มต่างกันไหม" ได้: MSTR=ความแปรปรวนระหว่างกลุ่ม (between), MSE=ความแปรปรวนภายในกลุ่ม (within) ถ้า between≫within แปลว่ากลุ่มต่างกันจริง ไม่ใช่แค่ความบังเอิญของ noise ภายในกลุ่ม`},
+   ],
+   diamond:'variance เท่ากันทุกกลุ่ม?',
    branches:[
     {title:'ผ่าน → ANOVA มาตรฐาน', body:`เช็คด้วย ${T('levene',"Levene's/Bartlett's test")} ก่อนเสมอ แล้วฟิตด้วย ${T('cellfactor','Cell-means หรือ Factor-effects')} model แล้วแต่ contrast ที่เลือก`},
     {title:'ไม่ผ่าน → Welch', body:T('welch','Welch ANOVA ไม่ต้องสมมติ variance เท่ากัน ปรับ df แทน')},
@@ -364,9 +396,9 @@ bottom-top, middle-top)</code></pre>
      F-test บอกแค่ "มีอย่างน้อยหนึ่งคู่ต่างกัน" ต้องใช้ ${T('tukey','Tukey HSD')} หรือ ${T('lsdbonf','LSD/Bonferroni/Scheffe')} ต่อถึงจะรู้ว่าคู่ไหน`},
    ], loopLabel:`ตรวจด้วย Levene's test`},
  hpi:[
-  hcard('ทดสอบ','H₀: μ₁=...=μᵣ', `\\(F=MSTR/MSE\\sim F_{(r-1,\\,n_T-r)}\\)<br>bakesale (3 ตำแหน่งชั้นวาง): F=184.6, p=2.74e-11 → ปฏิเสธ H₀ ที่ α=0.05 อย่างชัดเจน`),
+  hcard('ทดสอบ','H₀: μ₁=...=μᵣ', `H₀: μ<sub>bottom</sub>=μ<sub>middle</sub>=μ<sub>top</sub> (ค่าเฉลี่ยยอดขายเท่ากันทุกชั้นวาง) เทียบ Hₐ: มีอย่างน้อย 1 คู่ไม่เท่ากัน<br>สถิติทดสอบ: \\(F=MSTR/MSE\\sim F_{(r-1,\\,n_T-r)}\\), ปฏิเสธ H₀ ถ้า p<α<br>ผลจริง: F=184.6, df=(2,15), p=2.74e-11 < 0.05 → ปฏิเสธ H₀ → ชั้นวางมีผลต่อยอดขายอย่างมีนัยสำคัญ`),
   pcard('ทำนาย','ค่าเฉลี่ยกลุ่ม', `ค่าทำนายของกลุ่ม i คือ cell mean ของกลุ่มนั้นตรงๆ ไม่มี extrapolation ข้ามกลุ่ม เพราะไม่มีตัวแปรต่อเนื่องให้ extrapolate`),
-  icard('ตีความ',`ระวัง ${T('contrasts','contrast')}`, `bakesale contr.treatment: Intercept=55.8 (=ค่าเฉลี่ยกลุ่ม bottom)<br>contr.sum ข้อมูลเดียวกัน: Intercept=61.5 (=grand mean) ความหมาย Intercept เปลี่ยนไปตามวิธี contrast ที่ใช้ แม้ค่าทำนายสุดท้ายเท่ากัน`),
+  icard('ตีความ',`ระวัง ${T('contrasts','contrast')}`, `bakesale contr.treatment: Intercept=55.8 (=ค่าเฉลี่ยกลุ่ม bottom)<br>contr.sum ข้อมูลเดียวกัน: Intercept=61.5 (=grand mean) ความหมาย Intercept เปลี่ยนไปตามวิธี contrast ที่ใช้ แม้ค่าทำนายสุดท้ายเท่ากันทุกกลุ่ม`),
  ]},
 {id:'l7', num:'L7', title:'Penalized Regression', story:'Model selection แบบ L5 ใช้ไม่ได้ดีเมื่อ X เยอะ/multicollinear',
  flow:{type:'pipeline', cards:[
@@ -381,25 +413,37 @@ X1X2 22.47</code></pre>
 R-squared: 0.3127
 AIC: 68.091</code></pre>
      ${T('cv','Cross-Validation')} เลือก λ=K ที่ error ต่ำสุด ดู ridge trace plot ว่าสัมประสิทธิ์เริ่มนิ่งที่ไหนประกอบ`},
+   {title:'4. เลือกอันไหนดี', body:`<ul>
+     <li>Ridge (${T('ridge2','L2')}). X ทุกตัวสำคัญ แค่ multicollinear อยากเก็บทุกตัวไว้แต่ลดความแปรปรวน</li>
+     <li>LASSO (L1). อยาก variable selection ด้วย บาง β̂ ถูกบีบให้เป็น 0 เป๊ะ ตัดตัวแปรทิ้งอัตโนมัติ</li>
+     <li>Elastic Net. X สัมพันธ์กันเป็นกลุ่ม (group correlated) ผสมข้อดีทั้งสองแบบ</li>
+   </ul>`},
  ]},
  hpi:[
-  hcard('ทดสอบ','ไม่มี inference มาตรฐาน', `ไม่มี p-value/SE ให้อ้างนัยสำคัญ เลือกโมเดลด้วย ${T('cv','CV')} error แทน hypothesis test เสมอ`),
-  pcard('ทำนาย','ทำนายได้เหมือน OLS', `\\(\\hat{Y}=X\\hat\\beta_{ridge}\\) ตรงๆ แต่ β ถูก shrink แล้ว lungpressure ตัวอย่าง. OLS coefficient หด 89-97% หลังทำ Ridge (บาง sign กลับด้านด้วย)`),
-  icard('ตีความ','ห้ามตีความขนาดตรงๆ', `standardized และ shrunk ตีความได้แค่ทิศทางกับขนาดสัมพัทธ์ระหว่างตัวแปร ไม่ใช่ effect size แม่นยำแบบ OLS`),
+  hcard('ทดสอบ','ไม่มี inference มาตรฐาน', `ไม่มี p-value/SE ให้อ้างนัยสำคัญแบบ OLS เพราะ β̂ ถูก bias โดยตั้งใจ (penalty term) เลือกโมเดล/λ ด้วย ${T('cv','CV')} error แทน hypothesis test เสมอ`),
+  pcard('ทำนาย','ทำนายได้เหมือน OLS', `\\(\\hat{Y}=X\\hat\\beta_{ridge}\\) สูตรทำนายเหมือน OLS ตรงๆ แต่ β ถูก shrink แล้ว<br>lungpressure ตัวอย่างจริง: OLS coefficient หด 89-97% หลังทำ Ridge (บาง sign กลับด้านด้วย)`),
+  icard('ตีความ','ห้ามตีความขนาดตรงๆ', `β̂ ที่ shrink แล้วตีความได้แค่ทิศทางกับขนาดสัมพัทธ์ระหว่างตัวแปร (ตัวไหนมีผลมากกว่ากัน) ไม่ใช่ effect size แม่นยำแบบ OLS ("X เพิ่ม 1 หน่วย Y เปลี่ยน β̂ หน่วย" ใช้ไม่ได้ตรงๆอีกต่อไป)`),
  ]},
 {id:'l8', num:'L8', title:'Exponential Family & GLM Framework', story:'ทั้งหมดที่ผ่านมาสมมติ Y ต่อเนื่องแจกแจงปกติ. ข้อมูลจริงมักไม่ใช่ ต้องมีกรอบใหม่',
  flow:{type:'pipeline', cards:[
-   {title:'1. Exponential Family Form', body:`\\(f(y;\\theta,\\phi)=\\exp\\left[\\frac{y\\theta-b(\\theta)}{a(\\phi)}+c(y,\\phi)\\right]\\)<br>Normal, Binomial, Poisson, Gamma ทุกตัวเขียนในรูปนี้ได้หมด ต่างกันแค่ b(θ) และ a(φ)`},
-   {title:'2. เลือก Distribution + Link', body:`${T('linkfn','Link Function')} เชื่อม μ กับ Xβ<br>Binomial→logit (หรือ ${T('probitcloglog','probit/cloglog')}), Poisson→log, Gamma→log/identity/inverse`},
-   {title:'3. IRWLS Estimation', body:`วนซ้ำจนลู่เข้า. working response → weight matrix → update β̂ (ไม่มีสูตรปิดแบบ OLS เพราะ non-linear ใน β)`},
+   {title:'1. ทำไม Classical Linear ใช้ไม่ได้', body:`OLS สมมติ Y ต่อเนื่อง แจกแจงปกติ variance คงที่ แต่ Y จริงมักเป็น 0/1, สัดส่วน, จำนวนนับ (count), หรือบวกเบ้ขวา ซึ่งไม่แจกแจงปกติและ variance ไม่คงที่ตามธรรมชาติ ต้องมีกรอบทั่วไปกว่าเดิม`},
+   {title:'2. Exponential Family Form', body:`\\(f(y;\\theta,\\phi)=\\exp\\left[\\frac{y\\theta-b(\\theta)}{a(\\phi)}+c(y,\\phi)\\right]\\)<br>Normal, Binomial, Poisson, Gamma ทุกตัวเขียนในรูปนี้ได้หมด ต่างกันแค่ b(θ) และ a(φ) นี่คือสะพานที่ทำให้สร้างกรอบเดียวครอบคลุมได้หมด`},
+   {title:'3. เลือก Distribution + Link', body:`${T('linkfn','Link Function')} เชื่อม μ กับ Xβ<br>Binomial→logit (หรือ ${T('probitcloglog','probit/cloglog')}), Poisson→log, Gamma→log/identity/inverse`},
+   {title:'4. เขียนสมการ GLM ฉบับเต็ม (ทักษะสำคัญสุดของบทนี้)', body:`3 องค์ประกอบต้องเขียนครบเสมอ:<br>1) Random component. \\(Y\\sim\\) distribution ใน exponential family (เช่น \\(Y_i\\sim\\text{Poisson}(\\mu_i)\\))<br>2) Systematic component. linear predictor \\(\\eta_i=\\beta_0+\\beta_1X_{i1}+\\cdots\\)<br>3) Link function. \\(g(\\mu_i)=\\eta_i\\) (เช่น \\(\\log(\\mu_i)=\\eta_i\\))<br>ขาดข้อไหนไป 1 ข้อ ถือว่าเขียนสมการ GLM ไม่ครบ`},
+   {title:'5. IRWLS Estimation', body:`วนซ้ำจนลู่เข้า. working response → weight matrix → update β̂ (ไม่มีสูตรปิดแบบ OLS เพราะ non-linear ใน β)`},
  ]},
  hpi:[
-  hcard('ทดสอบ',`${T('waldlrt','Wald vs LRT')}`, `สองวิธีทดสอบ β<sub>j</sub> ใน GLM. Wald ง่าย (อ่านจาก summary ตรงๆ z=β̂/SE), LRT แม่นกว่าตัวอย่างเล็ก (เทียบ deviance สองโมเดล) ทั้งคู่เทียบกับ ${T('satmodel','saturated model/null deviance')} เป็นจุดอ้างอิง`),
-  pcard('ทำนาย','g(μ̂)=Xβ̂', `คำนวณบน link scale ก่อนเสมอ แล้วค่อย back-transform ผ่าน inverse link ห้ามคำนวณ μ̂±1.96×SE ตรงๆ (อาจหลุดขอบเขตที่เป็นไปได้ของ μ)`),
-  icard('ตีความ','log link ให้ผลคูณ', `log link เปลี่ยนการตีความเป็นผลคูณ (multiplicative) ไม่ใช่ผลบวกแบบ OLS รายละเอียดเฉพาะแต่ละ family จะเจอจริงใน L9-13 ถัดไป`),
+  hcard('ทดสอบ',`${T('waldlrt','Wald vs LRT')}`, `H₀:β<sub>j</sub>=0 เทียบ Hₐ:β<sub>j</sub>≠0 ทดสอบได้ 2 วิธี: Wald (z=β̂/SE อ่านจาก summary ตรงๆ ง่าย) หรือ LRT (เทียบ deviance สองโมเดล แม่นกว่าตอนตัวอย่างเล็ก)<br>ทั้งคู่เทียบกับ ${T('satmodel','saturated model/null deviance')} เป็นจุดอ้างอิง`),
+  pcard('ทำนาย','g(μ̂)=Xβ̂', `คำนวณบน link scale ก่อนเสมอ (η̂=Xβ̂) แล้วค่อย back-transform ผ่าน inverse link เป็น μ̂ ห้ามคำนวณ μ̂±1.96×SE ตรงๆบน response scale (อาจหลุดขอบเขตที่เป็นไปได้ของ μ เช่น ความน่าจะเป็นติดลบ)`),
+  icard('ตีความ','log link ให้ผลคูณ', `log link เปลี่ยนการตีความเป็นผลคูณ (multiplicative, exp(β̂)) ไม่ใช่ผลบวกแบบ OLS<br>รายละเอียดเฉพาะแต่ละ family (logit, log, ฯลฯ) จะเจอจริงใน L9-13 ถัดไปทีละแบบ`),
  ]},
 {id:'l9', num:'L9', title:'Binary Data', story:'การประยุกต์ GLM แบบแรก: Y เป็น 0/1',
- flow:{type:'gof', fit:`glm(family=binomial)
+ flow:{type:'gof',
+   lead:[
+    {title:'1. ทำไม OLS ใช้ไม่ได้', body:`Y เป็น 0/1 เท่านั้น แต่เส้นตรง OLS ทำนายค่าได้ทุกจำนวนจริง (หลุดต่ำกว่า 0 หรือเกิน 1 ได้) แถม variance ของ Y ไม่คงที่ (ขึ้นกับ π เอง) ต้องใช้ link function บีบค่าทำนายให้อยู่ใน (0,1) เสมอ`},
+    {title:'2. สมการ Logistic', body:`Logit link: \\(\\log\\!\\left(\\dfrac{\\pi}{1-\\pi}\\right)=\\beta_0+\\beta_1X\\)<br>กลับเป็นความน่าจะเป็น: \\(\\pi=\\dfrac{e^{\\eta}}{1+e^{\\eta}}\\), \\(\\eta=X\\beta\\)`},
+   ],
+   fit:`glm(family=binomial)
 (Intercept)  0.09196  z=0.052  p=0.958
 FMMale      -0.56127  z=-1.057 p=0.291
 BKNoBird    -1.36259  z=-3.313 p=0.0009`, diamond:'GOF ผ่านไหม?',
@@ -411,7 +455,11 @@ BKNoBird    -1.36259  z=-3.313 p=0.0009`, diamond:'GOF ผ่านไหม?',
   icard('ตีความ','Odds Ratio', `BKNoBird: exp(-1.36259)=0.256 → "ผู้ไม่เลี้ยงนกมี odds เป็นมะเร็งปอด 0.256 เท่าของผู้เลี้ยงนก (ลด 74.4%) เมื่อควบคุมตัวแปรอื่นคงที่"<br>ระวัง ${T('prospretro','case-control design')} ทำให้ตีความ intercept ไม่ได้ (odds ratio ของสัมประสิทธิ์อื่นยังตีความได้ปกติ)`),
  ]},
 {id:'l10', num:'L10', title:'Binomial Counts', story:'ขยายจาก binary รายตัว เป็นสัดส่วนจากกลุ่ม',
- flow:{type:'gof', fit:`glm(cbind(damage,6-damage)~temp)
+ flow:{type:'gof',
+   lead:[
+    {title:'1. Binary vs Binomial Counts', body:`L9: Y คือ 0/1 รายตัว (1 แถว = 1 observation)<br>L10: Y คือจำนวนสำเร็จจาก N ครั้งต่อแถว (เช่น เสียหาย 3 จาก 6 ครั้งยิง) ต้อง fit ด้วย <code>cbind(สำเร็จ, ไม่สำเร็จ)~X</code> ไม่ใช่ <code>glm(Y~X)</code> ตรงๆแบบ L9`},
+   ],
+   fit:`glm(cbind(damage,6-damage)~temp)
 (Intercept) 11.66299  z=3.538  p=0.0004
 temp        -0.21623  z=-4.066 p=4.78e-05
 Null dev: 38.898 on 22 df
@@ -424,7 +472,11 @@ Resid dev: 16.912 on 21 df`, diamond:'Overdispersion?',
   icard('ตีความ','Rate ของ Odds Ratio', `temp: exp(-0.21623)≈0.806 → "อุณหภูมิเพิ่ม 1°F odds ของการเกิดความเสียหายลดลงเหลือประมาณ 0.806 เท่า (ลด ≈19.4%)"`),
  ]},
 {id:'l11', num:'L11', title:'Count Regression', story:'ถ้า Y นับไม่มีขอบเขตบน (ไม่ใช่สัดส่วนจาก N ครั้ง) ใช้ Poisson',
- flow:{type:'gof', fit:`glm(colonies~dose+I(dose^2), family=poisson)
+ flow:{type:'gof',
+   lead:[
+    {title:'1. สมการ Poisson + ทำไม log link', body:`\\(\\log(\\mu)=\\beta_0+\\beta_1X\\) ⟺ \\(\\mu=e^{\\beta_0+\\beta_1X}\\)<br>Count ต้อง ≥0 เสมอ log link รับประกันว่า μ̂ ที่คำนวณกลับมาไม่มีทางติดลบ (exp() ของอะไรก็ตามเป็นบวกเสมอ) ต่างจาก identity link ที่ทำนายติดลบได้`},
+   ],
+   fit:`glm(colonies~dose+I(dose^2), family=poisson)
 Null dev: กับ dispersion=4.126227
 1-pchisq(deviance,df) = 1.45e-06 (Poisson ไม่ผ่าน)`, diamond:'φ̂≫1? (Overdispersion)',
    fail:{title:'มี → เปลี่ยน family', body:`${T('quasinb','quasi-Poisson หรือ Negative Binomial')} salmonella: NB GOF p=0.283 (ผ่าน) ดีกว่า Poisson มาก`},
@@ -435,7 +487,11 @@ Null dev: กับ dispersion=4.126227
   icard('ตีความ','Rate Ratio', `Galápagos Elevation: exp(3.541e-3)≈1.00355 → "ระดับความสูงเพิ่ม 1 เมตร จำนวนสปีชีส์คาดว่าเพิ่มเฉลี่ย ≈0.355% เมื่อควบคุมตัวแปรอื่นคงที่"`),
  ]},
 {id:'l12', num:'L12', title:'Multinomial Data', story:'ถ้า Y มีมากกว่า 2 กลุ่ม ขยาย logistic ต่อ',
- flow:{type:'diagnose', diamond:'มีลำดับไหม?',
+ flow:{type:'diagnose',
+   lead:[
+    {title:'1. สมการ Baseline-Category Logit', body:`Y มี J กลุ่ม เขียนสมการ J-1 สมการพร้อมกัน (เทียบแต่ละกลุ่มกับ baseline ที่เลือกไว้ 1 กลุ่ม): \\(\\log(\\pi_j/\\pi_{base})=\\beta_{0j}+\\beta_{1j}X\\) สำหรับ j=1,...,J-1<br>ต้องระบุ baseline category เสมอ ไม่งั้นตีความสัมประสิทธิ์ไม่ได้`},
+   ],
+   diamond:'มีลำดับไหม?',
    branches:[
     {title:'ไม่มี → Nominal', body:`<pre><code>&gt; multinom(vote~nincome)
 nincome: 0.01312  t=6.657</code></pre>baseline-category logit เขียนสมการแยกทุก category เทียบ baseline`},
@@ -465,6 +521,7 @@ AIC: 406.09   (ต่ำสุด)
 AIC: 411.38</code></pre>
      family เดียวกัน ต่าง link เท่านั้น เทียบ AIC ตรงๆได้เลย เลือก identity link เพราะ AIC ต่ำสุดและตีความง่ายสุด`},
    {title:'3. เทียบกับ log-transform+OLS', body:`Part(a) ใช้ \\(y^3\\) เป็นตัวแปรตอบสนอง ได้สัมประสิทธิ์ nitrogen=7278 ตีความยากมาก (สเกลยกกำลังสาม) ส่วน GLM identity link ให้ μ̂ ตรงสเกลเดิม ไม่ต้อง back-transform เลย`},
+   {title:'4. Gamma หรือ Inverse Gaussian?', body:`${T('gammaig','Inverse Gaussian')} มี variance function โตเร็วกว่า Gamma (∝μ³ เทียบ Gamma ∝μ²) เหมาะกับข้อมูลที่เบ้ขวารุนแรงกว่า Gamma ปกติ<br>เลือกด้วยการเทียบ AIC เหมือนเทียบ link function: Assignment 9(3b) rats data ลอง 3 link (log/identity/inverse) บน Inverse Gaussian ได้ AIC เท่ากันหมด=-84.797 เพราะเป็น saturated design (p=n parameters เต็ม) ทำให้ link ไหนก็ fit ได้พอดีเป๊ะเหมือนกัน`},
  ]},
  hpi:[
   hcard('ทดสอบ','เทียบ AIC ข้าม link ได้', `family เดียวกัน ต่าง link เทียบ AIC ตรงๆได้ (ต่าง family เช่น Gamma vs log-normal เทียบ AIC ตรงๆไม่ได้ เพราะ likelihood มาจาก distribution คนละแบบ)`),
@@ -472,7 +529,11 @@ AIC: 411.38</code></pre>
   icard('ตีความ','Multiplicative (log link) หรือตรงตัว (identity)', `log link: "X+1 หน่วย μ เปลี่ยนเป็น exp(β̂) เท่าของเดิม" corn-nitrogen identity link: "ไนโตรเจนเพิ่ม 1 ปอนด์/เอเคอร์ ผลผลิตข้าวโพดเฉลี่ยเพิ่มขึ้นประมาณ 0.2255 บุชเชล/เอเคอร์" ตรงตัว ไม่ต้อง back-transform`),
  ]},
 {id:'l14', num:'L14', title:'Linear Mixed-Effects Models', story:'ถ้าข้อมูลไม่อิสระต่อกัน (วัดซ้ำ) ทุกโมเดลก่อนหน้าพัง ต้องเพิ่ม random effect',
- flow:{type:'diagnose', diamond:'random effect จำเป็นไหม?',
+ flow:{type:'diagnose',
+   lead:[
+    {title:'1. Fixed vs Random Effect', body:`<strong>Fixed</strong>. สนใจระดับเฉพาะของตัวแปรนั้นเอง (เช่น เพศ, ยาที่เลือกทดลอง) ประมาณค่า β̂ ตรงๆแบบที่ผ่านมาทุกบท<br><strong>Random</strong>. ระดับที่สุ่มมาจากประชากรกลุ่มใหญ่กว่า (เช่น operator, subject คนไข้) สนใจ variance ของมัน ไม่ใช่ค่าประมาณเฉพาะระดับ<br>ข้อมูลวัดซ้ำ (repeated measures) ทำให้ observation ภายในกลุ่มเดียวกันไม่ independent อีกต่อไป (ผิด assumption ข้อ 2 จาก L1) ต้องใส่ random effect จับความสัมพันธ์ภายในกลุ่มนั้นแทน`},
+   ],
+   diamond:'random effect จำเป็นไหม?',
    branches:[
     {title:'ทดสอบด้วย Bootstrap', body:`<pre><code>&gt; lmer(bright~1+(1|operator))
 Random effects:
@@ -584,14 +645,25 @@ STATIONS.forEach((st, si) => {
     stationRight = Math.max(stationRight, x - COL_GAP);
     nodes.exitAnchor = cards[cards.length-1];
   } else if (st.flow.type === 'diagnose') {
-    const dia = {kind:'diamond', x:curX, y:rowBTop, w:DIAMOND, h:DIAMOND, title:st.flow.diamond, sub:''};
+    let diaX = curX;
+    if (st.flow.lead) {
+      let x = curX;
+      const leads = st.flow.lead.map(c => ({kind:'card', x:0, w:PIPE_CARD_W, title:c.title, body:c.body}));
+      leads.forEach(c => { mountCard(c); measure(c); });
+      leads.forEach((c,i) => { place(c, x, rowBTop); x += PIPE_CARD_W + COL_GAP; });
+      for (let i=0;i<leads.length-1;i++) drawPath(straight(anchor(leads[i],'right'), anchor(leads[i+1],'left')), 'conn');
+      diaX = x;
+      nodes._leadLast = leads[leads.length-1];
+    }
+    const dia = {kind:'diamond', x:diaX, y:rowBTop, w:DIAMOND, h:DIAMOND, title:st.flow.diamond, sub:''};
     drawDiamond(dia);
-    const branchX = curX + DIAMOND + COL_GAP + 40;
+    if (nodes._leadLast) drawPath(straight(anchor(nodes._leadLast,'right'), anchor(dia,'left')), 'conn');
+    const branchX = diaX + DIAMOND + COL_GAP + 40;
     const branches = st.flow.branches.map(b => ({kind:'card', w:BRANCH_CARD_W, title:b.title, body:b.body}));
     branches.forEach(b => { mountCard(b); measure(b); });
     let by = rowBTop;
     branches.forEach(b => { place(b, branchX, by); by += b.h + 16; });
-    const busX = curX + DIAMOND + COL_GAP;
+    const busX = diaX + DIAMOND + COL_GAP;
     const [sx,sy] = anchor(dia,'right');
     const ys = branches.map(b=>anchor(b,'left')[1]);
     let d = `M${sx},${sy} L${busX},${sy} M${busX},${Math.min(...ys)} L${busX},${Math.max(...ys)} `;
@@ -604,9 +676,20 @@ STATIONS.forEach((st, si) => {
     stationRight = Math.max(stationRight, branchX + BRANCH_CARD_W);
     nodes.exitAnchor = {x:branchX, y:rowBTop, w:BRANCH_CARD_W, h:(rowBBottom-rowBTop)};
   } else if (st.flow.type === 'gof') {
+    let fitX = curX;
+    if (st.flow.lead) {
+      let x = curX;
+      const leads = st.flow.lead.map(c => ({kind:'card', x:0, w:PIPE_CARD_W, title:c.title, body:c.body}));
+      leads.forEach(c => { mountCard(c); measure(c); });
+      leads.forEach((c,i) => { place(c, x, rowBTop); x += PIPE_CARD_W + COL_GAP; });
+      for (let i=0;i<leads.length-1;i++) drawPath(straight(anchor(leads[i],'right'), anchor(leads[i+1],'left')), 'conn');
+      fitX = x;
+      nodes._leadLast = leads[leads.length-1];
+    }
     const fitCard = {kind:'card', w:PIPE_CARD_W, title:'Fit', body:st.flow.fit.includes('\n') ? `<pre><code>${st.flow.fit}</code></pre>` : `<code>${st.flow.fit}</code>`};
-    mountCard(fitCard); measure(fitCard); place(fitCard, curX, rowBTop);
-    const diaX = curX + PIPE_CARD_W + COL_GAP;
+    mountCard(fitCard); measure(fitCard); place(fitCard, fitX, rowBTop);
+    if (nodes._leadLast) drawPath(straight(anchor(nodes._leadLast,'right'), anchor(fitCard,'left')), 'conn');
+    const diaX = fitX + PIPE_CARD_W + COL_GAP;
     const dia = {kind:'diamond', x:diaX, y:rowBTop + (fitCard.h-DIAMOND)/2, w:DIAMOND, h:DIAMOND, title:st.flow.diamond, sub:''};
     drawDiamond(dia);
     drawPath(straight(anchor(fitCard,'right'), anchor(dia,'left')), 'conn');
