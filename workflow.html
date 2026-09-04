@@ -308,8 +308,21 @@ X   -0.44993  t=-42.88  p=2.19e-15
 R-squared: 0.993</code></pre>
      <ul><li>R² กระโดดจาก 0.8116 เป็น 0.993 residual plot หลังแปลงราบเรียบ ไม่มีรูปตัว V แล้ว</li></ul>
      หรือถ้ารู้ pattern ของ variance ชัดแล้ว (ไม่คงที่อย่างเดียว ไม่โค้ง) ใช้ ${T('wls','WLS')} แทน`},
-    {title:'Non-normal?', body:`${T('shapiro',"Shapiro-Wilk")} p ต่ำ (ปฏิเสธ H₀:normal) → ลอง transform เดียวกับที่แก้ non-linearity มักช่วยเรื่อง normality ไปด้วยพร้อมกัน`},
-    {title:'Non-independent?', body:`residual-vs-time/order มีแนวโน้มชัด (ไม่กระจายสุ่ม) → ${T('dw','Durbin-Watson')} ยืนยัน → แก้ด้วยเพิ่มตัวแปรเวลา หรือ ${T('cochrane','Cochrane-Orcutt')} ถ้ายังไม่พอ`},
+    {title:'Non-normal?', body:`<pre><code>&gt; shapiro.test(resid(model))
+
+       Shapiro-Wilk normality test
+
+data: resid(model)
+W = 0.96496, p-value = 0.2741</code></pre>
+     วิธีอ่าน: H₀:normal, p=0.2741>0.05 → ไม่ปฏิเสธ H₀ (ตัวอย่างนี้ "ผ่าน") ถ้า ${T('shapiro',"Shapiro-Wilk")} ได้ p ต่ำกว่า 0.05 แทน (ปฏิเสธ H₀) → ลอง transform เดียวกับที่แก้ non-linearity มักช่วยเรื่อง normality ไปด้วยพร้อมกัน`},
+    {title:'Non-independent?', body:`<pre><code>&gt; dwtest(model)
+
+        Durbin-Watson test
+
+data: model
+DW = 0.73596, p-value = 0.0002836
+alternative hypothesis: true autocorrelation is greater than 0</code></pre>
+     Toothpaste Market Share (time-series): DW=0.736 ต่ำกว่า 2 มาก (ใกล้ 0), p=0.0002836<0.05 → ปฏิเสธ H₀:independent มี positive serial correlation จริง (residual แกว่งเป็นคลื่นตามเวลา ไม่กระจายสุ่ม) → แก้ด้วยเพิ่มตัวแปรเวลา หรือ ${T('cochrane','Cochrane-Orcutt')} ถ้ายังไม่พอ`},
     {title:'Multicollinearity (นอก 4 ข้อ แต่ต้องเช็คคู่กัน)', body:`ไม่ใช่ 1 ใน 4 assumption แต่เป็นปัญหาเฉพาะ MLR (X สัมพันธ์กันเอง) ${T('vif','VIF')}>10 = รุนแรง แก้ด้วย centering, ตัดตัวแปรทิ้ง, หรือ Ridge (ต่อยอดเต็มที่ใน L7)`},
    ], loopLabel:'ไม่ผ่าน → transform แล้ว fit ใหม่'},
  hpi:[
@@ -369,7 +382,11 @@ Step 2: +cyl            AIC=156.010  R2=0.83023</code></pre>
      <li>เส้นทางค้นหาต่างกัน ผลลัพธ์จึงต่างกันได้ ไม่ใช่ความผิดพลาด</li>
      <li>เทียบด้วย ${T('aicbic','AIC/BIC/Cp/adj-R²')} เสมอ ไม่มีวิธีไหน "ถูกต้องที่สุด" ตายตัว</li>
    </ul>`},
-   {title:'4. ประเมินจริงด้วย CV', body:`${T('cv','Cross-Validation')} วัด error บนข้อมูลที่โมเดลไม่เคยเห็น ป้องกัน ${T('rmse','RMSE/MAE')} หลอกตาจาก overfitting`},
+   {title:'4. ประเมินจริงด้วย CV', body:`<pre><code>&gt; bestsubset$result[,c("predictors","rmse")]
+                        Predictors     RMSE
+26       PRECIP EDUC NONWHITE lSO2  34.69990   (4 ตัวแปร)
+31 PRECIP EDUC NONWHITE lNOX lSO2  34.43814   (ต่ำสุด, โมเดลเต็ม)</code></pre>
+     pollution/mortality: RMSE เลือกโมเดลเต็ม (5 ตัวแปร, RMSE=34.43814) ทั้งที่ lNOX ไม่ significant (p=0.368) เพราะ RMSE ไม่มี penalty ความซับซ้อนเลย ยิ่งเพิ่มตัวแปรยิ่งลดเสมอ (in-sample fit) ในขณะที่ BIC/AIC/adj-R²/Cp (มี penalty) เห็นตรงกัน 4 ใน 5 เกณฑ์ว่าโมเดล 4 ตัวแปร (RMSE=34.69990) พอแล้ว → ${T('cv','Cross-Validation')} วัด error บนข้อมูลที่โมเดลไม่เคยเห็นจริง ป้องกัน ${T('rmse','RMSE/MAE')} ในกลุ่มตัวอย่างเดิมหลอกตาแบบนี้`},
  ]},
  hpi:[
   hcard('ทดสอบ',"เทียบ nested model", `ไม่มี p-value เดี่ยวสำหรับ "โมเดลไหนดีสุด" ต้องเทียบเป็นคู่ (nested เท่านั้น) ด้วย ${T('extrassf','Extra-SS-F')} หรือเทียบเกณฑ์รวมอย่าง ${T('aicbic','AIC/BIC')} (ค่าต่ำกว่า=ดีกว่า ใช้ได้แม้โมเดลไม่ nested กัน)`),
@@ -385,15 +402,20 @@ Step 2: +cyl            AIC=156.010  R2=0.83023</code></pre>
    ],
    diamond:'variance เท่ากันทุกกลุ่ม?',
    branches:[
-    {title:'ผ่าน → ANOVA มาตรฐาน', body:`เช็คด้วย ${T('levene',"Levene's/Bartlett's test")} ก่อนเสมอ แล้วฟิตด้วย ${T('cellfactor','Cell-means หรือ Factor-effects')} model แล้วแต่ contrast ที่เลือก`},
-    {title:'ไม่ผ่าน → Welch', body:T('welch','Welch ANOVA ไม่ต้องสมมติ variance เท่ากัน ปรับ df แทน')},
+    {title:'ผ่าน → ANOVA มาตรฐาน', body:`<pre><code>&gt; leveneTest(sales~height, data=bakesale)
+&gt; bartlett.test(sales~height, data=bakesale)</code></pre>
+     H₀:variance เท่ากันทุกกลุ่ม เช็คด้วย ${T('levene',"Levene's/Bartlett's test")} ก่อนเสมอ (สไลด์ไม่มีตัวอย่างตัวเลขจริงของ bakesale โดยตรง แต่ residual-vs-fitted plot ของ aov() ที่ใช้จริงคือกราฟเดียวกับที่เช็คใน L1/L3) แล้วฟิตด้วย ${T('cellfactor','Cell-means หรือ Factor-effects')} model แล้วแต่ contrast ที่เลือก`},
+    {title:'ไม่ผ่าน → Welch', body:`<pre><code>&gt; oneway.test(sales~height, data=bakesale, var.equal=FALSE)</code></pre>
+     ${T('welch','Welch ANOVA ไม่ต้องสมมติ variance เท่ากัน ปรับ df แทน')} (statistic เดียวกันในรูปแบบ แค่ df ไม่ใช่จำนวนเต็มอีกต่อไป)`},
     {title:'F-test ปฏิเสธ H₀ ต่อด้วย Post-hoc', body:`<pre><code>&gt; summary(aovmodel)
 F=184.6  df=(2,15)  p=2.74e-11
 
 &gt; TukeyHSD(aovmodel)
-diff CI ของแต่ละคู่ (bottom-middle,
-bottom-top, middle-top)</code></pre>
-     F-test บอกแค่ "มีอย่างน้อยหนึ่งคู่ต่างกัน" ต้องใช้ ${T('tukey','Tukey HSD')} หรือ ${T('lsdbonf','LSD/Bonferroni/Scheffe')} ต่อถึงจะรู้ว่าคู่ไหน`},
+               diff        lwr        upr     p adj
+middle-bottom  21.4  17.677966  25.122034 0.0000000
+top-bottom     -4.3  -8.022034 -0.577966 0.0229535
+top-middle    -25.7 -29.422034 -21.977966 0.0000000</code></pre>
+     อ่านทีละแถว: <code>middle-bottom</code> CI(17.68,25.12) ไม่ครอบคลุม 0, p≈0 → ต่างกันมาก. <code>top-bottom</code> CI(-8.02,-0.58) ก็ไม่ครอบคลุม 0 แต่ขอบบนใกล้ 0 ที่สุด, p=0.023 → "หวุดหวิด" กว่าคู่อื่น. F-test บอกแค่ "มีอย่างน้อยหนึ่งคู่ต่างกัน" ต้องใช้ ${T('tukey','Tukey HSD')} หรือ ${T('lsdbonf','LSD/Bonferroni/Scheffe')} ต่อถึงจะรู้ว่าคู่ไหน`},
    ], loopLabel:`ตรวจด้วย Levene's test`},
  hpi:[
   hcard('ทดสอบ','H₀: μ₁=...=μᵣ', `H₀: μ<sub>bottom</sub>=μ<sub>middle</sub>=μ<sub>top</sub> (ค่าเฉลี่ยยอดขายเท่ากันทุกชั้นวาง) เทียบ Hₐ: มีอย่างน้อย 1 คู่ไม่เท่ากัน<br>สถิติทดสอบ: \\(F=MSTR/MSE\\sim F_{(r-1,\\,n_T-r)}\\), ปฏิเสธ H₀ ถ้า p<α<br>ผลจริง: F=184.6, df=(2,15), p=2.74e-11 < 0.05 → ปฏิเสธ H₀ → ชั้นวางมีผลต่อยอดขายอย่างมีนัยสำคัญ`),
