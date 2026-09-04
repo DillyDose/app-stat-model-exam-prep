@@ -463,9 +463,13 @@ BKNoBird    -1.36259  z=-3.313 p=0.0009`, diamond:'GOF ผ่านไหม?',
 (Intercept) 11.66299  z=3.538  p=0.0004
 temp        -0.21623  z=-4.066 p=4.78e-05
 Null dev: 38.898 on 22 df
-Resid dev: 16.912 on 21 df`, diamond:'Overdispersion?',
-   fail:{title:'มี → quasibinomial', body:`${T('overdisp','Overdispersion')} → ปรับ SE ด้วย √φ̂ (สัมประสิทธิ์ point estimate เท่าเดิมทุกตัว)`},
-   pass:{title:'ไม่มี → เชื่อ SE ปกติ', body:`ทดสอบด้วย ${T('devgof','Deviance GOF')} หรือ drop-in-deviance เทียบกับโมเดลลดรูป`}},
+Resid dev: 16.912 on 21 df
+
+> est.phi<-function(glmobj) sum(residuals(glmobj,type="pearson")^2)/glmobj$df.residual
+> est.phi(model)
+[1] 1.336542`, diamond:'Overdispersion? (φ>1.5)',
+   fail:{title:'φ>1.5 → quasibinomial', body:`${T('overdisp','Overdispersion')} → ปรับ SE ด้วย √φ̂ (coefficient เท่าเดิมทุกตัว, z-test→t-test) ตัวอย่างกลไก (แม้ O-rings เองยังไม่ถึงเกณฑ์นี้): SE(temp) 0.05318→0.06148 (×√1.336542≈1.1561), t=-4.066→-3.517, p=4.78e-05→0.00205 (ยังนัยสำคัญแต่ไม่สุดโต่งเท่าเดิม)`},
+   pass:{title:'φ<1.5 → เชื่อ SE เดิม', body:`O-rings: φ̂=1.336542<1.5 → ยังไม่ถือว่ารุนแรง เชื่อ SE จาก <code>summary()</code> ตรงๆได้ (z-test ปกติ) แล้วค่อยทดสอบ ${T('devgof','Deviance GOF')} หรือ drop-in-deviance เทียบกับโมเดลลดรูปต่อ`}},
  hpi:[
   hcard('ทดสอบ',T('devgof','Deviance GOF / Drop-in-Deviance'), `orings (O-ring damage): Model1(null, dev=38.898/22df) vs Model2(+temp, dev=16.912/21df) LRT ลดลงมาก → temp มีผลจริงอย่างมีนัยสำคัญ`),
   pcard('ทำนาย','เหมือน L9 แต่กรอบสัดส่วน', `η̂→π̂ วิธีเดียวกับ L9 แต่ตีความเป็น "สัดส่วนของกลุ่ม" (เช่น เสียหาย 3 จาก 6 ครั้ง) ไม่ใช่ความน่าจะเป็นรายตัว`),
@@ -477,12 +481,16 @@ Resid dev: 16.912 on 21 df`, diamond:'Overdispersion?',
     {title:'1. สมการ Poisson + ทำไม log link', body:`\\(\\log(\\mu)=\\beta_0+\\beta_1X\\) ⟺ \\(\\mu=e^{\\beta_0+\\beta_1X}\\)<br>Count ต้อง ≥0 เสมอ log link รับประกันว่า μ̂ ที่คำนวณกลับมาไม่มีทางติดลบ (exp() ของอะไรก็ตามเป็นบวกเสมอ) ต่างจาก identity link ที่ทำนายติดลบได้`},
    ],
    fit:`glm(colonies~dose+I(dose^2), family=poisson)
-Null dev: กับ dispersion=4.126227
-1-pchisq(deviance,df) = 1.45e-06 (Poisson ไม่ผ่าน)`, diamond:'φ̂≫1? (Overdispersion)',
-   fail:{title:'มี → เปลี่ยน family', body:`${T('quasinb','quasi-Poisson หรือ Negative Binomial')} salmonella: NB GOF p=0.283 (ผ่าน) ดีกว่า Poisson มาก`},
-   pass:{title:'ไม่มี → เชื่อผลลัพธ์', body:'ใช้ Poisson ต่อได้เลย ไม่ต้องปรับอะไรเพิ่ม'}},
+[coefficients ทุกพจน์ significant]
+
+> deviance(model)/df.residual(model)
+[1] 4.126227
+> pchisq(deviance(model), df.residual(model), lower=FALSE)
+[1] 1.45e-06   (Poisson GOF ไม่ผ่าน)`, diamond:'φ̂=deviance/df ≫1? (>1.5 มี, >>2 รุนแรง)',
+   fail:{title:'φ≫2 → เปลี่ยน family', body:`${T('quasinb','quasi-Poisson หรือ Negative Binomial')} salmonella: φ̂=4.126227≫2 (รุนแรงชัดเจน) NB GOF p=0.283 (ผ่าน) ดีกว่า Poisson GOF p=1.45e-06 มาก`},
+   pass:{title:'φ≈1 → เชื่อผลลัพธ์', body:'ใช้ Poisson ต่อได้เลย ไม่ต้องปรับอะไรเพิ่ม'}},
  hpi:[
-  hcard('ทดสอบ','φ̂=deviance/df', `Salmonella: φ̂=4.126227≫1 → SE ขยาย √4.126≈2.03 เท่า t-value เดิม -4.066 กลายเป็น -3.517 (ยังนัยสำคัญแต่ไม่สุดโต่งเท่าตอนไม่ปรับ)`),
+  hcard('ทดสอบ','φ̂=deviance/df', `เกณฑ์: φ̂>1.5 มี overdispersion, φ̂≫2 รุนแรง<br>Salmonella: φ̂=4.126227≫2 → SE ขยาย √4.126≈2.03 เท่า t-value เดิม -4.066 กลายเป็น -3.517 (ยังนัยสำคัญแต่ไม่สุดโต่งเท่าตอนไม่ปรับ)`),
   pcard('ทำนาย','μ̂=exp(Xβ̂)', `ถ้ามี ${T('offset','offset')}: log(μ̂)=Xβ̂+log(exposure) ตีความเป็นอัตราไม่ใช่จำนวนดิบ ต้องย้ายข้างก่อนตีความเป็น "อัตรา"`),
   icard('ตีความ','Rate Ratio', `Galápagos Elevation: exp(3.541e-3)≈1.00355 → "ระดับความสูงเพิ่ม 1 เมตร จำนวนสปีชีส์คาดว่าเพิ่มเฉลี่ย ≈0.355% เมื่อควบคุมตัวแปรอื่นคงที่"`),
  ]},
